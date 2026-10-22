@@ -5,6 +5,7 @@
 //! device at runtime. Bytes whose meaning no source documents are kept raw.
 
 pub mod allowlist;
+pub mod battery;
 pub mod device_name;
 pub mod firmware;
 pub mod reader;

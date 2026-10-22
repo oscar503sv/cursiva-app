@@ -35,6 +35,21 @@ pub(crate) fn tail_hex(p: &[u8], from: usize) -> String {
     hidlab_hidpp::hex(&tail[..end])
 }
 
+/// Bits of `value` not covered by `known`, as `0x..`, or `None` if zero.
+pub(crate) fn unknown_bits(value: u16, known: u16) -> Option<String> {
+    let rest = value & !known;
+    (rest != 0).then(|| format!("0x{rest:02x}"))
+}
+
+/// Names of the set bits of `value` found in `table`.
+pub(crate) fn bit_names(value: u16, table: &[(u16, &'static str)]) -> Vec<&'static str> {
+    table
+        .iter()
+        .filter(|(bit, _)| value & bit != 0)
+        .map(|(_, n)| *n)
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -44,5 +59,12 @@ mod tests {
         assert_eq!(tail_hex(&[1, 2, 3, 0, 0], 1), "02 03");
         assert_eq!(tail_hex(&[1, 0, 0], 1), "");
         assert_eq!(tail_hex(&[1], 5), "");
+    }
+
+    #[test]
+    fn bits() {
+        assert_eq!(unknown_bits(0x0F, 0x0E), Some("0x01".into()));
+        assert_eq!(unknown_bits(0x0E, 0x0E), None);
+        assert_eq!(bit_names(0x05, &[(1, "a"), (2, "b"), (4, "c")]), ["a", "c"]);
     }
 }
