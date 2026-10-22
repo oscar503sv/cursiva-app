@@ -1,0 +1,22 @@
+# hid-lab user daemon (Cursiva). Install, as your normal user (no root):
+#   cargo install --path crates/hidlab-daemon --root ~/.local
+#   install -Dm644 packaging/systemd/hid-labd.service ~/.config/systemd/user/hid-labd.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now hid-labd.service
+# See docs/daemon.md.
+
+[Unit]
+Description=hid-lab daemon for Logitech HID++ mice (Cursiva)
+After=dbus.socket
+Requires=dbus.socket
+
+[Service]
+Type=dbus
+BusName=dev.ozkkar.Cursiva.Daemon1
+ExecStart=%h/.local/bin/hid-labd
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target
