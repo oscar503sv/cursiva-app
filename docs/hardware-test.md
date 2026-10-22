@@ -358,3 +358,160 @@ Run by the user on Fedora 44, Bluetooth, hid-lab 0.1.0. Captures are in
 
 Open items for 4c: a channel switch that does reconnect, and a suspend with
 non-default values still applied.
+
+## M4b — Daemon, config file and D-Bus (MX Master 3S over Bluetooth)
+
+Run in this order, as your normal user. Do not run Solaar, logid or
+`hid-lab lab write` during these tests. At the end the mouse goes back to
+the values it had before.
+
+### Preparation
+
+```bash
+mkdir -p ~/hidlab-m4b
+cargo build --release
+./target/release/hid-lab lab read --json > ~/hidlab-m4b/00-before.json
+cargo install --path crates/hidlab-daemon --root ~/.local
+cargo install --path crates/hidlab-cli --root ~/.local
+install -Dm644 packaging/systemd/hid-labd.service ~/.config/systemd/user/hid-labd.service
+systemctl --user daemon-reload
+ls ~/.config/hid-lab/ ~/.local/state/hid-lab/daemon/
+```
+
+The last command should say that both directories do not exist. If they
+exist, tell me what is in them before going on. If `hid-lab` is not found
+in the next steps, add `~/.local/bin` to `PATH` or call
+`~/.local/bin/hid-lab`.
+
+### H4B-01 — Start, status and no root
+
+```bash
+systemctl --user enable --now hid-labd.service
+systemctl --user status hid-labd.service --no-pager
+ps -o user=,comm= -C hid-labd
+hid-lab status
+hid-lab status --json > ~/hidlab-m4b/01-status.json
+```
+
+Pass: the unit is `active (running)`; `ps` shows your user, not root;
+`status` shows the MX Master 3S with access `ok`, nothing wanted, and
+current values equal to `00-before.json` (DPI, mode, threshold, thumb
+wheel).
+
+### H4B-02 — `set`, one setting at a time
+
+```bash
+hid-lab set dpi 1600
+hid-lab set smartshift-threshold 3
+hid-lab set thumbwheel-invert on
+hid-lab set smartshift-mode free-spin
+hid-lab status --json > ~/hidlab-m4b/02-status.json
+cat ~/.config/hid-lab/config.toml ~/.local/state/hid-lab/daemon/state.toml
+```
+
+After each `set`, check the effect as in H4: faster pointer; the wheel
+switches to free spin easily (before the mode change); the thumb wheel
+scrolls the other way; the wheel spins freely.
+
+Pass: each `set` says `written and verified` and `Saved to ...`; `status`
+marks the four settings `ok`; `config.toml` holds dpi, threshold and invert;
+`state.toml` holds `smartshift_mode = "free-spin"`.
+
+Then try a value the mouse cannot take:
+
+```bash
+hid-lab set dpi 1625
+```
+
+Pass: it says `REJECTED, not sent` and `nothing was saved`, and
+`config.toml` still says `dpi = 1600`.
+
+### H4B-03 — Edit the file and reapply; a broken file
+
+```bash
+sed -i 's/^dpi = 1600/dpi = 800/' ~/.config/hid-lab/config.toml
+hid-lab reapply
+```
+
+Pass: `dpi 800 written and verified`, the others `already set`, and the
+pointer is slower.
+
+Now break the file and try again:
+
+```bash
+echo 'bogus = 1' >> ~/.config/hid-lab/config.toml
+hid-lab reapply
+hid-lab set dpi 1000
+hid-lab status > ~/hidlab-m4b/03-status-broken.txt
+sed -i '/^bogus = 1$/d' ~/.config/hid-lab/config.toml
+hid-lab reapply
+```
+
+Pass: the first `reapply` warns about `bogus` and applies the last valid
+configuration (DPI 800 stays); `set` refuses with `was not changed`;
+`status` shows the warning; after removing the line, `reapply` has no
+warning.
+
+### H4B-04 — Restart: the daemon applies at start
+
+```bash
+systemctl --user restart hid-labd.service
+journalctl --user -u hid-labd.service -b --no-pager -o cat | tail -n 20
+```
+
+Pass: the log shows `serving dev.ozkkar.Cursiva.Daemon1`, the mouse
+`connected`, and `applied 4 setting(s) ... verified`.
+
+### H4B-05 — Reconnect is noticed, not yet re-applied
+
+Turn the mouse off with the switch, wait 10 s, turn it on and move it.
+
+```bash
+hid-lab status
+journalctl --user -u hid-labd.service -b --no-pager -o cat | tail -n 10
+hid-lab reapply
+hid-lab status --json > ~/hidlab-m4b/05-status.json
+```
+
+Pass: the log shows `mouse disconnected`, then `connected` with a new
+`0005:046D:B034.NNNN`; the first `status` marks DPI, threshold and invert
+`DIFFERS` (the mouse reset them, P-033) and the mode `ok`; after
+`reapply`, all four are `ok`. Automatic re-application is phase 4c.
+
+### H4B-06 — Owners and conflicts
+
+```bash
+hid-lab lab write dpi 1600 hidraw2 --write
+cp /usr/bin/sleep ~/hidlab-m4b/solaar && ~/hidlab-m4b/solaar 60 &
+hid-lab status | tail -n 3
+~/.local/bin/hid-labd
+```
+
+Pass: `lab write` refuses with `hid-labd is running` and writes nothing;
+`status` warns that `solaar` is running (this is a copy of `sleep` with
+that name, to test the detection; it ends by itself after 60 s); the
+second `hid-labd` exits with `another hid-labd already owns`.
+
+### Back to the start
+
+Use the values from `00-before.json` (on this mouse until now: DPI 1000,
+ratchet, threshold 10, thumb wheel not inverted):
+
+```bash
+hid-lab set dpi 1000
+hid-lab set smartshift-threshold 10
+hid-lab set thumbwheel-invert off
+hid-lab set smartshift-mode ratchet
+hid-lab lab read --json > ~/hidlab-m4b/06-after.json
+journalctl --user -u hid-labd.service -b --no-pager -o cat > ~/hidlab-m4b/journal.txt
+cp ~/.config/hid-lab/config.toml ~/.local/state/hid-lab/daemon/state.toml ~/hidlab-m4b/
+rm ~/hidlab-m4b/solaar
+```
+
+The daemon stays installed and enabled with these default values. To
+disable it: `systemctl --user disable --now hid-labd.service`.
+
+### What to send back
+
+The files in `~/hidlab-m4b/` and a short note per test about what you saw
+and felt.

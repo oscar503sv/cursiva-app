@@ -23,7 +23,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 0 Diagnosis | Done. Cause: missing `uaccess` udev rule |
 | 1 + 2 Discovery, HID++ core, feature enumeration | Done, framing CONFIRMED |
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
-| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done, hardware tests H4 run (observation O-6). Next 4b; propose SmartShift-mode details before 4c |
+| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done (H4, O-6). 4b implemented; wait for the user's H4B results before 4c. SmartShift-mode design for 4c approved (requirements, Milestone 4) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
 | 5–8 | Not started; do not start without approval |
 
@@ -47,15 +47,20 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 crates/
 ├── hidlab-transport/   sysfs discovery, report-descriptor walker, hidraw I/O (poll), power_supply lookup
 ├── hidlab-hidpp/       generic HID++ 2.0: framing, request/response matching, transcript, enumeration
-├── hidlab-features/    typed read-only feature access behind an allowlist (crates/hidlab-features/src/allowlist.rs)
-└── hidlab-cli/         binary `hid-lab`
+├── hidlab-features/    typed feature access behind allowlists (crates/hidlab-features/src/allowlist.rs); `settings` plans, sends and verifies writes
+├── hidlab-devices/     device profiles: MX Master 3S over Bluetooth and the settings it accepts
+├── hidlab-daemon/      binary `hid-labd` + lib: config, state, apply engine, D-Bus service, shared API types
+└── hidlab-cli/         binary `hid-lab` (user commands via D-Bus; lab commands direct)
 ```
 
-Dependency direction is mandatory: `cli → features → hidpp → transport`. `hidpp` and `features` are generic HID++; device-specific knowledge goes in a future `hidlab-devices` crate (requirements §5).
+Dependency direction is mandatory: `cli → (D-Bus) → daemon → devices → features → hidpp → transport`. The CLI links `hidlab-daemon` only for the API types and D-Bus names. `hidpp` and `features` are generic HID++; device-specific knowledge goes in `hidlab-devices` (requirements §5).
 
 Commands today:
 
 ```bash
+hid-lab status   [--json]
+hid-lab set      <setting> <value> [--json]
+hid-lab reapply  [--json]
 hid-lab lab devices  [--json] [--show-unique]
 hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
 hid-lab lab read     [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -64,9 +69,11 @@ hid-lab lab hotplug  [--duration <s>] [--json]
 hid-lab lab write    <setting> (<value> | --restore) [<device>] (--dry-run | --write) [--json]
 ```
 
-`lab write` state (saved originals, `log.jsonl`) lives in `$XDG_STATE_HOME/hid-lab/lab-write/`.
+`lab write` state (saved originals, `log.jsonl`) lives in `$XDG_STATE_HOME/hid-lab/lab-write/`. `lab write --write` refuses while `hid-labd` owns its D-Bus name.
 
-Dependencies: `libc`, `serde`, `serde_json`, `thiserror`; approved for Milestone 4: `udev` (needs `systemd-devel` to build), `zbus`, `toml`. Explain why before adding any other crate, and verify its current version with `cargo info`.
+Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written.
+
+Dependencies: `libc`, `serde`, `serde_json`, `thiserror`, `udev` (needs `systemd-devel` to build), `zbus` 5.13.2 (blocking API; 6.0.0 dropped it), `toml`. Explain why before adding any other crate, and verify its current version with `cargo info`.
 
 ## Protocol work
 

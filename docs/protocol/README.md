@@ -95,6 +95,7 @@ Source: R-1, R-2. Evidence: all requests sent with `0xFF` were answered with
 |---|---|---|
 | The device echoes the request's non-zero `sw_id` (`0x0B`) | **CONFIRMED** | Every response in O-1 carries `0x?B` in byte 3; O-2 and O-3 matched on it |
 | Device notifications carry `sw_id = 0` | **CONFIRMED** | 7 notifications with `sw_id 0` in O-5 (`evidence/m3/04` and `05`); see P-029 |
+| The daemon's `sw_id` `0x0C` is echoed too | LIKELY | Claude Code's read-only smoke run of `hid-labd` on 2026-10-22 (empty config): `GetStatus` read all four settings, which needs matching answers; no file kept. The user's H4B tests will confirm |
 
 ### P-005 — The device may answer in a different report size than the request
 

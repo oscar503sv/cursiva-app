@@ -606,3 +606,5 @@ The question this project answers is not "can Linux talk to this mouse?" (it can
 | 2026-10-21 | `hid-lab lab write --write` requires an explicit device; `--dry-run` may auto-select. |
 | 2026-10-21 | Hotplug uses the `udev` crate (libudev; `systemd-devel` at build time). D-Bus uses `zbus`, config uses `toml`. |
 | 2026-10-22 | SmartShift mode tracking for 4c approved as proposed (see Milestone 4), including: each computer keeps its own mode. |
+| 2026-10-22 | D-Bus uses zbus 5.13.2, not 6.0.0: 6.0.0 (released 2026-10-16) removed the blocking API the daemon uses. |
+| 2026-10-22 | Phase 4b daemon applies the configuration at start, on `hid-lab set` and on `hid-lab reapply`, and tracks connect/disconnect; automatic re-application on reconnect is phase 4c. Config schema in `docs/config-format.md` (`smartshift = { mode, threshold }`). |
