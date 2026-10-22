@@ -5,6 +5,7 @@
 //! [`hidlab_features::CONFIRMED_WRITES`], and only settings the device's
 //! profile in `hidlab-devices` lists.
 
+pub mod apply;
 pub mod config;
 pub mod paths;
 pub mod state;

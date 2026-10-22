@@ -38,6 +38,8 @@ version = "0.1.0"
 dependencies = [
  "hidlab-devices",
  "hidlab-features",
+ "hidlab-hidpp",
+ "hidlab-transport",
  "serde",
  "thiserror",
  "toml",

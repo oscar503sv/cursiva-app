@@ -8,6 +8,8 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+hidlab-transport.workspace = true
+hidlab-hidpp.workspace = true
 hidlab-features.workspace = true
 hidlab-devices.workspace = true
 serde.workspace = true
