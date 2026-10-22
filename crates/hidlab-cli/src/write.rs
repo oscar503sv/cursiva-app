@@ -114,6 +114,18 @@ fn tilde(p: &Path) -> String {
 }
 
 pub fn run(args: &WriteArgs) -> Result<(), String> {
+    // The daemon owns the configuration (requirements §5): an experiment
+    // would be overwritten, or would confuse what the daemon verifies.
+    if args.mode == WriteMode::Write && crate::client::daemon_running() == Some(true) {
+        return Err(format!(
+            "hid-labd is running and owns the mouse configuration; nothing was written.\n\
+             Stop it for the experiment, then start it again:\n  \
+             systemctl --user stop {unit}\n  \
+             hid-lab lab write ...\n  \
+             systemctl --user start {unit}",
+            unit = hidlab_daemon::api::UNIT
+        ));
+    }
     let dir = state_dir()?;
     let record_file = record_path(&dir, args.setting);
     let discovery = discover().map_err(|e| e.to_string())?;
