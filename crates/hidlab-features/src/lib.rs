@@ -7,6 +7,7 @@
 pub mod allowlist;
 pub mod battery;
 pub mod device_name;
+pub mod dpi;
 pub mod firmware;
 pub mod reader;
 mod util;
