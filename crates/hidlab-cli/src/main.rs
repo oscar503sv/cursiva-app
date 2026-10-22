@@ -8,6 +8,7 @@ mod output;
 mod read;
 mod target;
 mod watch;
+mod write;
 
 use std::process::ExitCode;
 
@@ -46,6 +47,7 @@ fn main() -> ExitCode {
         Command::Read(a) => read::run(&a),
         Command::Watch(a) => watch::run(&a),
         Command::Hotplug(a) => hotplug::run(&a),
+        Command::Write(a) => write::run(&a),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,

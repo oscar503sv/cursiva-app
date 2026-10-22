@@ -11,10 +11,12 @@ Usage:
   hid-lab lab read [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
   hid-lab lab watch [<device>] [--duration <s>] [--json] [--features-from <file>]
   hid-lab lab hotplug [--duration <s>] [--json]
+  hid-lab lab write <setting> <value> [<device>] (--dry-run | --write) [--json]
+  hid-lab lab write <setting> --restore [<device>] (--dry-run | --write) [--json]
   hid-lab --help | --version
 
 Run `hid-lab lab <command> --help` for details.
-Lab commands only send read-only queries. No device setting is changed.
+All lab commands are read-only except `lab write`, which needs --write.
 ";
 
 pub const LAB_HELP: &str = "\
@@ -26,8 +28,9 @@ Commands:
   read       Read battery, DPI, wheels, controls, host, firmware and name
   watch      Listen passively and show HID++ notifications
   hotplug    Show hidraw devices appearing and disappearing (udev)
+  write      Write one setting to confirm a write function (needs --write)
 
-Lab commands only send read-only queries. No device setting is changed.
+All lab commands are read-only except `lab write`, which needs --write.
 ";
 
 pub const DEVICES_HELP: &str = "\
@@ -128,6 +131,38 @@ Options:
 Passive: this command opens nodes only to check access and sends nothing.
 ";
 
+pub const WRITE_HELP: &str = "\
+hid-lab lab write — controlled write experiment for one setting
+
+Usage:
+  hid-lab lab write <setting> <value> [<device>] (--dry-run | --write) [--json]
+  hid-lab lab write <setting> --restore [<device>] (--dry-run | --write) [--json]
+
+Settings and values:
+  dpi <n>                         a value from the list `hid-lab lab read` shows
+  smartshift-mode <ratchet|free-spin>
+  smartshift-threshold <1..50>
+  thumbwheel-invert <on|off>
+
+What it does:
+  1. Shows the target device and reads the current value.
+  2. With --write: saves the current value as the original (once; a saved
+     original is kept until restored), sends the write, logs every byte,
+     reads back and compares the written field and the fields that must not
+     change. Prints PASS or MISMATCH.
+  3. With --restore: writes the saved original back and verifies it.
+  With --dry-run nothing is written: it shows the exact bytes it would send.
+
+<device> (`hidrawN`, `/dev/hidrawN` or the `#` from `hid-lab lab devices`) is
+required with --write. --dry-run may auto-select the only Logitech HID++ device.
+
+Originals and a log of every write are kept in
+$XDG_STATE_HOME/hid-lab/lab-write/ (default ~/.local/state/hid-lab/lab-write/).
+
+These write functions are LIKELY, not yet CONFIRMED. This command exists to
+confirm them on the real device, one at a time (requirements §13).
+";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HelpTopic {
     Top,
@@ -137,6 +172,7 @@ pub enum HelpTopic {
     Read,
     Watch,
     Hotplug,
+    Write,
 }
 
 impl HelpTopic {
@@ -149,6 +185,7 @@ impl HelpTopic {
             HelpTopic::Read => READ_HELP,
             HelpTopic::Watch => WATCH_HELP,
             HelpTopic::Hotplug => HOTPLUG_HELP,
+            HelpTopic::Write => WRITE_HELP,
         }
     }
 }
@@ -182,6 +219,23 @@ pub struct HotplugArgs {
     pub json: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WriteMode {
+    DryRun,
+    Write,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WriteArgs {
+    pub setting: hidlab_features::lab_write::SettingKind,
+    /// `None` with --restore.
+    pub value: Option<hidlab_features::lab_write::SettingValue>,
+    pub device: Option<String>,
+    pub mode: WriteMode,
+    pub json: bool,
+    pub timeout: Duration,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     Help(HelpTopic),
@@ -191,6 +245,7 @@ pub enum Command {
     Read(FeaturesArgs),
     Watch(WatchArgs),
     Hotplug(HotplugArgs),
+    Write(WriteArgs),
 }
 
 /// Parses arguments (without the program name). `Err` is a usage message.
@@ -212,6 +267,7 @@ where
             Some("read") => parse_features(it.collect(), HelpTopic::Read),
             Some("watch") => parse_watch(it.collect()),
             Some("hotplug") => parse_hotplug(it.collect()),
+            Some("write") => parse_write(it.collect()),
             Some(other) => Err(format!(
                 "unknown lab command `{other}`. Try: hid-lab lab --help"
             )),
@@ -389,6 +445,80 @@ fn parse_hotplug(rest: Vec<&str>) -> Result<Command, String> {
     Ok(Command::Hotplug(out))
 }
 
+fn parse_write(rest: Vec<&str>) -> Result<Command, String> {
+    use hidlab_features::lab_write::SettingKind;
+    const TRY: &str = "Try: hid-lab lab write --help";
+    let mut positionals: Vec<&str> = Vec::new();
+    let (mut dry, mut write, mut restore, mut json) = (false, false, false, false);
+    let mut timeout = Duration::from_millis(2000);
+    let mut it = rest.into_iter();
+    while let Some(arg) = it.next() {
+        let (flag, inline) = split_flag(arg);
+        match flag {
+            "-h" | "--help" => return Ok(Command::Help(HelpTopic::Write)),
+            "--dry-run" => dry = true,
+            "--write" => write = true,
+            "--restore" => restore = true,
+            "--json" => json = true,
+            "--timeout-ms" => {
+                let v = inline
+                    .map(str::to_owned)
+                    .or_else(|| it.next().map(str::to_owned))
+                    .ok_or(format!("--timeout-ms needs a value. {TRY}"))?;
+                let ms: u64 = v
+                    .parse()
+                    .ok()
+                    .filter(|&ms| (1..=60_000).contains(&ms))
+                    .ok_or_else(|| format!("--timeout-ms must be 1..=60000, got `{v}`"))?;
+                timeout = Duration::from_millis(ms);
+            }
+            other if other.starts_with('-') => {
+                return Err(format!("unknown option `{other}`. {TRY}"));
+            }
+            other => positionals.push(other),
+        }
+    }
+    let mode = match (dry, write) {
+        (true, false) => WriteMode::DryRun,
+        (false, true) => WriteMode::Write,
+        (false, false) => {
+            return Err(format!(
+                "choose --dry-run to preview the bytes or --write to send them. {TRY}"
+            ));
+        }
+        (true, true) => return Err(format!("use either --dry-run or --write, not both. {TRY}")),
+    };
+    let mut pos = positionals.into_iter();
+    let name = pos.next().ok_or(format!("missing setting. {TRY}"))?;
+    let setting =
+        SettingKind::from_name(name).ok_or_else(|| format!("unknown setting `{name}`. {TRY}"))?;
+    let value = if restore {
+        None
+    } else {
+        let v = pos
+            .next()
+            .ok_or(format!("missing value for {name}. {TRY}"))?;
+        Some(setting.parse_value(v)?)
+    };
+    let device = pos.next().map(str::to_owned);
+    if let Some(extra) = pos.next() {
+        return Err(format!("unexpected argument `{extra}`. {TRY}"));
+    }
+    if mode == WriteMode::Write && device.is_none() {
+        return Err(format!(
+            "--write needs an explicit device, for example `hidraw2` or the `#` from `hid-lab lab devices`. {TRY}"
+        ));
+    }
+    Ok(Command::Write(WriteArgs {
+        setting,
+        value,
+        device,
+        mode,
+        json,
+        timeout,
+    }))
+}
+
 fn parse_u8(v: &str) -> Result<u8, String> {
     let parsed = match v.strip_prefix("0x").or_else(|| v.strip_prefix("0X")) {
         Some(hex) => u8::from_str_radix(hex, 16).ok(),
@@ -481,6 +611,61 @@ mod tests {
         assert!(h.json);
         assert!(parse(["lab", "hotplug", "hidraw2"]).is_err());
         assert!(parse(["lab", "hotplug", "--duration", "0"]).is_err());
+    }
+
+    #[test]
+    fn write_args() {
+        use hidlab_features::lab_write::{SettingKind, SettingValue};
+        let Ok(Command::Write(w)) = parse(["lab", "write", "dpi", "1600", "hidraw2", "--write"])
+        else {
+            panic!()
+        };
+        assert_eq!(w.setting, SettingKind::Dpi);
+        assert_eq!(w.value, Some(SettingValue::Dpi(1600)));
+        assert_eq!(w.device.as_deref(), Some("hidraw2"));
+        assert_eq!(w.mode, WriteMode::Write);
+
+        let Ok(Command::Write(w)) = parse([
+            "lab",
+            "write",
+            "smartshift-mode",
+            "--restore",
+            "1",
+            "--dry-run",
+        ]) else {
+            panic!()
+        };
+        assert_eq!(w.value, None);
+        assert_eq!(w.device.as_deref(), Some("1"));
+
+        let Ok(Command::Write(w)) = parse(["lab", "write", "thumbwheel-invert", "on", "--dry-run"])
+        else {
+            panic!()
+        };
+        assert_eq!(w.device, None);
+
+        // --write without a device, no mode, both modes, bad setting, bad value.
+        assert!(
+            parse(["lab", "write", "dpi", "1600", "--write"])
+                .unwrap_err()
+                .contains("explicit device")
+        );
+        assert!(parse(["lab", "write", "dpi", "1600", "hidraw2"]).is_err());
+        assert!(
+            parse([
+                "lab",
+                "write",
+                "dpi",
+                "1600",
+                "hidraw2",
+                "--write",
+                "--dry-run"
+            ])
+            .is_err()
+        );
+        assert!(parse(["lab", "write", "wheel-mode", "1", "hidraw2", "--write"]).is_err());
+        assert!(parse(["lab", "write", "smartshift-threshold", "99", "--dry-run"]).is_err());
+        assert!(parse(["lab", "write", "dpi", "1600", "2", "3", "--dry-run"]).is_err());
     }
 
     #[test]
