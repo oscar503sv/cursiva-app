@@ -61,7 +61,17 @@ Status: **CONFIRMED**
 
 After T-001, the node has an ACL entry for the logged-in user, and
 `hid-lab lab features` enumerates every HID++ feature as a normal user over
-Bluetooth (see T-002). Run twice with identical results.
+Bluetooth (see T-002). Four runs gave identical results, two of them run by
+the user on their own machine.
+
+### F-004 — hid-lab coexists with the kernel driver and live mouse input
+
+Status: **CONFIRMED**
+
+The user ran `hid-lab lab features --json` while moving the mouse and turning
+the wheel. hid-lab ignored 48 unrelated reports and still returned all 36
+entries, identical to the idle runs. The bound `logitech-hidpp-device` driver
+did not need to be unbound. See `docs/protocol/README.md`, P-014.
 
 ### H-001 — Missing permissions is the cause of "nothing can be configured"
 
@@ -127,8 +137,17 @@ IFeatureSet at index 0x01; 35 features plus root
 The protocol version matches the kernel log. The full feature list is in
 `docs/protocol/README.md`, and the raw JSON with transcript is in
 `docs/protocol/mx-master-3s-features.json`. Coexistence with the bound
-kernel driver caused no errors. No unrelated reports arrived during the run,
-so traffic filtering is still unverified on the real device (P-014).
+kernel driver caused no errors.
+
+User runs on 2026-10-21:
+
+| Run | Conditions | `ignored_reports` | Result |
+|---|---|---|---|
+| O-2 | idle | not reported | matches the evidence file |
+| O-3 | moving the mouse and turning the wheel | 48 | same 36 entries |
+
+Both runs promote the framing, ping, IFeatureSet, long-report-only and
+coexistence facts to CONFIRMED in `docs/protocol/README.md`.
 
 Solaar was not installed, so the earlier note about its udev rules masking
 T-001 no longer applies.
@@ -139,3 +158,11 @@ T-001 no longer applies.
 2. The hidraw node number is not stable; the daemon must locate the device by bus/vendor/product, never by `/dev/hidrawN`.
 3. On permission failure, the app must say so in plain language and offer the fix (see requirements §17).
 4. Kernel driver `logitech-hidpp-device` is bound to the device; hid-lab must coexist with it (requirements §6).
+5. Over Bluetooth the MX Master 3S declares only the long HID++ report (`0x11`); hid-lab must pick the report size from the descriptor, not assume short reports exist.
+
+## Milestone 0–2 status
+
+Closed on 2026-10-21. The cause of "nothing can be configured" for non-root
+tools was the missing `uaccess` rule (H-001). With the rule installed, a
+normal user can enumerate HID++ features over Bluetooth while the kernel
+driver stays bound. logiops was never checked, so H-001 does not cover it.
