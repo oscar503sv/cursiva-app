@@ -1,0 +1,986 @@
+{
+  "schema": "hid-lab.features/1",
+  "tool_version": "0.1.0",
+  "read_only": true,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0003",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "session": {
+    "report": "long",
+    "report_id": "0x11",
+    "device_index": "0xff",
+    "sw_id": "0x0b",
+    "timeout_ms": 2000
+  },
+  "protocol": {
+    "major": 4,
+    "minor": 5
+  },
+  "feature_set_index": 1,
+  "count": 35,
+  "features": [
+    {
+      "index": 0,
+      "id": "0x0000",
+      "reference_name": "Root",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 2
+    },
+    {
+      "index": 1,
+      "id": "0x0001",
+      "reference_name": "FeatureSet",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 2
+    },
+    {
+      "index": 2,
+      "id": "0x0003",
+      "reference_name": "DeviceFwVersion",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 4
+    },
+    {
+      "index": 3,
+      "id": "0x0005",
+      "reference_name": "DeviceName",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 4,
+      "id": "0x1D4B",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 5,
+      "id": "0x0020",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 6,
+      "id": "0x0021",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 1
+    },
+    {
+      "index": 7,
+      "id": "0x0007",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 8,
+      "id": "0x1004",
+      "reference_name": "UnifiedBattery",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 3
+    },
+    {
+      "index": 9,
+      "id": "0x1B04",
+      "reference_name": "ReprogControlsV4",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 5
+    },
+    {
+      "index": 10,
+      "id": "0x1814",
+      "reference_name": "ChangeHost",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 1
+    },
+    {
+      "index": 11,
+      "id": "0x1815",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 2
+    },
+    {
+      "index": 12,
+      "id": "0x2250",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 1
+    },
+    {
+      "index": 13,
+      "id": "0x2201",
+      "reference_name": "AdjustableDpi",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 2
+    },
+    {
+      "index": 14,
+      "id": "0x2110",
+      "reference_name": "SmartShift",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 15,
+      "id": "0x2121",
+      "reference_name": "HiResWheel",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 1
+    },
+    {
+      "index": 16,
+      "id": "0x2150",
+      "reference_name": "Thumbwheel",
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 17,
+      "id": "0x2251",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 18,
+      "id": "0x00C3",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 19,
+      "id": "0x1802",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 20,
+      "id": "0x1803",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 21,
+      "id": "0x1806",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 8
+    },
+    {
+      "index": 22,
+      "id": "0x1816",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 23,
+      "id": "0x1805",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 96,
+      "flag_labels": [
+        "hidden",
+        "engineering"
+      ],
+      "version": 0
+    },
+    {
+      "index": 24,
+      "id": "0x1830",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 25,
+      "id": "0x1891",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 104,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x08"
+      ],
+      "version": 7
+    },
+    {
+      "index": 26,
+      "id": "0x18A1",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 27,
+      "id": "0x1E00",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 64,
+      "flag_labels": [
+        "hidden"
+      ],
+      "version": 0
+    },
+    {
+      "index": 28,
+      "id": "0x1E02",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 96,
+      "flag_labels": [
+        "hidden",
+        "engineering"
+      ],
+      "version": 0
+    },
+    {
+      "index": 29,
+      "id": "0x1602",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 0,
+      "flag_labels": [],
+      "version": 0
+    },
+    {
+      "index": 30,
+      "id": "0x1EB0",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 31,
+      "id": "0x1861",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 1
+    },
+    {
+      "index": 32,
+      "id": "0x9300",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 33,
+      "id": "0x9001",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 34,
+      "id": "0x1E22",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    },
+    {
+      "index": 35,
+      "id": "0x9205",
+      "reference_name": null,
+      "reference_name_verified": false,
+      "flags": 112,
+      "flag_labels": [
+        "hidden",
+        "engineering",
+        "bit0x10"
+      ],
+      "version": 0
+    }
+  ],
+  "failures": [],
+  "ignored_reports": 0,
+  "error": null,
+  "transcript": [
+    {
+      "request": 1,
+      "t_us": 0,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 1b 00 00 5a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 1,
+      "t_us": 137439,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 1b 04 05 5a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 137448,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 0b 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 152359,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 0b 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 152367,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 167401,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 0b 23 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 167414,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 182399,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 5,
+      "t_us": 182409,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 5,
+      "t_us": 197348,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 6,
+      "t_us": 197358,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 6,
+      "t_us": 212295,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 03 00 04 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 7,
+      "t_us": 212305,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 7,
+      "t_us": 226198,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 8,
+      "t_us": 226209,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 8,
+      "t_us": 242325,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 1d 4b 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 9,
+      "t_us": 242335,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 9,
+      "t_us": 264450,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 10,
+      "t_us": 264461,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 10,
+      "t_us": 280506,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 21 00 01 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 11,
+      "t_us": 280517,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 11,
+      "t_us": 295517,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 12,
+      "t_us": 295527,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 12,
+      "t_us": 309414,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 10 04 00 03 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 13,
+      "t_us": 309425,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 13,
+      "t_us": 333377,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 1b 04 00 05 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 14,
+      "t_us": 333392,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 0a 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 14,
+      "t_us": 347336,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 14 00 01 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 15,
+      "t_us": 347348,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 15,
+      "t_us": 363251,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 15 00 02 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 16,
+      "t_us": 363262,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 0c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 16,
+      "t_us": 377463,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 22 50 00 01 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 17,
+      "t_us": 377474,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 0d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 17,
+      "t_us": 392379,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 22 01 00 02 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 18,
+      "t_us": 392389,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 18,
+      "t_us": 414278,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 21 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 19,
+      "t_us": 414289,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 0f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 19,
+      "t_us": 429319,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 21 21 00 01 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 20,
+      "t_us": 429329,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 20,
+      "t_us": 444337,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 21 50 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 21,
+      "t_us": 444348,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 21,
+      "t_us": 459293,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 22 51 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 22,
+      "t_us": 459302,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 12 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 22,
+      "t_us": 482286,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 00 c3 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 23,
+      "t_us": 482296,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 13 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 23,
+      "t_us": 497427,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 02 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 24,
+      "t_us": 497437,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 14 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 24,
+      "t_us": 512432,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 03 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 25,
+      "t_us": 512443,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 15 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 25,
+      "t_us": 526339,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 06 70 08 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 26,
+      "t_us": 526350,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 26,
+      "t_us": 549151,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 16 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 27,
+      "t_us": 549163,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 17 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 27,
+      "t_us": 564836,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 05 60 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 28,
+      "t_us": 564847,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 28,
+      "t_us": 579360,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 30 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 29,
+      "t_us": 579370,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 19 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 29,
+      "t_us": 594416,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 91 68 07 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 30,
+      "t_us": 594427,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 1a 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 30,
+      "t_us": 617494,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 a1 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 31,
+      "t_us": 617505,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 31,
+      "t_us": 632578,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 1e 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 32,
+      "t_us": 632588,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 1c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 32,
+      "t_us": 647526,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 1e 02 60 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 33,
+      "t_us": 647536,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 1d 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 33,
+      "t_us": 662410,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 16 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 34,
+      "t_us": 662420,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 1e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 34,
+      "t_us": 684329,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 1e b0 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 35,
+      "t_us": 684340,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 1f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 35,
+      "t_us": 700278,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 18 61 70 01 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 36,
+      "t_us": 700288,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 36,
+      "t_us": 714397,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 93 00 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 37,
+      "t_us": 714408,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 21 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 37,
+      "t_us": 729396,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 90 01 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 38,
+      "t_us": 729407,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 22 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 38,
+      "t_us": 744410,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 1e 22 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 39,
+      "t_us": 744421,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 01 1b 23 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 39,
+      "t_us": 767292,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 01 1b 92 05 70 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}
