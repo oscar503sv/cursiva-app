@@ -1,0 +1,27 @@
+# hid-lab — udev permissions for Logitech HID++ devices
+#
+# Grants the user logged in at the local seat read/write access to the
+# hidraw nodes of Logitech devices, so configuration tools can talk HID++
+# without root. Access is given through a dynamic ACL (uaccess): it applies
+# only to the active local session and is removed on logout.
+#
+# Install:
+#   sudo cp 70-hid-lab-logitech.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload
+#   sudo udevadm trigger --subsystem-match=hidraw --action=change
+#
+# The file number must stay below 73 so the uaccess tag is processed
+# by systemd-logind's 73-seat-late.rules.
+
+ACTION!="add|change", GOTO="hid_lab_logitech_end"
+SUBSYSTEM!="hidraw", GOTO="hid_lab_logitech_end"
+
+# Bluetooth (bus 0005). BLE devices appear through uhid and have no USB
+# attributes, so they are matched by the HID device name: BUS:VENDOR:PRODUCT.
+# Evidence: MX Master 3S over Bluetooth = 0005:046D:B034 (see diagnosis.md).
+KERNELS=="0005:046D:*", TAG+="uaccess", GOTO="hid_lab_logitech_end"
+
+# USB (bus 0003): Logi Bolt / Unifying receivers and wired Logitech devices.
+KERNELS=="0003:046D:*", TAG+="uaccess", GOTO="hid_lab_logitech_end"
+
+LABEL="hid_lab_logitech_end"
