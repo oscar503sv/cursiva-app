@@ -1,0 +1,95 @@
+{
+  "schema": "hid-lab.write/1",
+  "tool_version": "0.1.0",
+  "mode": "write",
+  "restore": true,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0007",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "setting": "smartshift-mode",
+  "feature": "0x2110",
+  "feature_index": 14,
+  "write_function": {
+    "function": 1,
+    "name": "setRatchetControlMode",
+    "source": "solaar",
+    "status": "LIKELY"
+  },
+  "before": {
+    "setting": "smartshift-mode",
+    "value": 2
+  },
+  "target": {
+    "setting": "smartshift-mode",
+    "value": 2
+  },
+  "plan": null,
+  "sent": false,
+  "outcome": null,
+  "result": "no_change",
+  "original_saved_to": null,
+  "original_removed": true,
+  "notes": [
+    "smartshift-mode is already ratchet; nothing was written"
+  ],
+  "error": null,
+  "ignored_reports": 0,
+  "transcript": [
+    {
+      "request": 1,
+      "t_us": 8,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 0b 21 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 1,
+      "t_us": 108623,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 0b 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 108635,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0e 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 130836,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0e 0b 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}

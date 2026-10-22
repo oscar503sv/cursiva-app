@@ -1,0 +1,176 @@
+{
+  "schema": "hid-lab.write/1",
+  "tool_version": "0.1.0",
+  "mode": "write",
+  "restore": false,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0007",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "setting": "thumbwheel-invert",
+  "feature": "0x2150",
+  "feature_index": 16,
+  "write_function": {
+    "function": 2,
+    "name": "setThumbwheelReporting",
+    "source": "solaar",
+    "status": "LIKELY"
+  },
+  "before": {
+    "setting": "thumbwheel-invert",
+    "value": false
+  },
+  "target": {
+    "setting": "thumbwheel-invert",
+    "value": true
+  },
+  "plan": {
+    "target": {
+      "setting": "thumbwheel-invert",
+      "value": true
+    },
+    "feature": 8528,
+    "function": 2,
+    "params": [
+      0,
+      1
+    ],
+    "params_hex": "00 01"
+  },
+  "sent": true,
+  "outcome": {
+    "plan": {
+      "target": {
+        "setting": "thumbwheel-invert",
+        "value": true
+      },
+      "feature": 8528,
+      "function": 2,
+      "params": [
+        0,
+        1
+      ],
+      "params_hex": "00 01"
+    },
+    "response_hex": "",
+    "after": {
+      "feature": "thumbwheel",
+      "diverted": false,
+      "inverted": true,
+      "unknown_bits": null,
+      "raw_hex": "00 01"
+    },
+    "checks": [
+      {
+        "field": "inverted",
+        "expected": "true",
+        "actual": "true",
+        "ok": true
+      },
+      {
+        "field": "diverted (unchanged)",
+        "expected": "false",
+        "actual": "false",
+        "ok": true
+      },
+      {
+        "field": "other bits (unchanged)",
+        "expected": "",
+        "actual": "",
+        "ok": true
+      }
+    ],
+    "pass": true
+  },
+  "result": "pass",
+  "original_saved_to": "~/.local/state/hid-lab/lab-write/thumbwheel-invert.json",
+  "original_removed": false,
+  "notes": [],
+  "error": null,
+  "ignored_reports": 0,
+  "transcript": [
+    {
+      "request": 1,
+      "t_us": 5,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 0b 21 50 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 1,
+      "t_us": 308261,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 0b 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 308272,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 10 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 323302,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 10 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 323612,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 10 2b 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 338239,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 10 2b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 338253,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 10 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 353349,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 10 1b 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}

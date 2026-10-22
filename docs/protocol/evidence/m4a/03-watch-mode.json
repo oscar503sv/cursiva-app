@@ -1,0 +1,182 @@
+{
+  "schema": "hid-lab.watch/1",
+  "tool_version": "0.1.0",
+  "passive": true,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0007",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "duration_s": 120,
+  "feature_names_from": "~/hidlab-m4a/features.json",
+  "counts": {
+    "input_reports": {
+      "0x02": 2327
+    },
+    "notifications": 2,
+    "other_hidpp": 10,
+    "malformed": 0
+  },
+  "events": [
+    {
+      "t_ms": 11673,
+      "kind": "other_hidpp",
+      "feature_index": 0,
+      "feature_id": "0x0000",
+      "reference_name": "Root",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "0e",
+      "raw_hex": "11 ff 00 0b 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 11688,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "02 0a 0a",
+      "raw_hex": "11 ff 0e 0b 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 11711,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 1,
+      "sw_id": 11,
+      "params_hex": "01",
+      "raw_hex": "11 ff 0e 1b 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 11717,
+      "kind": "notification",
+      "feature_index": 15,
+      "feature_id": "0x2121",
+      "reference_name": "HiResWheel",
+      "function": 1,
+      "sw_id": 0,
+      "params_hex": "",
+      "raw_hex": "11 ff 0f 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 11726,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "01 0a 0a",
+      "raw_hex": "11 ff 0e 0b 01 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 34871,
+      "kind": "other_hidpp",
+      "feature_index": 0,
+      "feature_id": "0x0000",
+      "reference_name": "Root",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "0e",
+      "raw_hex": "11 ff 00 0b 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 34886,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "01 0a 0a",
+      "raw_hex": "11 ff 0e 0b 01 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 34909,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 1,
+      "sw_id": 11,
+      "params_hex": "02",
+      "raw_hex": "11 ff 0e 1b 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 34915,
+      "kind": "notification",
+      "feature_index": 15,
+      "feature_id": "0x2121",
+      "reference_name": "HiResWheel",
+      "function": 1,
+      "sw_id": 0,
+      "params_hex": "01",
+      "raw_hex": "11 ff 0f 10 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 34923,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "02 0a 0a",
+      "raw_hex": "11 ff 0e 0b 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 47344,
+      "kind": "other_hidpp",
+      "feature_index": 0,
+      "feature_id": "0x0000",
+      "reference_name": "Root",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "0e",
+      "raw_hex": "11 ff 00 0b 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 47366,
+      "kind": "other_hidpp",
+      "feature_index": 14,
+      "feature_id": "0x2110",
+      "reference_name": "SmartShift",
+      "function": 0,
+      "sw_id": 11,
+      "params_hex": "02 0a 0a",
+      "raw_hex": "11 ff 0e 0b 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ],
+  "end_note": null,
+  "sanitized": "home directory in feature_names_from replaced with ~"
+}

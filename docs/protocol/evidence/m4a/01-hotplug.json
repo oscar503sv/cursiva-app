@@ -1,0 +1,100 @@
+{
+  "schema": "hid-lab.hotplug/1",
+  "tool_version": "0.1.0",
+  "duration_s": 180,
+  "events": [
+    {
+      "t_ms": 9088,
+      "action": "remove",
+      "hidraw_name": "hidraw2",
+      "node": "/dev/hidraw2",
+      "hid_device": "0005:046D:B034.0004",
+      "ids": {
+        "bus": "bluetooth",
+        "vendor_id": 1133,
+        "product_id": 45108
+      },
+      "access": null,
+      "name": null
+    },
+    {
+      "t_ms": 22435,
+      "action": "add",
+      "hidraw_name": "hidraw2",
+      "node": "/dev/hidraw2",
+      "hid_device": "0005:046D:B034.0005",
+      "ids": {
+        "bus": "bluetooth",
+        "vendor_id": 1133,
+        "product_id": 45108
+      },
+      "access": {
+        "status": "ok",
+        "detail": null
+      },
+      "name": "Logitech MX Master 3S"
+    },
+    {
+      "t_ms": 31487,
+      "action": "remove",
+      "hidraw_name": "hidraw2",
+      "node": "/dev/hidraw2",
+      "hid_device": "0005:046D:B034.0005",
+      "ids": {
+        "bus": "bluetooth",
+        "vendor_id": 1133,
+        "product_id": 45108
+      },
+      "access": null,
+      "name": null
+    },
+    {
+      "t_ms": 44933,
+      "action": "add",
+      "hidraw_name": "hidraw2",
+      "node": "/dev/hidraw2",
+      "hid_device": "0005:046D:B034.0006",
+      "ids": {
+        "bus": "bluetooth",
+        "vendor_id": 1133,
+        "product_id": 45108
+      },
+      "access": {
+        "status": "ok",
+        "detail": null
+      },
+      "name": "Logitech MX Master 3S"
+    },
+    {
+      "t_ms": 55513,
+      "action": "remove",
+      "hidraw_name": "hidraw2",
+      "node": "/dev/hidraw2",
+      "hid_device": "0005:046D:B034.0006",
+      "ids": {
+        "bus": "bluetooth",
+        "vendor_id": 1133,
+        "product_id": 45108
+      },
+      "access": null,
+      "name": null
+    },
+    {
+      "t_ms": 75954,
+      "action": "add",
+      "hidraw_name": "hidraw2",
+      "node": "/dev/hidraw2",
+      "hid_device": "0005:046D:B034.0007",
+      "ids": {
+        "bus": "bluetooth",
+        "vendor_id": 1133,
+        "product_id": 45108
+      },
+      "access": {
+        "status": "ok",
+        "detail": null
+      },
+      "name": "Logitech MX Master 3S"
+    }
+  ]
+}

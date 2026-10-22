@@ -1,0 +1,217 @@
+{
+  "schema": "hid-lab.write/1",
+  "tool_version": "0.1.0",
+  "mode": "write",
+  "restore": false,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0007",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "setting": "dpi",
+  "feature": "0x2201",
+  "feature_index": 13,
+  "write_function": {
+    "function": 3,
+    "name": "setSensorDpi",
+    "source": "solaar",
+    "status": "LIKELY"
+  },
+  "before": {
+    "setting": "dpi",
+    "value": 1000
+  },
+  "target": {
+    "setting": "dpi",
+    "value": 1600
+  },
+  "plan": {
+    "target": {
+      "setting": "dpi",
+      "value": 1600
+    },
+    "feature": 8705,
+    "function": 3,
+    "params": [
+      0,
+      6,
+      64
+    ],
+    "params_hex": "00 06 40"
+  },
+  "sent": true,
+  "outcome": {
+    "plan": {
+      "target": {
+        "setting": "dpi",
+        "value": 1600
+      },
+      "feature": 8705,
+      "function": 3,
+      "params": [
+        0,
+        6,
+        64
+      ],
+      "params_hex": "00 06 40"
+    },
+    "response_hex": "00 06 40",
+    "after": {
+      "feature": "dpi",
+      "list": {
+        "sensor": 0,
+        "entries": [
+          {
+            "kind": "range",
+            "from": 200,
+            "to": 8000,
+            "step": 50
+          }
+        ],
+        "terminated": true,
+        "raw_hex": "00 00 c8 e0 32 1f 40"
+      },
+      "current": {
+        "sensor": 0,
+        "dpi": 1600,
+        "default_dpi": 1000,
+        "effective_dpi": 1600,
+        "raw_hex": "00 06 40 03 e8"
+      },
+      "current_in_list": true
+    },
+    "checks": [
+      {
+        "field": "dpi",
+        "expected": "1600",
+        "actual": "1600",
+        "ok": true
+      },
+      {
+        "field": "default_dpi (unchanged)",
+        "expected": "1000",
+        "actual": "1000",
+        "ok": true
+      }
+    ],
+    "pass": true
+  },
+  "result": "pass",
+  "original_saved_to": "~/.local/state/hid-lab/lab-write/dpi.json",
+  "original_removed": false,
+  "notes": [],
+  "error": null,
+  "ignored_reports": 0,
+  "transcript": [
+    {
+      "request": 1,
+      "t_us": 21,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 0b 22 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 1,
+      "t_us": 25877,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 0b 0d 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 25889,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0d 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 47782,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0d 1b 00 00 c8 e0 32 1f 40 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 47800,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0d 2b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 62630,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0d 2b 00 03 e8 03 e8 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 63020,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0d 3b 00 06 40 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 77640,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0d 3b 00 06 40 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 5,
+      "t_us": 77653,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0d 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 5,
+      "t_us": 100736,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0d 1b 00 00 c8 e0 32 1f 40 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 6,
+      "t_us": 100756,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0d 2b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 6,
+      "t_us": 115666,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0d 2b 00 06 40 03 e8 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}
