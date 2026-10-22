@@ -48,6 +48,12 @@ pub enum TransportError {
     },
 
     #[error(
+        "Cannot listen for device hotplug events: {reason}.\n\
+         Try: check that systemd-udevd is running (`systemctl status systemd-udevd`)."
+    )]
+    Udev { reason: String },
+
+    #[error(
         "Cannot read {}: {reason}.\n\
          Try: check that sysfs is mounted at /sys and that the hidraw module is loaded (`lsmod | grep hid`).",
         path.display()
