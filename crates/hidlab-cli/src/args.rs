@@ -94,7 +94,9 @@ Usage: hid-lab lab watch [<device>] [--duration <s>] [--json] [--features-from <
 Shows every HID++ report with software ID 0 (a device notification): time,
 feature index and function, with the remaining bytes in hex. Mouse movement
 and other input reports are only counted. HID++ traffic of other programs
-(for example the kernel driver) is counted and kept in --json output.
+(for example the kernel driver) is counted. With --features-from it is also
+kept in --json output, with the firmware unit ID (a serial number) masked;
+without it, its bytes are not kept, because the unit ID cannot be located.
 
 Options:
   --duration <s>          How long to listen, 1..=3600 seconds (default 30)

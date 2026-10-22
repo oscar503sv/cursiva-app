@@ -34,7 +34,8 @@ pub struct Event {
     pub sw_id: Option<u8>,
     /// Parameter bytes with trailing zeros removed.
     pub params_hex: Option<String>,
-    pub raw_hex: String,
+    /// Full report. `None` when the payload was not kept (see `classify`).
+    pub raw_hex: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize)]
@@ -53,8 +54,33 @@ fn trim_hex(p: &[u8]) -> String {
     hex(&p[..end])
 }
 
+/// Feature whose function 0 answer carries the unit serial in params 1..5.
+const DEVICE_INFO: FeatureId = FeatureId(0x0003);
+const REDACTED_BYTE: &str = "**";
+
+/// Masks hex bytes `from..to` of a space-separated hex string.
+fn mask(hex_str: &str, from: usize, to: usize) -> String {
+    hex_str
+        .split(' ')
+        .enumerate()
+        .map(|(i, b)| {
+            if (from..to).contains(&i) {
+                REDACTED_BYTE
+            } else {
+                b
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Classifies one report. Returns `None` for plain input reports, which are
 /// only counted.
+///
+/// Privacy: other programs' requests can read the unit serial (0x0003
+/// function 0). With a feature map, those answers are masked. Without one,
+/// the index of 0x0003 is unknown, so the payload of other programs'
+/// HID++ traffic is not kept at all; only notifications keep their bytes.
 pub fn classify(
     report: &[u8],
     t_ms: u64,
@@ -70,7 +96,7 @@ pub fn classify(
         function: None,
         sw_id: None,
         params_hex: None,
-        raw_hex: hex(report),
+        raw_hex: Some(hex(report)),
     };
     match decode(report) {
         Err(_) => {
@@ -99,7 +125,7 @@ pub fn classify(
                 EventKind::OtherHidpp
             };
             let id = names.get(&feature_index).copied();
-            Some(Event {
+            let mut e = Event {
                 feature_index: Some(feature_index),
                 feature_id: id.map(|i| i.to_string()),
                 reference_name: id.and_then(reference_name),
@@ -107,7 +133,15 @@ pub fn classify(
                 sw_id: Some(sw_id),
                 params_hex: Some(trim_hex(&params)),
                 ..base(kind)
-            })
+            };
+            if id == Some(DEVICE_INFO) && function == 0 {
+                e.params_hex = e.params_hex.map(|p| mask(&p, 1, 5));
+                e.raw_hex = e.raw_hex.map(|r| mask(&r, 5, 9));
+            } else if kind == EventKind::OtherHidpp && names.is_empty() {
+                e.params_hex = None;
+                e.raw_hex = None;
+            }
+            Some(e)
         }
         Ok(Frame::Error20 { .. } | Frame::Error10 { .. }) => {
             counts.other_hidpp += 1;
@@ -346,6 +380,35 @@ mod tests {
         assert_eq!(n.reference_name, Some("UnifiedBattery"));
         assert_eq!(n.params_hex.as_deref(), Some("23 04"));
         assert!(note.unwrap().contains("disconnected"));
+    }
+
+    #[test]
+    fn unit_id_of_other_programs_is_masked_or_dropped() {
+        // SYNTHETIC getDeviceInfo answer to another program (sw_id 0x0B).
+        let answer = long(
+            0x02,
+            0x0B,
+            &[0x03, 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x02, 0xB0, 0x34],
+        );
+
+        let names = FeatureNames::from([(0x02, FeatureId(0x0003))]);
+        let mut c = Counts::default();
+        let e = classify(&answer, 0, &names, &mut c).unwrap();
+        assert_eq!(e.kind, EventKind::OtherHidpp);
+        assert_eq!(e.params_hex.as_deref(), Some("03 ** ** ** ** 00 02 b0 34"));
+        let raw = e.raw_hex.unwrap();
+        assert!(raw.starts_with("11 ff 02 0b 03 ** ** ** ** 00 02 b0 34"));
+        assert!(!raw.contains("de ad"));
+
+        let e = classify(&answer, 0, &FeatureNames::new(), &mut c).unwrap();
+        assert_eq!(e.params_hex, None);
+        assert_eq!(e.raw_hex, None);
+        assert_eq!(c.other_hidpp, 2);
+
+        // Notifications keep their bytes even without a map.
+        let n = classify(&long(0x08, 0x00, &[0x23]), 0, &FeatureNames::new(), &mut c).unwrap();
+        assert_eq!(n.params_hex.as_deref(), Some("23"));
+        assert!(n.raw_hex.is_some());
     }
 
     #[test]
