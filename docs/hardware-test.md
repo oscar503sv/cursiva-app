@@ -119,7 +119,7 @@ Run by the user on Fedora 44, Bluetooth, hid-lab 0.1.0. Captures are in
 |---|---|---|
 | 1 | Pass | All target features read; battery matches the kernel; 7 physical controls plus 1 virtual |
 | 2 | Pass | SmartShift mode 2 → 1 → 2 and ratchet bit 1 → 0 → 1, matching the wheel's feel |
-| 3 | Pass, one open question | 4 notifications from 0x2121 function 1 for an instruction of 3 presses |
+| 3 | Pass | 4 notifications from 0x2121 function 1; the user pressed 4 times (the instruction said 3) |
 | 4 | Pass | Charging status 1 with cable; 3 battery notifications from 0x1004 function 0; no conflicting code (2 or 4) seen |
 | 5 | Pass | Channel 2 before and after; the mouse reconnected and was found without arguments |
 
@@ -128,4 +128,4 @@ The optional fwupd comparison in step 1 was not run.
 Privacy issue found in step 4: `lab watch` kept other programs' HID++ answers
 unredacted, including the unit ID returned to the concurrent `lab read`.
 Fixed in `lab watch`; the committed copy of that capture was sanitized. The
-original file in `~/hidlab-m3/` still contains the unit ID.
+user deleted the original file.

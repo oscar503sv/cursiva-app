@@ -481,7 +481,7 @@ change it without coordinating with the kernel driver.
 | f1 mode `0x02` = high resolution on | LIKELY | One value, consistent with the kernel enabling it on connect |
 | f0 multiplier 15, has invert, has ratchet switch | LIKELY | One value |
 | f0 flag bit `0x10`, f0 bytes 2..3 (`18 18`) | UNKNOWN | f0 answers `0f 1c 18 18` |
-| Event f1 with byte 0 = ratchet state | LIKELY, **held** | 4 notifications alternating `00`/`01`; see "Open question" below |
+| Event f1 with byte 0 = ratchet state | **CONFIRMED** | 4 notifications alternating `00`/`01` for 4 presses (user, O-5), ending in ratchet as the reads before and after show |
 
 ### P-028 — 0x2150 Thumbwheel
 
@@ -499,16 +499,11 @@ f1 getThumbwheelStatus() -> [b0, b1, ...]   b0 bit0 diverted, b1 bit0 inverted
 |---|---|---|
 | The device sends unsolicited HID++ reports with `sw_id 0` | **CONFIRMED** | 7 in O-5: 3 battery, 4 wheel |
 | Battery: 0x1004 event f0 | **CONFIRMED** | See P-022 |
-| Mode button: 0x2121 event f1, not 0x2110 | LIKELY, **held** | `04-watch-mode-button.json`: 4 notifications, all 0x2121 f1; none from 0x2110 |
+| Mode button: 0x2121 event f1, not 0x2110 | **CONFIRMED** | `04-watch-mode-button.json`: one 0x2121 f1 notification per press (4 presses, 4 notifications); none from 0x2110 |
 | `lab watch` sees other programs' traffic without interfering | **CONFIRMED** | `05-watch-cable.json`: the user's `lab read` (sw_id `0x0B`) appears as 43 other-HID++ reports, and that read succeeded |
 | Kernel driver HID++ traffic during normal use | not observed | No reports with other software IDs besides hid-lab's in 150 s of watching |
 
-#### Open question (holds P-027 event and P-029 mode-button row)
+#### Resolved question
 
-The test asked for three presses of the mode button. `04-watch-mode-button.json`
-contains four 0x2121 notifications, at 5.5 s, 7.2 s, 9.0 s and 14.0 s, with
-byte 0 = `00`, `01`, `00`, `01`. Four toggles start from ratchet and end in
-ratchet. Either the button was pressed four times, or one change came from
-something else, for example SmartShift switching to free spin automatically
-while the wheel turned fast. These rows stay LIKELY until the user says
-which.
+The test asked for three presses, and the capture had four notifications.
+The user confirmed four presses, so there is one notification per press.
