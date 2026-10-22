@@ -62,6 +62,32 @@ pub const KNOWN_WRITES: &[(u16, u8)] = &[
     (0x2201, 3), // setSensorDpi (solaar)
 ];
 
+/// Write functions that `hid-lab lab write` may send to confirm them on the
+/// real device (requirements §13 exception). Each is documented by a source;
+/// none is CONFIRMED until its hardware test passes.
+pub const WRITE_EXPERIMENT_ALLOWLIST: &[ReadFn] = &[
+    r(0x2201, 3, "setSensorDpi", "solaar"),
+    r(0x2110, 1, "setRatchetControlMode", "solaar"),
+    r(0x2150, 2, "setThumbwheelReporting", "solaar"),
+];
+
+/// Writes hid-lab must never send in this milestone: the kernel owns the
+/// wheel mode, and changing host moves the mouse away.
+pub const NEVER_WRITE: &[(u16, u8)] = &[
+    (0x2121, 2), // setWheelMode
+    (0x1814, 1), // setCurrentHost
+];
+
+/// Looks up an allowed experimental write.
+pub fn write_allowed(feature: FeatureId, function: u8) -> Option<&'static ReadFn> {
+    if NEVER_WRITE.contains(&(feature.0, function)) {
+        return None;
+    }
+    WRITE_EXPERIMENT_ALLOWLIST
+        .iter()
+        .find(|f| f.feature == feature && f.function == function)
+}
+
 /// Looks up an allowed read.
 pub fn allowed(feature: FeatureId, function: u8) -> Option<&'static ReadFn> {
     READ_ALLOWLIST
@@ -80,6 +106,26 @@ mod tests {
                 allowed(FeatureId(feature), function).is_none(),
                 "write 0x{feature:04X} f{function} is in the allowlist"
             );
+        }
+    }
+
+    #[test]
+    fn write_list_is_exactly_the_approved_set() {
+        let got: Vec<(u16, u8)> = WRITE_EXPERIMENT_ALLOWLIST
+            .iter()
+            .map(|w| (w.feature.0, w.function))
+            .collect();
+        assert_eq!(got, [(0x2201, 3), (0x2110, 1), (0x2150, 2)]);
+        for &(f, func) in NEVER_WRITE {
+            assert!(write_allowed(FeatureId(f), func).is_none());
+            assert!(allowed(FeatureId(f), func).is_none());
+        }
+        // No write function is readable and no read function is writable.
+        for w in WRITE_EXPERIMENT_ALLOWLIST {
+            assert!(allowed(w.feature, w.function).is_none());
+        }
+        for rf in READ_ALLOWLIST {
+            assert!(write_allowed(rf.feature, rf.function).is_none());
         }
     }
 

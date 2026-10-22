@@ -6,7 +6,7 @@ use hidlab_hidpp::{FeatureId, FeatureInfo, HidppError, Session, get_feature};
 use hidlab_transport::RawChannel;
 use thiserror::Error;
 
-use crate::allowlist::allowed;
+use crate::allowlist::{allowed, write_allowed};
 
 /// Errors from a typed read.
 #[derive(Debug, Error)]
@@ -15,6 +15,10 @@ pub enum ReadError {
         "refused to call feature {feature} function {function}: not in the read-only allowlist"
     )]
     NotAllowed { feature: FeatureId, function: u8 },
+    #[error(
+        "refused to write feature {feature} function {function}: not in the write experiment allowlist"
+    )]
+    WriteNotAllowed { feature: FeatureId, function: u8 },
     #[error("the device does not report feature {0}")]
     NotSupported(FeatureId),
     #[error("cannot decode {what}: {reason}")]
@@ -66,6 +70,20 @@ impl FeatureMap {
     }
 }
 
+/// Proof that the user explicitly asked for a write (`--write` on the CLI).
+/// Only `hid-lab lab write` creates one.
+#[derive(Debug)]
+pub struct WriteIntent {
+    _private: (),
+}
+
+impl WriteIntent {
+    /// Call only after the user passed an explicit write flag.
+    pub fn explicit_user_request() -> Self {
+        Self { _private: () }
+    }
+}
+
 /// Sends only allowlisted reads, addressed through a [`FeatureMap`].
 pub struct Reader<'s, C: RawChannel> {
     session: &'s mut Session<C>,
@@ -95,6 +113,26 @@ impl<'s, C: RawChannel> Reader<'s, C> {
     ) -> Result<Vec<u8>, ReadError> {
         if allowed(feature, function).is_none() {
             return Err(ReadError::NotAllowed { feature, function });
+        }
+        let index = self
+            .map
+            .get(feature)
+            .ok_or(ReadError::NotSupported(feature))?
+            .index;
+        Ok(self.session.request(index, function, params)?)
+    }
+
+    /// Sends one write from the write experiment allowlist. Requires a
+    /// [`WriteIntent`]; refuses anything else before a byte is sent.
+    pub fn write(
+        &mut self,
+        _intent: &WriteIntent,
+        feature: FeatureId,
+        function: u8,
+        params: &[u8],
+    ) -> Result<Vec<u8>, ReadError> {
+        if write_allowed(feature, function).is_none() {
+            return Err(ReadError::WriteNotAllowed { feature, function });
         }
         let index = self
             .map
@@ -153,6 +191,19 @@ mod tests {
         let (channel, transcript) = session.into_parts();
         assert!(channel.sent.is_empty());
         assert!(transcript.entries.is_empty());
+    }
+
+    #[test]
+    fn write_refuses_reads_and_forbidden_writes_without_sending() {
+        let mut session = Session::new(Recorder::default(), SessionConfig::default());
+        let map = FeatureMap::from_infos([info(0x2121, 15), info(0x1814, 10), info(0x1004, 8)]);
+        let mut reader = Reader::new(&mut session, map);
+        let intent = WriteIntent::explicit_user_request();
+        for (id, f) in [(0x2121, 2), (0x1814, 1), (0x1004, 1)] {
+            let err = reader.write(&intent, FeatureId(id), f, &[]).unwrap_err();
+            assert!(matches!(err, ReadError::WriteNotAllowed { .. }), "{err}");
+        }
+        assert!(session.into_parts().0.sent.is_empty());
     }
 
     #[test]

@@ -18,6 +18,9 @@ pub mod state;
 pub mod thumbwheel;
 mod util;
 
-pub use allowlist::{KNOWN_WRITES, READ_ALLOWLIST, ReadFn, allowed};
-pub use reader::{FeatureMap, ReadError, Reader};
+pub use allowlist::{
+    KNOWN_WRITES, NEVER_WRITE, READ_ALLOWLIST, ReadFn, WRITE_EXPERIMENT_ALLOWLIST, allowed,
+    write_allowed,
+};
+pub use reader::{FeatureMap, ReadError, Reader, WriteIntent};
 pub use state::{DeviceState, Reading, TARGET_FEATURES, read_all};
