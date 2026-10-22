@@ -172,16 +172,28 @@ Evidence: requests 4–39. Source: R-1, R-2.
 
 ## Coexistence
 
-### P-014 — Unrelated traffic on the shared hidraw node
+### P-014 — Coexistence with the kernel driver and normal input
 
-Status: **UNKNOWN** on the real device
+Status: **CONFIRMED** (O-3)
 
-During O-1 the mouse was idle and no unrelated report was received, so
-`ignored_reports` was 0. The filtering of mouse reports, notifications and
-foreign sw_ids is covered only by the synthetic fake device in
-`crates/hidlab-hidpp/tests/fake_device.rs`. To test it, run
-`lab features --json` while moving the mouse and check that `ignored_reports`
-is greater than 0 and the feature list is unchanged.
+The hidraw node is shared with the bound `logitech-hidpp-device` kernel
+driver and with normal mouse input. hid-lab reads until its deadline and
+accepts only a report whose device index, feature index, function and
+`sw_id` all match the request. Everything else is ignored and counted.
+
+Evidence:
+
+- O-3: the user moved the mouse and turned the wheel during enumeration.
+  `ignored_reports` was 48 and all 36 entries came back, identical to the
+  evidence file. No request failed.
+- O-1 and O-2: idle mouse, 0 ignored, same result.
+- Synthetic coverage of each noise type (mouse reports, `sw_id 0`
+  notifications, foreign `sw_id`, foreign errors, truncated reports) in
+  `crates/hidlab-hidpp/tests/fake_device.rs`.
+
+Not covered: which report IDs the 48 ignored reports had. The O-3
+transcript was not committed. Commit one with the next capture if that
+breakdown is needed.
 
 ### P-015 — Latency over Bluetooth
 
