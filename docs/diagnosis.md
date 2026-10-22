@@ -55,9 +55,17 @@ user::rw-
 
 Only root can open the device. There is no ACL entry for the logged-in user (`user:<name>:rw-` is absent), meaning no udev rule applied `uaccess` to this node. Any non-root configuration tool (Solaar, hid-lab) will fail to open it.
 
+### F-003 — With the udev rule, a normal user can talk HID++ to the mouse
+
+Status: **CONFIRMED**
+
+After T-001, the node has an ACL entry for the logged-in user, and
+`hid-lab lab features` enumerates every HID++ feature as a normal user over
+Bluetooth (see T-002). Run twice with identical results.
+
 ### H-001 — Missing permissions is the cause of "nothing can be configured"
 
-Status: **LIKELY** (to be confirmed by T-001 and T-002)
+Status: **CONFIRMED** for non-root tools (F-002 before the rule, F-003 after it)
 
 Consistent with F-002 and with the history "it worked partially on an earlier Fedora": the udev rules that granted access came from the Solaar package; with Solaar absent (or its rules not matching the Bluetooth `uhid` device), access is lost.
 
@@ -77,20 +85,53 @@ getfacl /dev/hidraw2 | grep user:
 Expected: a line `user:<your-user>:rw-`.
 If absent: turn the mouse off and on, then repeat `getfacl`.
 
-Result: _pending_
+Result (2026-10-21): **PASS**. The rule is installed at
+`/etc/udev/rules.d/70-hid-lab-logitech.rules`. The username is replaced below.
+
+```text
+crw-rw----+ 1 root root 241, 2 /dev/hidraw2
+# file: /dev/hidraw2
+user::rw-
+user:<user>:rw-
+group::---
+mask::rw-
+other::---
+```
+
+`hid-lab lab devices` agrees: the MX Master 3S shows `access ok`.
 
 ### T-002 — Confirm HID++ access from user space
 
+Replaced Solaar with hid-lab's own read-only enumeration, run as a normal user:
+
 ```bash
-sudo dnf install solaar
-solaar show
+cargo build --release
+./target/release/hid-lab lab devices
+./target/release/hid-lab lab features
 ```
 
-Expected: the MX Master 3S listed with its HID++ features (battery, DPI, SmartShift, etc.), run as a normal user.
+Result (2026-10-21): **PASS**.
 
-Result: _pending_
+```text
+# | node         | bus       | VID:PID   | driver                | HID++ | access | name
+--|--------------|-----------|-----------|-----------------------|-------|--------|----------------------
+1 | /dev/hidraw2 | bluetooth | 046D:B034 | logitech-hidpp-device | yes   | ok     | Logitech MX Master 3S
+```
 
-Note: Solaar installs its own udev rules. Run T-001 before installing it so the result of T-001 is not masked. Uninstall Solaar after Milestone 0 to avoid conflicts with hid-lab.
+```text
+Requests: Long report 0x11, device index 0xff, sw_id 0x0b, timeout 2000 ms
+HID++ protocol version: 4.5
+IFeatureSet at index 0x01; 35 features plus root
+```
+
+The protocol version matches the kernel log. The full feature list is in
+`docs/protocol/README.md`, and the raw JSON with transcript is in
+`docs/protocol/mx-master-3s-features.json`. Coexistence with the bound
+kernel driver caused no errors. No unrelated reports arrived during the run,
+so traffic filtering is still unverified on the real device (P-014).
+
+Solaar was not installed, so the earlier note about its udev rules masking
+T-001 no longer applies.
 
 ## Requirements derived from this diagnosis
 
