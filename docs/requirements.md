@@ -35,7 +35,7 @@ Primary (must work perfectly):
 - GNOME Shell on Wayland
 - systemd user session
 - MX Master 3S connected via **Bluetooth LE** — this is the user's daily setup and the **primary** connection. Every milestone is developed and accepted over Bluetooth first.
-- MX Master 3S via **Logi Bolt receiver** — supported, tested before each release, but secondary.
+- MX Master 3S via **Logi Bolt receiver** — supported, tested before each release, but secondary. Bolt work is scheduled in Milestone B (see §18), not in Milestone 4.
 
 Secondary (do not break, do not prioritize):
 
@@ -59,9 +59,9 @@ This table is the product scope. Each feature is tracked to completion.
 | Main wheel: SmartShift on/off | MVP | |
 | Main wheel: SmartShift sensitivity | MVP | |
 | Main wheel: ratchet vs. free-spin default | MVP | |
-| Main wheel: scroll direction | MVP | |
+| Main wheel: scroll direction | MVP | Via GNOME's natural-scrolling setting, not the device. The 0x2121 wheel mode is owned by the kernel driver and is not written |
 | Main wheel: smooth / high-resolution scrolling | MVP | Must not break libinput behavior |
-| Thumb wheel: speed and direction | MVP | |
+| Thumb wheel: speed and direction | MVP | Direction is written to the device (0x2150 invert) |
 | Thumb wheel: custom action (e.g. zoom, tab switch) | v1 | Requires diversion |
 | Button remapping (middle, back, forward, top button) | MVP | |
 | Gesture button with directional gestures | v1 | Requires diversion + raw movement |
@@ -143,6 +143,8 @@ lab ─────────────────────────�
 
 ### Bolt receiver
 
+Scheduled in Milestone B (§18). Milestone 4 is Bluetooth only.
+
 - The receiver exposes a hidraw node; paired devices are addressed by **device index** through it.
 - The daemon must enumerate paired devices on the receiver and track each one independently.
 - Receiver-level notifications (device connected / disconnected) must be handled.
@@ -180,7 +182,7 @@ The daemon must:
 4. verify by reading back where the feature supports it;
 5. log mismatches at WARN with an actionable message.
 
-Acceptance test: configure the mouse, then perform each event in the list above. After each one, every setting and every button mapping must be active within 2 seconds, without user action.
+Acceptance test: configure the mouse, then perform each event in the list above. In Milestone 4 the test runs over Bluetooth only, so receiver plug/unplug is excluded; it is added in Milestone B. After each one, every setting and every button mapping must be active within 2 seconds, without user action.
 
 ---
 
@@ -319,6 +321,9 @@ hid-lab profile apply <name>
 ```bash
 hid-lab lab devices [--json]
 hid-lab lab features <device>            # HID++ feature enumeration
+hid-lab lab read <device>                # read-only state of known features
+hid-lab lab watch <device>               # passive: HID++ notifications
+hid-lab lab write <setting> <value>      # controlled write experiment (§13)
 hid-lab lab descriptor <device>
 hid-lab lab capture <device> [--duration 10s] [-o file]
 hid-lab lab import capture.pcapng        # usbmon / USBPcap / btmon captures
@@ -355,6 +360,8 @@ Each finding in `docs/protocol/*.md` records:
 - evidence: captures (file + report index + byte offsets), reference source (project, file, license), and test performed.
 
 **Rule:** the daemon may only *write* using CONFIRMED findings. LIKELY findings may be used for *reads*.
+
+**Exception for confirming writes:** a write function can only become CONFIRMED by being tried. `hid-lab lab write` is the only place where a LIKELY write function may be sent, and only when the user runs it explicitly with `--write`, for a function on its write allowlist, after reading and saving the original value, with every byte logged, a read-back comparison, and `--restore` to put the original value back. The daemon never uses this exception.
 
 ---
 
@@ -462,7 +469,7 @@ Whatever the cause turns out to be, hid-lab must detect it at runtime and tell t
 
 - Workspace, `hidlab-transport`, `hid-lab lab devices [--json]`.
 - Bluetooth device first (primary); Bolt receiver + paired devices second.
-- Hotplug events.
+- Hotplug events (moved to Milestone 4).
 - udev rules.
 
 ### Milestone 2 — HID++ core
@@ -476,11 +483,20 @@ Whatever the cause turns out to be, hid-lab must detect it at runtime and tell t
 - Battery, DPI, SmartShift state, wheel and thumb-wheel state, firmware.
 - All findings documented with status.
 
-### Milestone 4 — Daemon + first writes
+### Milestone 4 — Daemon + first writes (Bluetooth)
 
+- Hotplug via udev monitoring.
+- `hid-lab lab write` to confirm each write function on the real device, one at a time (§13 exception). First set: DPI (0x2201), SmartShift mode and threshold (0x2110), thumb-wheel inversion (0x2150).
 - systemd user daemon, D-Bus API, config file.
-- Writes: DPI, SmartShift, scroll settings (CONFIRMED only).
-- **Re-application on every event in §7.** This milestone is not done until the §7 acceptance test passes over Bolt and Bluetooth.
+- Writes from the daemon: only the functions confirmed above.
+- Main-wheel scroll direction is not written to the device; GNOME's natural-scrolling setting controls it. The 0x2121 wheel mode is not written in this milestone.
+- **Re-application on every event in §7.** This milestone is not done until the §7 acceptance test passes over Bluetooth.
+
+### Milestone B — Logi Bolt receiver
+
+- Receiver discovery, paired-device enumeration by device index, receiver connection notifications, short reports.
+- Hardware tests over Bolt for everything Milestones 1–4 cover over Bluetooth, and the §7 receiver plug/unplug event.
+- Scheduled after Milestone 4. Whether the MVP (Milestone 5) waits for it is not decided yet.
 
 ### Milestone 5 — GUI MVP
 
@@ -553,3 +569,14 @@ The agent MUST:
 The question this project answers is not "can Linux talk to this mouse?" (it can), but:
 
 > "Can I configure my mouse once, and forget about it, like on Windows?"
+
+---
+
+## 22. Decision log
+
+| Date | Decision |
+|---|---|
+| 2026-10-21 | Bolt receiver support moves out of Milestone 4 into Milestone B. The §7 acceptance test for Milestone 4 runs over Bluetooth only. |
+| 2026-10-21 | Main-wheel scroll direction is controlled by GNOME's natural-scrolling setting, not written to the device. The 0x2121 mode is not written in Milestone 4. Thumb-wheel inversion (0x2150) may be written to the device. |
+| 2026-10-21 | Write functions are confirmed one at a time with `hid-lab lab write` (§13 exception), starting with DPI, SmartShift mode and threshold, and thumb-wheel inversion. |
+| 2026-10-21 | udev hotplug, deferred from Milestone 1, is part of Milestone 4. |
