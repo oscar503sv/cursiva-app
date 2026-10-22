@@ -11,6 +11,7 @@ pub mod device_name;
 pub mod dpi;
 pub mod firmware;
 pub mod hires_wheel;
+pub mod lab_write;
 pub mod reader;
 pub mod reprog_controls;
 pub mod smartshift;
