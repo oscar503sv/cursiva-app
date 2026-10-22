@@ -3,6 +3,7 @@
 mod args;
 mod devices;
 mod features;
+mod hotplug;
 mod output;
 mod read;
 mod target;
@@ -44,6 +45,7 @@ fn main() -> ExitCode {
         Command::Features(a) => features::run(&a),
         Command::Read(a) => read::run(&a),
         Command::Watch(a) => watch::run(&a),
+        Command::Hotplug(a) => hotplug::run(&a),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,

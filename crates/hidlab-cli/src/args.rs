@@ -10,6 +10,7 @@ Usage:
   hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
   hid-lab lab read [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
   hid-lab lab watch [<device>] [--duration <s>] [--json] [--features-from <file>]
+  hid-lab lab hotplug [--duration <s>] [--json]
   hid-lab --help | --version
 
 Run `hid-lab lab <command> --help` for details.
@@ -24,6 +25,7 @@ Commands:
   features   List the HID++ features a device reports
   read       Read battery, DPI, wheels, controls, host, firmware and name
   watch      Listen passively and show HID++ notifications
+  hotplug    Show hidraw devices appearing and disappearing (udev)
 
 Lab commands only send read-only queries. No device setting is changed.
 ";
@@ -109,6 +111,23 @@ Options:
 Passive: this command never writes to the device.
 ";
 
+pub const HOTPLUG_HELP: &str = "\
+hid-lab lab hotplug — show hidraw devices appearing and disappearing
+
+Usage: hid-lab lab hotplug [--duration <s>] [--json]
+
+Listens to udev for hidraw add, remove and change events and prints each
+one with bus, vendor and product. After an `add`, it reports whether the
+new node can be opened (the udev rule's access grant is already applied
+when udev delivers the event).
+
+Options:
+  --duration <s>  How long to listen, 1..=3600 seconds (default 60)
+  --json          Machine-readable output at the end
+
+Passive: this command opens nodes only to check access and sends nothing.
+";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HelpTopic {
     Top,
@@ -117,6 +136,7 @@ pub enum HelpTopic {
     Features,
     Read,
     Watch,
+    Hotplug,
 }
 
 impl HelpTopic {
@@ -128,6 +148,7 @@ impl HelpTopic {
             HelpTopic::Features => FEATURES_HELP,
             HelpTopic::Read => READ_HELP,
             HelpTopic::Watch => WATCH_HELP,
+            HelpTopic::Hotplug => HOTPLUG_HELP,
         }
     }
 }
@@ -156,6 +177,12 @@ pub struct WatchArgs {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HotplugArgs {
+    pub duration: Duration,
+    pub json: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     Help(HelpTopic),
     Version,
@@ -163,6 +190,7 @@ pub enum Command {
     Features(FeaturesArgs),
     Read(FeaturesArgs),
     Watch(WatchArgs),
+    Hotplug(HotplugArgs),
 }
 
 /// Parses arguments (without the program name). `Err` is a usage message.
@@ -183,6 +211,7 @@ where
             Some("features") => parse_features(it.collect(), HelpTopic::Features),
             Some("read") => parse_features(it.collect(), HelpTopic::Read),
             Some("watch") => parse_watch(it.collect()),
+            Some("hotplug") => parse_hotplug(it.collect()),
             Some(other) => Err(format!(
                 "unknown lab command `{other}`. Try: hid-lab lab --help"
             )),
@@ -324,6 +353,42 @@ fn parse_watch(rest: Vec<&str>) -> Result<Command, String> {
     Ok(Command::Watch(out))
 }
 
+fn parse_duration(v: &str) -> Result<Duration, String> {
+    v.parse::<u64>()
+        .ok()
+        .filter(|s| (1..=3600).contains(s))
+        .map(Duration::from_secs)
+        .ok_or_else(|| format!("--duration must be 1..=3600 seconds, got `{v}`"))
+}
+
+fn parse_hotplug(rest: Vec<&str>) -> Result<Command, String> {
+    let mut out = HotplugArgs {
+        duration: Duration::from_secs(60),
+        json: false,
+    };
+    let mut it = rest.into_iter();
+    while let Some(arg) = it.next() {
+        let (flag, inline) = split_flag(arg);
+        match flag {
+            "-h" | "--help" => return Ok(Command::Help(HelpTopic::Hotplug)),
+            "--json" => out.json = true,
+            "--duration" => {
+                let v = inline
+                    .map(str::to_owned)
+                    .or_else(|| it.next().map(str::to_owned))
+                    .ok_or("--duration needs a value. Try: hid-lab lab hotplug --help")?;
+                out.duration = parse_duration(&v)?;
+            }
+            other => {
+                return Err(format!(
+                    "unexpected argument `{other}`. Try: hid-lab lab hotplug --help"
+                ));
+            }
+        }
+    }
+    Ok(Command::Hotplug(out))
+}
+
 fn parse_u8(v: &str) -> Result<u8, String> {
     let parsed = match v.strip_prefix("0x").or_else(|| v.strip_prefix("0X")) {
         Some(hex) => u8::from_str_radix(hex, 16).ok(),
@@ -405,6 +470,17 @@ mod tests {
         assert!(w.json);
         assert!(parse(["lab", "watch", "--duration", "0"]).is_err());
         assert!(parse(["lab", "watch", "--index", "1"]).is_err());
+    }
+
+    #[test]
+    fn hotplug_args() {
+        let Ok(Command::Hotplug(h)) = parse(["lab", "hotplug", "--duration=90", "--json"]) else {
+            panic!()
+        };
+        assert_eq!(h.duration, Duration::from_secs(90));
+        assert!(h.json);
+        assert!(parse(["lab", "hotplug", "hidraw2"]).is_err());
+        assert!(parse(["lab", "hotplug", "--duration", "0"]).is_err());
     }
 
     #[test]
