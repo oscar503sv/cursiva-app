@@ -1,16 +1,15 @@
 //! `hid-lab lab features`: read-only HID++ 2.0 feature enumeration.
 
-use std::path::Path;
-
 use hidlab_hidpp::{
-    DEVICE_INDEX_DIRECT, Enumeration, ReportKind, Session, SessionConfig, TranscriptEntry,
-    enumerate, flag_labels, reference_name,
+    Enumeration, ReportKind, Session, SessionConfig, TranscriptEntry, enumerate, flag_labels,
+    reference_name,
 };
-use hidlab_transport::{Discovery, Hidraw, HidrawDevice, discover};
+use hidlab_transport::{Hidraw, HidrawDevice, discover};
 use serde::Serialize;
 
 use crate::args::FeaturesArgs;
 use crate::output::{DeviceJson, table};
+use crate::target::{select, session_config};
 
 #[derive(Serialize)]
 struct FeaturesJson {
@@ -65,17 +64,8 @@ pub fn run(args: &FeaturesArgs) -> Result<(), String> {
     let discovery = discover().map_err(|e| e.to_string())?;
     let (number, device) = select(&discovery, args.device.as_deref())?;
 
-    // Prefer long reports when the descriptor declares 0x11 (or is unreadable).
-    let report = match &device.descriptor {
-        Some(d) if !d.has_long_report() && d.has_short_report() => ReportKind::Short,
-        _ => ReportKind::Long,
-    };
-    let config = SessionConfig {
-        device_index: args.index.unwrap_or(DEVICE_INDEX_DIRECT),
-        report,
-        timeout: args.timeout,
-        ..SessionConfig::default()
-    };
+    let config = session_config(device, args.index, args.timeout);
+    let report = config.report;
 
     let channel = Hidraw::open(&device.node).map_err(|e| e.to_string())?;
     let mut session = Session::new(channel, config);
@@ -225,59 +215,4 @@ fn print_text(e: &Enumeration, ignored: u64) {
     println!("* Reference names come from public sources and are not verified on this device.");
     println!("Read-only queries only: no device setting was changed.");
     println!("Ignored {ignored} unrelated report(s) while waiting for answers.");
-}
-
-/// Picks the target device from the user's selector.
-fn select<'a>(
-    d: &'a Discovery,
-    selector: Option<&str>,
-) -> Result<(usize, &'a HidrawDevice), String> {
-    let numbered = || d.devices.iter().enumerate().map(|(i, dev)| (i + 1, dev));
-
-    let Some(sel) = selector else {
-        let candidates: Vec<_> = numbered()
-            .filter(|(_, dev)| dev.is_logitech() && dev.looks_like_hidpp())
-            .collect();
-        return match candidates.as_slice() {
-            [one] => Ok(*one),
-            [] => Err("No Logitech HID++ device found.\n\
-                 Likely cause: the mouse is off, asleep, or not connected.\n\
-                 Try: move the mouse, then run `hid-lab lab devices` to see what is visible."
-                .into()),
-            many => {
-                let list: Vec<String> = many
-                    .iter()
-                    .map(|(n, dev)| {
-                        format!(
-                            "  #{n} {} {}",
-                            dev.node.display(),
-                            dev.uevent.name.as_deref().unwrap_or("")
-                        )
-                    })
-                    .collect();
-                Err(format!(
-                    "Several Logitech HID++ devices found; choose one:\n{}\n\
-                     Try: hid-lab lab features <#|hidrawN>",
-                    list.join("\n")
-                ))
-            }
-        };
-    };
-
-    let found = if let Ok(n) = sel.parse::<usize>() {
-        numbered().find(|(i, _)| *i == n)
-    } else {
-        let name = Path::new(sel)
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        numbered().find(|(_, dev)| dev.hidraw_name == name)
-    };
-    found.ok_or_else(|| {
-        format!(
-            "No device matches `{sel}`.\n\
-             The hidraw number may have changed after a reconnect.\n\
-             Try: `hid-lab lab devices` and use the `#` or node it shows."
-        )
-    })
 }

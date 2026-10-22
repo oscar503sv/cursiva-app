@@ -4,6 +4,7 @@ mod args;
 mod devices;
 mod features;
 mod output;
+mod target;
 
 use std::process::ExitCode;
 
