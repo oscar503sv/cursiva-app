@@ -4,6 +4,7 @@ mod args;
 mod devices;
 mod features;
 mod output;
+mod read;
 mod target;
 
 use std::process::ExitCode;
@@ -40,6 +41,8 @@ fn main() -> ExitCode {
         }
         Command::Devices(a) => devices::run(&a),
         Command::Features(a) => features::run(&a),
+        Command::Read(a) => read::run(&a),
+        Command::Watch(_) => Err("`lab watch` is not implemented yet".into()),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
