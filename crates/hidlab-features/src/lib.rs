@@ -11,6 +11,7 @@ pub mod dpi;
 pub mod firmware;
 pub mod hires_wheel;
 pub mod reader;
+pub mod reprog_controls;
 pub mod smartshift;
 pub mod thumbwheel;
 mod util;
