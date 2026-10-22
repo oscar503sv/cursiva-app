@@ -273,8 +273,8 @@ pub fn verify(before: &Snapshot, after: &Snapshot, target: SettingValue) -> Vec<
                 field("diverted (unchanged)", b.diverted, a.diverted),
                 field(
                     "other bits (unchanged)",
-                    b.unknown_bits.clone().unwrap_or_default(),
-                    a.unknown_bits.clone().unwrap_or_default(),
+                    b.unknown_bits.clone().unwrap_or_else(|| "none".into()),
+                    a.unknown_bits.clone().unwrap_or_else(|| "none".into()),
                 ),
             ]
         }
