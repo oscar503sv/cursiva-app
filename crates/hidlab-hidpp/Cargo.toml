@@ -1,0 +1,15 @@
+[package]
+name = "hidlab-hidpp"
+description = "Generic HID++ 2.0 framing, request/response and feature enumeration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+hidlab-transport.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
