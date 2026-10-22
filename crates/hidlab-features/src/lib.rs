@@ -14,8 +14,10 @@ pub mod hires_wheel;
 pub mod reader;
 pub mod reprog_controls;
 pub mod smartshift;
+pub mod state;
 pub mod thumbwheel;
 mod util;
 
 pub use allowlist::{KNOWN_WRITES, READ_ALLOWLIST, ReadFn, allowed};
 pub use reader::{FeatureMap, ReadError, Reader};
+pub use state::{DeviceState, Reading, TARGET_FEATURES, read_all};

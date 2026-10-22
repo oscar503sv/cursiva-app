@@ -18,6 +18,8 @@ pub struct FakeDevice {
     pub handler: Handler,
     /// Every request seen, as (feature_id, function).
     pub seen: Vec<(u16, u8)>,
+    /// Features that never answer (simulates a sleeping device).
+    pub silent: Vec<u16>,
     outbox: VecDeque<Vec<u8>>,
 }
 
@@ -29,6 +31,7 @@ impl FakeDevice {
             features: all,
             handler,
             seen: vec![],
+            silent: vec![],
             outbox: VecDeque::new(),
         }
     }
@@ -68,6 +71,9 @@ impl RawChannel for FakeDevice {
             .push_back(vec![0x02, 0x00, 0x01, 0x00, 0xFF, 0xFF, 0x00, 0x00]);
         self.outbox.push_back(Self::long(fi, func << 4, &[0xAA]));
 
+        if feature.is_some_and(|f| self.silent.contains(&f)) {
+            return Ok(());
+        }
         let answer = match feature {
             None => Err(0x06),
             Some(0x0000) if func == 0 => {
