@@ -507,3 +507,49 @@ f1 getThumbwheelStatus() -> [b0, b1, ...]   b0 bit0 diverted, b1 bit0 inverted
 
 The test asked for three presses, and the capture had four notifications.
 The user confirmed four presses, so there is one notification per press.
+
+## Milestone 4a — write functions under test
+
+These are the only write functions hid-lab can send. They are listed in
+`WRITE_EXPERIMENT_ALLOWLIST` (`crates/hidlab-features/src/allowlist.rs`)
+and are reachable only through `hid-lab lab write --write` (requirements
+§13 exception). 0x2121 setWheelMode and 0x1814 setCurrentHost are in
+`NEVER_WRITE`. Each entry stays LIKELY until its hardware test in
+`docs/hardware-test.md`, section M4a, passes.
+
+### P-030 — 0x2201 setSensorDpi (f3)
+
+Status: **LIKELY**. Source: R-2 `AdjustableDpi` (`write_fnid` 0x30, `write_prefix_bytes` `00`, 2-byte value).
+
+```text
+f3 setSensorDpi(sensor, dpi u16 BE)   e.g. 1600 -> params 00 06 40
+```
+
+hid-lab only sends values in the list from getSensorDpiList. Verification:
+getSensorDpi must return the new value, and the default must not change.
+Test: H4-02.
+
+### P-031 — 0x2110 setRatchetControlMode (f1)
+
+Status: **LIKELY**; "0 = no change" is a **HYPOTHESIS**. Source: R-2 `ScrollRatchet` (writes `[mode]`) and `SmartShift` (writes `[0, threshold]`), `write_fnid` 0x10.
+
+```text
+f1 setRatchetControlMode(mode, threshold)
+   mode only:      [mode, 00]        1 free-spin, 2 ratchet
+   threshold only: [00, threshold]   1..50 (R-2's range)
+```
+
+Verification reads back both fields: the written one must change and the
+other must not. That second check tests the "0 = no change" hypothesis.
+Threshold 255 (R-2 maps 50 and above to it) is not used. Tests: H4-03, H4-04.
+
+### P-032 — 0x2150 setThumbwheelReporting (f2)
+
+Status: **LIKELY**. Source: R-2 `ThumbInvert` (`write_fnid` 0x20, true value `00 01`, mask `00 01`, merged with the current value).
+
+```text
+f2 setThumbwheelReporting(b0, b1)   b1 bit0 = invert; all other bits copied from getThumbwheelStatus
+```
+
+Verification: inverted must change; diverted and the other bits must not.
+Test: H4-05.

@@ -57,7 +57,11 @@ hid-lab lab devices  [--json] [--show-unique]
 hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
 hid-lab lab read     [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
 hid-lab lab watch    [<device>] [--duration <s>] [--json] [--features-from <file>]
+hid-lab lab hotplug  [--duration <s>] [--json]
+hid-lab lab write    <setting> (<value> | --restore) [<device>] (--dry-run | --write) [--json]
 ```
+
+`lab write` state (saved originals, `log.jsonl`) lives in `$XDG_STATE_HOME/hid-lab/lab-write/`.
 
 Dependencies: `libc`, `serde`, `serde_json`, `thiserror`; approved for Milestone 4: `udev` (needs `systemd-devel` to build), `zbus`, `toml`. Explain why before adding any other crate, and verify its current version with `cargo info`.
 
