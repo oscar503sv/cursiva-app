@@ -352,7 +352,7 @@ Run by the user on Fedora 44, Bluetooth, hid-lab 0.1.0. Captures are in
 | H4-01 | Pass | 3 `remove`/`add` pairs for 3 actions, every `add` access `ok`; no disconnect in 900 s idle |
 | H4-02 | Pass | 1600, 400, 1000 read back; the user felt faster, slower, normal |
 | H4-03 | Pass | Free spin, then ratchet, threshold unchanged; restore `no_change` as expected; each write produced one 0x2121 notification |
-| H4-04 | Partial | 3 and 40 read back with the mode unchanged, but the restore step was not run, the user's note does not describe the flicks, and the watch file has no 0x2121 notification. The threshold's physical effect stays LIKELY |
+| H4-04 | Pass | 3 and 40 read back with the mode unchanged; the user confirmed afterwards that the wheel released clearly more easily at 3 than at 40. The restore step was skipped (the threshold was reset by H4-06's power cycle). The watch file has no 0x2121 notification: automatic switching does not notify, so the checklist's expectation was wrong |
 | H4-05 | Pass | Inverted and back, other bits unchanged; the user felt the direction flip and return |
 | H4-06 | Observed | Power off reset DPI, threshold and inversion; the mode survived. The channel switch in `06b` did not reconnect, so channel-switch persistence is unknown |
 

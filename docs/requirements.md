@@ -505,7 +505,11 @@ Whatever the cause turns out to be, hid-lab must detect it at runtime and tell t
 - Main-wheel scroll direction is not written to the device; GNOME's natural-scrolling setting controls it. The 0x2121 wheel mode is not written in this milestone.
 - **Re-application on every event in §7.** This milestone is not done until the §7 acceptance test passes over Bluetooth.
 - After re-applying and verifying, the daemon verifies again 1–2 s later to detect anything (for example the kernel driver) overwriting what was applied. Both checks are part of the measured time.
-- SmartShift mode follows the user: the daemon listens to the 0x2121 ratchet notifications (one per mode-button press, CONFIRMED) and keeps the last mode chosen, by button or by the app. On reconnect, if the mouse lost that mode, the daemon restores it. The config file stores the threshold and the initial mode. Details are proposed from the H4-06 persistence data before 4c is implemented.
+- SmartShift mode follows the user: the daemon listens to the 0x2121 ratchet notifications (one per mode-button press, CONFIRMED) and keeps the last mode chosen, by button or by the app. On reconnect, if the mouse lost that mode, the daemon restores it. The config file stores the threshold and the initial mode. Details, approved from the H4-06 data (P-033):
+  - On each 0x2121 ratchet notification the daemon reads the 0x2110 mode instead of deriving it from the notification byte. A mode set through the app is stored directly.
+  - The last mode is kept in `$XDG_STATE_HOME/hid-lab/daemon/state.toml` and survives daemon restarts. The config's mode is used only when that file does not exist.
+  - On reconnect the daemon reads the mode and writes it only if it differs, then verifies twice. DPI, threshold and thumb-wheel inversion are re-applied on every reconnect, because switching the mouse off resets them.
+  - Each computer keeps its own mode: a mode changed while the mouse was on another channel is reverted when it returns.
 
 ### Milestone B — Logi Bolt receiver
 
@@ -601,3 +605,4 @@ The question this project answers is not "can Linux talk to this mouse?" (it can
 | 2026-10-21 | Re-application is verified twice: right after applying, and again 1–2 s later. |
 | 2026-10-21 | `hid-lab lab write --write` requires an explicit device; `--dry-run` may auto-select. |
 | 2026-10-21 | Hotplug uses the `udev` crate (libudev; `systemd-devel` at build time). D-Bus uses `zbus`, config uses `toml`. |
+| 2026-10-22 | SmartShift mode tracking for 4c approved as proposed (see Milestone 4), including: each computer keeps its own mode. |

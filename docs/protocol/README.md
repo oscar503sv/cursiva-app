@@ -458,7 +458,7 @@ f0 getRatchetControlMode() -> [mode, threshold, byte2]   mode 1 free-spin, 2 rat
 | Fact | Status | Evidence |
 |---|---|---|
 | Mode 2 = ratchet, 1 = free spin | **CONFIRMED** | `01` mode 2, `02` mode 1, `03` mode 2, each matching what the user felt on the wheel |
-| Byte 1 = auto-disengage threshold | **CONFIRMED** as the stored value | Reads 10, 3 and 40 after writing 3 and 40 (O-6, H4-04); whether it changes the wheel's feel is still LIKELY, see P-031 |
+| Byte 1 = auto-disengage threshold | **CONFIRMED** | Reads 10, 3 and 40 after writing 3 and 40, with the wheel's feel matching (O-6, H4-04, P-031) |
 | Byte 2 | UNKNOWN | Always `0x0a`, also while byte 1 was 3 or 40 (O-6), so it is not a copy of the current threshold |
 
 ### P-027 — 0x2121 HiResWheel
@@ -541,7 +541,7 @@ already redacted by hid-lab (every 0x0003 getDeviceInfo answer reads
 
 User's report: H4-01 normal, no disconnection; H4-02 the pointer felt faster,
 then slower, then normal; H4-03 the wheel spun freely for a moment and then
-clicked again; H4-04 "all fine"; H4-05 the thumb wheel scrolled one way, then
+clicked again; H4-04 "all fine", and when asked afterwards: at 3 the wheel switched to free spin clearly more easily than at 40, where the same flick kept clicking; H4-05 the thumb wheel scrolled one way, then
 the opposite way, then back to normal; H4-06 fast pointer and free-spinning
 wheel, working throughout, then back to normal.
 
@@ -575,7 +575,8 @@ Status:
 | `00` in the threshold byte keeps the threshold | **CONFIRMED** | Threshold unchanged after all 4 mode writes (10, 10, 40, 10) |
 | `[00, threshold]` stores the threshold | **CONFIRMED** | 3 and 40 read back (`04a`, `04b`) |
 | `00` in the mode byte keeps the mode | **CONFIRMED** | Mode unchanged (ratchet) after both threshold writes |
-| The threshold changes how easily the wheel switches to free spin | LIKELY | The user reported "all fine" without describing the flicks; the watch file shows no 0x2121 notification at 3 or at 40 |
+| The threshold changes how easily the wheel switches to free spin | **CONFIRMED** | User, asked after O-6: at 3 the wheel switched to free spin clearly more easily than at 40; at 40 the same flick kept clicking. Values 3 and 40 read back |
+| Automatic switching to free spin sends a 0x2121 notification | not observed | `04-watch-threshold.json` has none, although the wheel did switch at threshold 3 (user) |
 | The answer echoes the parameters | **CONFIRMED** | `01`, `02`, `00 03`, `00 28` |
 
 Source: R-2 `ScrollRatchet` (writes `[mode]`) and `SmartShift` (writes `[0, threshold]`), `write_fnid` 0x10.

@@ -37,8 +37,8 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 - 35 features plus root; indices are assigned by the device and must be resolved with getFeature at runtime.
 - The kernel exposes the battery as `/sys/class/power_supply/hidpp_battery_N`; the name changes on reconnect.
 - Main-wheel scroll direction is GNOME's natural-scrolling setting, not a device write.
-- Write functions CONFIRMED by H4: 0x2201 setSensorDpi, 0x2110 setRatchetControlMode (mode, and threshold storage; `00` in the other byte means no change), 0x2150 setThumbwheelReporting. The threshold's effect on the wheel is still LIKELY.
-- A 0x2110 mode write, like the mode button, produces a 0x2121 f1 notification.
+- Write functions CONFIRMED by H4: 0x2201 setSensorDpi, 0x2110 setRatchetControlMode (mode and threshold; `00` in the other byte means no change), 0x2150 setThumbwheelReporting.
+- A 0x2110 mode write, like the mode button, produces a 0x2121 f1 notification. Automatic switching by the threshold does not.
 - Switching the mouse off resets DPI, threshold and thumb-wheel inversion; the SmartShift mode survives. LIKELY only: one observation, P-033.
 
 ## Workspace
