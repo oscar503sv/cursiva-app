@@ -6,6 +6,9 @@ pub const TOP_HELP: &str = "\
 hid-lab — configure Logitech HID++ mice on Linux
 
 Usage:
+  hid-lab status [--json]
+  hid-lab set <setting> <value> [--json]
+  hid-lab reapply [--json]
   hid-lab lab devices [--json] [--show-unique]
   hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
   hid-lab lab read [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -15,8 +18,46 @@ Usage:
   hid-lab lab write <setting> --restore [<device>] (--dry-run | --write) [--json]
   hid-lab --help | --version
 
-Run `hid-lab lab <command> --help` for details.
+status, set and reapply talk to the daemon hid-labd (docs/daemon.md).
+Settings: dpi <n>, smartshift-mode <ratchet|free-spin>,
+smartshift-threshold <1..50>, thumbwheel-invert <on|off>.
+
+Run `hid-lab <command> --help` or `hid-lab lab <command> --help` for details.
 All lab commands are read-only except `lab write`, which needs --write.
+";
+
+pub const STATUS_HELP: &str = "\
+hid-lab status — show what the daemon applies and what the mouse has
+
+Usage: hid-lab status [--json]
+
+Asks hid-labd over D-Bus. The current values are read from the mouse for
+this call; nothing is written.
+";
+
+pub const SET_HELP: &str = "\
+hid-lab set — change one setting through the daemon
+
+Usage: hid-lab set <setting> <value> [--json]
+
+Settings:
+  dpi <n>                       a value from the mouse's DPI list
+  smartshift-mode <ratchet|free-spin>
+  smartshift-threshold <1..50>  lower switches to free spin more easily
+  thumbwheel-invert <on|off>
+
+hid-labd writes the value to the mouse if it is connected, reads it back,
+and saves it: the mode in its state file, everything else in
+~/.config/hid-lab/config.toml. A value the mouse rejects is not saved.
+";
+
+pub const REAPPLY_HELP: &str = "\
+hid-lab reapply — reload the config file and apply it now
+
+Usage: hid-lab reapply [--json]
+
+Use it after editing ~/.config/hid-lab/config.toml. If the file has an
+error, the daemon keeps the last valid configuration and shows the error.
 ";
 
 pub const LAB_HELP: &str = "\
@@ -174,6 +215,9 @@ pub enum HelpTopic {
     Watch,
     Hotplug,
     Write,
+    Status,
+    Set,
+    Reapply,
 }
 
 impl HelpTopic {
@@ -187,6 +231,9 @@ impl HelpTopic {
             HelpTopic::Watch => WATCH_HELP,
             HelpTopic::Hotplug => HOTPLUG_HELP,
             HelpTopic::Write => WRITE_HELP,
+            HelpTopic::Status => STATUS_HELP,
+            HelpTopic::Set => SET_HELP,
+            HelpTopic::Reapply => REAPPLY_HELP,
         }
     }
 }
@@ -238,6 +285,14 @@ pub struct WriteArgs {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SetArgs {
+    pub value: hidlab_features::settings::SettingValue,
+    /// The value as typed, sent to the daemon.
+    pub raw_value: String,
+    pub json: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     Help(HelpTopic),
     Version,
@@ -247,6 +302,9 @@ pub enum Command {
     Watch(WatchArgs),
     Hotplug(HotplugArgs),
     Write(WriteArgs),
+    Status { json: bool },
+    Set(SetArgs),
+    Reapply { json: bool },
 }
 
 /// Parses arguments (without the program name). `Err` is a usage message.
@@ -273,6 +331,13 @@ where
                 "unknown lab command `{other}`. Try: hid-lab lab --help"
             )),
         },
+        Some("status") => parse_json_only(it.collect(), HelpTopic::Status, |json| {
+            Command::Status { json }
+        }),
+        Some("reapply") => parse_json_only(it.collect(), HelpTopic::Reapply, |json| {
+            Command::Reapply { json }
+        }),
+        Some("set") => parse_set(it.collect()),
         Some(other) => Err(format!("unknown command `{other}`. Try: hid-lab --help")),
     }
 }
@@ -520,6 +585,54 @@ fn parse_write(rest: Vec<&str>) -> Result<Command, String> {
     }))
 }
 
+/// Commands whose only option is `--json`.
+fn parse_json_only(
+    rest: Vec<&str>,
+    topic: HelpTopic,
+    make: fn(bool) -> Command,
+) -> Result<Command, String> {
+    let mut json = false;
+    for arg in rest {
+        match arg {
+            "-h" | "--help" => return Ok(Command::Help(topic)),
+            "--json" => json = true,
+            other => {
+                return Err(format!(
+                    "unexpected argument `{other}`. Try: hid-lab --help"
+                ));
+            }
+        }
+    }
+    Ok(make(json))
+}
+
+fn parse_set(rest: Vec<&str>) -> Result<Command, String> {
+    use hidlab_features::settings::SettingKind;
+    const TRY: &str = "Try: hid-lab set --help";
+    let mut json = false;
+    let mut positionals = Vec::new();
+    for arg in rest {
+        match arg {
+            "-h" | "--help" => return Ok(Command::Help(HelpTopic::Set)),
+            "--json" => json = true,
+            other if other.starts_with('-') => {
+                return Err(format!("unknown option `{other}`. {TRY}"));
+            }
+            other => positionals.push(other),
+        }
+    }
+    let [name, raw] = positionals[..] else {
+        return Err(format!("expected <setting> <value>. {TRY}"));
+    };
+    let kind =
+        SettingKind::from_name(name).ok_or_else(|| format!("unknown setting `{name}`. {TRY}"))?;
+    Ok(Command::Set(SetArgs {
+        value: kind.parse_value(raw)?,
+        raw_value: raw.to_owned(),
+        json,
+    }))
+}
+
 fn parse_u8(v: &str) -> Result<u8, String> {
     let parsed = match v.strip_prefix("0x").or_else(|| v.strip_prefix("0X")) {
         Some(hex) => u8::from_str_radix(hex, 16).ok(),
@@ -667,6 +780,26 @@ mod tests {
         assert!(parse(["lab", "write", "wheel-mode", "1", "hidraw2", "--write"]).is_err());
         assert!(parse(["lab", "write", "smartshift-threshold", "99", "--dry-run"]).is_err());
         assert!(parse(["lab", "write", "dpi", "1600", "2", "3", "--dry-run"]).is_err());
+    }
+
+    #[test]
+    fn user_commands() {
+        use hidlab_features::settings::SettingValue;
+        assert_eq!(parse(["status"]), Ok(Command::Status { json: false }));
+        assert_eq!(
+            parse(["reapply", "--json"]),
+            Ok(Command::Reapply { json: true })
+        );
+        assert_eq!(parse(["set", "--help"]), Ok(Command::Help(HelpTopic::Set)));
+        let Ok(Command::Set(s)) = parse(["set", "smartshift-mode", "free-spin"]) else {
+            panic!()
+        };
+        assert_eq!(s.value, SettingValue::SmartshiftMode(1));
+        assert_eq!(s.raw_value, "free-spin");
+        assert!(parse(["set", "dpi"]).is_err());
+        assert!(parse(["set", "dpi", "fast"]).is_err());
+        assert!(parse(["set", "wheel-mode", "on"]).is_err());
+        assert!(parse(["status", "extra"]).is_err());
     }
 
     #[test]

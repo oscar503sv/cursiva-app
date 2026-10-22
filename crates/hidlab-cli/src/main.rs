@@ -1,12 +1,14 @@
 //! `hid-lab` command-line tool.
 
 mod args;
+mod client;
 mod devices;
 mod features;
 mod hotplug;
 mod output;
 mod read;
 mod target;
+mod user;
 mod watch;
 mod write;
 
@@ -48,6 +50,9 @@ fn main() -> ExitCode {
         Command::Watch(a) => watch::run(&a),
         Command::Hotplug(a) => hotplug::run(&a),
         Command::Write(a) => write::run(&a),
+        Command::Status { json } => user::status(json),
+        Command::Set(a) => user::set(&a),
+        Command::Reapply { json } => user::reapply(json),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
