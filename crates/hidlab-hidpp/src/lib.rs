@@ -4,6 +4,7 @@ pub mod error;
 pub mod error_code;
 pub mod feature;
 pub mod frame;
+pub mod names;
 pub mod session;
 pub mod transcript;
 
@@ -17,5 +18,6 @@ pub use frame::{
     DEVICE_INDEX_DIRECT, Frame, FrameError, HIDPP10_ERROR_SUB_ID, HIDPP20_ERROR_INDEX, ReportKind,
     Request, decode, hex,
 };
+pub use names::{flag_labels, reference_name};
 pub use session::{DEFAULT_SW_ID, DEFAULT_TIMEOUT, Session, SessionConfig};
 pub use transcript::{Direction, Disposition, Transcript, TranscriptEntry};
