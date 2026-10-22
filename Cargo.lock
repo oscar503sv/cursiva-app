@@ -21,6 +21,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hidlab-devices"
+version = "0.1.0"
+dependencies = [
+ "hidlab-features",
+ "hidlab-transport",
+]
+
+[[package]]
 name = "hidlab-features"
 version = "0.1.0"
 dependencies = [

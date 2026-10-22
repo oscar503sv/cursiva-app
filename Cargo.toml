@@ -4,6 +4,7 @@ members = [
     "crates/hidlab-transport",
     "crates/hidlab-hidpp",
     "crates/hidlab-features",
+    "crates/hidlab-devices",
     "crates/hidlab-cli",
 ]
 
@@ -18,6 +19,7 @@ publish = false
 hidlab-transport = { path = "crates/hidlab-transport" }
 hidlab-hidpp = { path = "crates/hidlab-hidpp" }
 hidlab-features = { path = "crates/hidlab-features" }
+hidlab-devices = { path = "crates/hidlab-devices" }
 libc = "0.2.191"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
