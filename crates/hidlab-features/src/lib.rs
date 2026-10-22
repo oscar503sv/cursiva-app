@@ -12,6 +12,7 @@ pub mod firmware;
 pub mod hires_wheel;
 pub mod reader;
 pub mod smartshift;
+pub mod thumbwheel;
 mod util;
 
 pub use allowlist::{KNOWN_WRITES, READ_ALLOWLIST, ReadFn, allowed};
