@@ -42,6 +42,47 @@ const MAPPING_FLAGS: &[(u16, &str)] = &[
     (0x0400, "raw_wheel"),
 ];
 
+/// Reference names for control IDs, from Solaar `special_keys.py` `CONTROL`.
+/// NOT verified on any device. Only IDs reported by a device under test
+/// have been added; unknown IDs return `None`.
+const CID_NAMES: &[(u16, &str)] = &[
+    (0x0050, "Left_Button"),
+    (0x0051, "Right_Button"),
+    (0x0052, "Middle_Button"),
+    (0x0053, "Back_Button"),
+    (0x0056, "Forward_Button"),
+    (0x00C3, "Mouse_Gesture_Button"),
+    (0x00C4, "Smart_Shift"),
+    (0x00D7, "Virtual_Gesture_Button"),
+];
+
+/// Reference names for task IDs, from Solaar `special_keys.py` `Task`.
+/// NOT verified on any device.
+const TID_NAMES: &[(u16, &str)] = &[
+    (0x0038, "LEFT_CLICK"),
+    (0x0039, "RIGHT_CLICK"),
+    (0x003A, "MOUSE_MIDDLE_BUTTON"),
+    (0x003C, "MOUSE_BACK_BUTTON"),
+    (0x003E, "MOUSE_FORWARD_BUTTON"),
+    (0x009D, "SMART_SHIFT"),
+    (0x00A9, "GESTURE_BUTTON_NAVIGATION"),
+    (0x00B4, "VIRTUAL_GESTURE_BUTTON"),
+];
+
+fn lookup(table: &[(u16, &'static str)], id: u16) -> Option<&'static str> {
+    table.iter().find(|(k, _)| *k == id).map(|(_, n)| *n)
+}
+
+/// Unverified reference name of a control ID.
+pub fn cid_reference_name(cid: u16) -> Option<&'static str> {
+    lookup(CID_NAMES, cid)
+}
+
+/// Unverified reference name of a task ID.
+pub fn tid_reference_name(tid: u16) -> Option<&'static str> {
+    lookup(TID_NAMES, tid)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Reporting {
     pub flags: u16,
@@ -58,8 +99,12 @@ pub struct Control {
     pub index: u8,
     /// Control ID, as `0x....`.
     pub cid: String,
+    /// Unverified reference name (Solaar), if listed.
+    pub cid_reference_name: Option<&'static str>,
     /// Task ID, as `0x....`.
     pub tid: String,
+    /// Unverified reference name (Solaar), if listed.
+    pub tid_reference_name: Option<&'static str>,
     pub flags: u16,
     pub flag_names: Vec<&'static str>,
     pub unknown_flag_bits: Option<String>,
@@ -87,7 +132,9 @@ pub fn decode_info(index: u8, p: &[u8]) -> Result<Control, ReadError> {
     Ok(Control {
         index,
         cid: format!("0x{cid:04X}"),
+        cid_reference_name: cid_reference_name(cid),
         tid: format!("0x{tid:04X}"),
+        tid_reference_name: tid_reference_name(tid),
         flags,
         flag_names: bit_names(flags, KEY_FLAGS),
         unknown_flag_bits: unknown_bits(flags, 0x0FFF),
@@ -165,6 +212,9 @@ mod tests {
         let c = decode_info(2, &[0x00, 0x53, 0x00, 0x38, 0x31, 0, 1, 1, 0x01, 0]).unwrap();
         assert_eq!(c.cid, "0x0053");
         assert_eq!(c.tid, "0x0038");
+        assert_eq!(c.cid_reference_name, Some("Back_Button"));
+        assert_eq!(c.tid_reference_name, Some("LEFT_CLICK"));
+        assert_eq!(cid_reference_name(0x1234), None);
         assert_eq!(c.flags, 0x0131);
         assert_eq!(
             c.flag_names,
