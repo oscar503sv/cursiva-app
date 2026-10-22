@@ -9,6 +9,7 @@ pub mod battery;
 pub mod device_name;
 pub mod dpi;
 pub mod firmware;
+pub mod hires_wheel;
 pub mod reader;
 pub mod smartshift;
 mod util;
