@@ -1,0 +1,94 @@
+{
+  "schema": "hid-lab.watch/1",
+  "tool_version": "0.1.0",
+  "passive": true,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0003",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "duration_s": 30,
+  "feature_names_from": "~/hidlab-m3/features.json",
+  "counts": {
+    "input_reports": {
+      "0x02": 104
+    },
+    "notifications": 4,
+    "other_hidpp": 0,
+    "malformed": 0
+  },
+  "events": [
+    {
+      "t_ms": 5504,
+      "kind": "notification",
+      "feature_index": 15,
+      "feature_id": "0x2121",
+      "reference_name": "HiResWheel",
+      "function": 1,
+      "sw_id": 0,
+      "params_hex": "",
+      "raw_hex": "11 ff 0f 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 7176,
+      "kind": "notification",
+      "feature_index": 15,
+      "feature_id": "0x2121",
+      "reference_name": "HiResWheel",
+      "function": 1,
+      "sw_id": 0,
+      "params_hex": "01",
+      "raw_hex": "11 ff 0f 10 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 8977,
+      "kind": "notification",
+      "feature_index": 15,
+      "feature_id": "0x2121",
+      "reference_name": "HiResWheel",
+      "function": 1,
+      "sw_id": 0,
+      "params_hex": "",
+      "raw_hex": "11 ff 0f 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "t_ms": 14017,
+      "kind": "notification",
+      "feature_index": 15,
+      "feature_id": "0x2121",
+      "reference_name": "HiResWheel",
+      "function": 1,
+      "sw_id": 0,
+      "params_hex": "01",
+      "raw_hex": "11 ff 0f 10 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ],
+  "end_note": null,
+  "sanitized": "home directory in feature_names_from replaced with ~ after capture"
+}
