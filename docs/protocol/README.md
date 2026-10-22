@@ -458,8 +458,8 @@ f0 getRatchetControlMode() -> [mode, threshold, byte2]   mode 1 free-spin, 2 rat
 | Fact | Status | Evidence |
 |---|---|---|
 | Mode 2 = ratchet, 1 = free spin | **CONFIRMED** | `01` mode 2, `02` mode 1, `03` mode 2, each matching what the user felt on the wheel |
-| Byte 1 = auto-disengage threshold | LIKELY | Only the value 10 observed |
-| Byte 2 | UNKNOWN | Always `0x0a`, equal to the threshold |
+| Byte 1 = auto-disengage threshold | **CONFIRMED** as the stored value | Reads 10, 3 and 40 after writing 3 and 40 (O-6, H4-04); whether it changes the wheel's feel is still LIKELY, see P-031 |
+| Byte 2 | UNKNOWN | Always `0x0a`, also while byte 1 was 3 or 40 (O-6), so it is not a copy of the current threshold |
 
 ### P-027 — 0x2121 HiResWheel
 
@@ -482,6 +482,8 @@ change it without coordinating with the kernel driver.
 | f0 multiplier 15, has invert, has ratchet switch | LIKELY | One value |
 | f0 flag bit `0x10`, f0 bytes 2..3 (`18 18`) | UNKNOWN | f0 answers `0f 1c 18 18` |
 | Event f1 with byte 0 = ratchet state | **CONFIRMED** | 4 notifications alternating `00`/`01` for 4 presses (user, O-5), ending in ratchet as the reads before and after show |
+| A 0x2110 mode write also sends event f1 | **CONFIRMED** | `03-watch-mode.json` (O-6): `00` about 6 ms after the free-spin write's answer and `01` after the ratchet write's answer; each of the 4 mode writes in `log.jsonl` ignored exactly this report (`11 ff 0f 10 ..`) |
+| A threshold write sends event f1 | not observed | `04-watch-threshold.json` (O-6): no 0x2121 notification for the two threshold writes or the flicks after them |
 
 ### P-028 — 0x2150 Thumbwheel
 
@@ -500,6 +502,7 @@ f1 getThumbwheelStatus() -> [b0, b1, ...]   b0 bit0 diverted, b1 bit0 inverted
 | The device sends unsolicited HID++ reports with `sw_id 0` | **CONFIRMED** | 7 in O-5: 3 battery, 4 wheel |
 | Battery: 0x1004 event f0 | **CONFIRMED** | See P-022 |
 | Mode button: 0x2121 event f1, not 0x2110 | **CONFIRMED** | `04-watch-mode-button.json`: one 0x2121 f1 notification per press (4 presses, 4 notifications); none from 0x2110 |
+| Software mode change: 0x2121 event f1, not 0x2110 | **CONFIRMED** | See P-027; none from 0x2110 in O-6 |
 | `lab watch` sees other programs' traffic without interfering | **CONFIRMED** | `05-watch-cable.json`: the user's `lab read` (sw_id `0x0B`) appears as 43 other-HID++ reports, and that read succeeded |
 | Kernel driver HID++ traffic during normal use | not observed | No reports with other software IDs besides hid-lab's in 150 s of watching |
 
@@ -517,9 +520,42 @@ and are reachable only through `hid-lab lab write --write` (requirements
 `NEVER_WRITE`. Each entry stays LIKELY until its hardware test in
 `docs/hardware-test.md`, section M4a, passes.
 
+### Observation O-6 (2026-10-21) — user's hardware tests H4
+
+The user ran section M4a of `docs/hardware-test.md` on their own machine, as
+a normal user, over Bluetooth. Captures are in `evidence/m4a/`, including the
+user's `log.jsonl` (18 `--write` runs). The Bluetooth address and unit ID were
+already redacted by hid-lab (every 0x0003 getDeviceInfo answer reads
+`03 ** ** ** **`); the two watch files had the home directory replaced with
+`~` (their `sanitized` field).
+
+| File | Test | Result in file |
+|---|---|---|
+| `01-hotplug.json` | H4-01, three disconnect actions | 3 `remove`/`add` pairs, every `add` access `ok` |
+| `01b-idle.json` | H4-01, 900 s idle | no events |
+| `02a`, `02b`, `02c` | H4-02 DPI 1600, 400, restore | `pass` ×3 |
+| `03a`, `03b`, `03c`, `03-watch-mode.json` | H4-03 mode free-spin, ratchet, restore | `pass`, `pass`, `no_change` |
+| `04a`, `04b`, `04-watch-threshold.json` | H4-04 threshold 3, 40 | `pass` ×2; **the restore step was not run** (no `04c` file, no log line) |
+| `05a`, `05b` | H4-05 thumb wheel invert on, restore | `pass` ×2 |
+| `06a`..`06f` | H4-06 persistence | see P-033 |
+
+User's report: H4-01 normal, no disconnection; H4-02 the pointer felt faster,
+then slower, then normal; H4-03 the wheel spun freely for a moment and then
+clicked again; H4-04 "all fine"; H4-05 the thumb wheel scrolled one way, then
+the opposite way, then back to normal; H4-06 fast pointer and free-spinning
+wheel, working throughout, then back to normal.
+
+The threshold left at 40 by H4-04 was still 40 when H4-06 started, so H4-06's
+threshold write was `no_change`, and the original (10) saved in H4-04 was
+used by H4-06's restore. All four originals were removed at the end;
+`06f-restored.json` matches `00-before.json` for every written setting.
+
 ### P-030 — 0x2201 setSensorDpi (f3)
 
-Status: **LIKELY**. Source: R-2 `AdjustableDpi` (`write_fnid` 0x30, `write_prefix_bytes` `00`, 2-byte value).
+Status: **CONFIRMED** (O-6). 1600, 400 and 1000 written and read back, the
+default stayed 1000 each time, and the user felt the pointer get faster, then
+slower, then normal. A fourth write (1600) in H4-06 also passed. The answer
+echoes the parameters (`00 06 40`). Source: R-2 `AdjustableDpi` (`write_fnid` 0x30, `write_prefix_bytes` `00`, 2-byte value).
 
 ```text
 f3 setSensorDpi(sensor, dpi u16 BE)   e.g. 1600 -> params 00 06 40
@@ -531,7 +567,18 @@ Test: H4-02.
 
 ### P-031 — 0x2110 setRatchetControlMode (f1)
 
-Status: **LIKELY**; "0 = no change" is a **HYPOTHESIS**. Source: R-2 `ScrollRatchet` (writes `[mode]`) and `SmartShift` (writes `[0, threshold]`), `write_fnid` 0x10.
+Status:
+
+| Fact | Status | Evidence |
+|---|---|---|
+| `[mode, 00]` sets the mode | **CONFIRMED** | 4 writes (O-6: `03a`, `03b`, H4-06 set and restore), each read back; the user felt free spin and then clicks |
+| `00` in the threshold byte keeps the threshold | **CONFIRMED** | Threshold unchanged after all 4 mode writes (10, 10, 40, 10) |
+| `[00, threshold]` stores the threshold | **CONFIRMED** | 3 and 40 read back (`04a`, `04b`) |
+| `00` in the mode byte keeps the mode | **CONFIRMED** | Mode unchanged (ratchet) after both threshold writes |
+| The threshold changes how easily the wheel switches to free spin | LIKELY | The user reported "all fine" without describing the flicks; the watch file shows no 0x2121 notification at 3 or at 40 |
+| The answer echoes the parameters | **CONFIRMED** | `01`, `02`, `00 03`, `00 28` |
+
+Source: R-2 `ScrollRatchet` (writes `[mode]`) and `SmartShift` (writes `[0, threshold]`), `write_fnid` 0x10.
 
 ```text
 f1 setRatchetControlMode(mode, threshold)
@@ -540,12 +587,16 @@ f1 setRatchetControlMode(mode, threshold)
 ```
 
 Verification reads back both fields: the written one must change and the
-other must not. That second check tests the "0 = no change" hypothesis.
+other must not.
 Threshold 255 (R-2 maps 50 and above to it) is not used. Tests: H4-03, H4-04.
 
 ### P-032 — 0x2150 setThumbwheelReporting (f2)
 
-Status: **LIKELY**. Source: R-2 `ThumbInvert` (`write_fnid` 0x20, true value `00 01`, mask `00 01`, merged with the current value).
+Status: **CONFIRMED** (O-6). `00 01` and `00 00` written and read back with
+diverted and the other bits unchanged, and the user felt the thumb wheel
+direction flip and come back. A third write (`00 01`) in H4-06 also passed.
+Unlike the other two writes, the answer does not echo: its parameters are all
+zero. Source: R-2 `ThumbInvert` (`write_fnid` 0x20, true value `00 01`, mask `00 01`, merged with the current value).
 
 ```text
 f2 setThumbwheelReporting(b0, b1)   b1 bit0 = invert; all other bits copied from getThumbwheelStatus
@@ -553,3 +604,36 @@ f2 setThumbwheelReporting(b0, b1)   b1 bit0 = invert; all other bits copied from
 
 Verification: inverted must change; diverted and the other bits must not.
 Test: H4-05.
+
+### P-033 — What the mouse keeps across events
+
+Source: O-6, H4-06 (one run of each event). DPI 1600, threshold 40, thumb
+wheel inverted and free spin were set before the events. The kernel's HID
+device name (`0005:046D:B034.NNNN`) shows whether the mouse reconnected.
+
+| Event | File | Reconnected | DPI | Threshold | Thumb invert | Mode |
+|---|---|---|---|---|---|---|
+| set | `06a` | — | 1600 | 40 | on | free spin |
+| Easy-Switch away and back | `06b` | **no** (`.0007` kept) | 1600 | 40 | on | free spin |
+| switch off and on | `06c` | yes (`.0008`) | **1000** | **10** | **off** | free spin |
+| 15 min idle | `06d` | no (`.0008` kept) | 1000 | 10 | off | free spin |
+| `systemctl suspend` and wake | `06e` | yes (`.0009`) | 1000 | 10 | off | free spin |
+
+| Fact | Status | Evidence |
+|---|---|---|
+| Switching the mouse off resets DPI, threshold and thumb inversion to the defaults | LIKELY | One power cycle (`06c`); the values equal the ones in `00-before.json` |
+| The SmartShift mode survives switching the mouse off | LIKELY | One power cycle and one suspend (`06c`, `06e`) |
+| Whether DPI, threshold and inversion survive a channel switch with a reconnect | UNKNOWN | `06b` had no reconnect, so it does not answer this. In H4-01 the same action did reconnect (`01-hotplug.json`) |
+| Whether they survive a suspend | UNKNOWN | They were already reset by `06c` before the suspend |
+| The mouse does not disconnect after 15 min idle | LIKELY | No `remove` in 900 s (`01b`), same HID device before and after the idle wait (`06d`) |
+| The kernel's 0x2121 mode is `0x02` after every reconnect | LIKELY | `06c`, `06e`, consistent with R-1 |
+
+### P-034 — Hotplug events over Bluetooth
+
+Status: **CONFIRMED** (O-6, `01-hotplug.json`). Switching the mouse off,
+Easy-Switch away and back, and turning GNOME's Bluetooth off and on each gave
+one `remove` and then one `add` for `0005:046D:B034`, 13 to 20 s apart. Each
+`add` already had access `ok` (the udev `uaccess` rule had run). The node
+stayed `hidraw2`, while the HID device suffix grew by one on every reconnect
+(`.0004` to `.0007`). The removed device's IDs were parsed from the event's
+path.

@@ -340,3 +340,21 @@ The files in `~/hidlab-m4a/`, a copy of
 `~/.local/state/hid-lab/lab-write/log.jsonl`, and a short note per test
 about what you felt and saw. The files redact the Bluetooth address and do
 not contain the unit ID.
+
+### Results, run 1 (2026-10-21)
+
+Run by the user on Fedora 44, Bluetooth, hid-lab 0.1.0. Captures are in
+`docs/protocol/evidence/m4a/`. Details and promotions are in
+`docs/protocol/README.md`, observation O-6 and P-030 to P-034.
+
+| Test | Result | Notes |
+|---|---|---|
+| H4-01 | Pass | 3 `remove`/`add` pairs for 3 actions, every `add` access `ok`; no disconnect in 900 s idle |
+| H4-02 | Pass | 1600, 400, 1000 read back; the user felt faster, slower, normal |
+| H4-03 | Pass | Free spin, then ratchet, threshold unchanged; restore `no_change` as expected; each write produced one 0x2121 notification |
+| H4-04 | Partial | 3 and 40 read back with the mode unchanged, but the restore step was not run, the user's note does not describe the flicks, and the watch file has no 0x2121 notification. The threshold's physical effect stays LIKELY |
+| H4-05 | Pass | Inverted and back, other bits unchanged; the user felt the direction flip and return |
+| H4-06 | Observed | Power off reset DPI, threshold and inversion; the mode survived. The channel switch in `06b` did not reconnect, so channel-switch persistence is unknown |
+
+Open items for 4c: a channel switch that does reconnect, and a suspend with
+non-default values still applied.
