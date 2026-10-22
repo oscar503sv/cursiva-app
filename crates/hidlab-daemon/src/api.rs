@@ -10,7 +10,7 @@
 //! | `Reapply` | — | [`ReapplyReply`] JSON |
 //!
 //! Signals: `DeviceChanged` ([`DeviceEvent`] JSON) and `Applied`
-//! ([`ReapplyReply`] JSON).
+//! ([`ApplyReport`] JSON).
 
 use hidlab_features::settings::{SettingKind, SettingValue};
 use serde::{Deserialize, Serialize};

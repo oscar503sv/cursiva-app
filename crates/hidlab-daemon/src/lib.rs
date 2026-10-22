@@ -12,4 +12,5 @@ pub mod conflicts;
 pub mod engine;
 pub mod log;
 pub mod paths;
+pub mod service;
 pub mod state;

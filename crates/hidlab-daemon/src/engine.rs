@@ -32,7 +32,7 @@ pub struct Present {
     pub profile: &'static DeviceProfile,
 }
 
-pub struct Core {
+pub struct Engine {
     config_path: PathBuf,
     state_path: PathBuf,
     config: Config,
@@ -81,7 +81,7 @@ pub fn find_device() -> Result<Option<Present>, String> {
     }))
 }
 
-impl Core {
+impl Engine {
     /// Loads config and state. Problems are logged and kept for `status`;
     /// they never stop the daemon (requirements §15).
     pub fn new(config_path: PathBuf, state_path: PathBuf) -> Self {
@@ -426,8 +426,8 @@ mod tests {
             fs::create_dir_all(&d).unwrap();
             Self(d)
         }
-        fn core(&self) -> Core {
-            Core::new(self.0.join("config.toml"), self.0.join("state.toml"))
+        fn engine(&self) -> Engine {
+            Engine::new(self.0.join("config.toml"), self.0.join("state.toml"))
         }
     }
     impl Drop for Dir {
@@ -445,7 +445,7 @@ mod tests {
              smartshift = { mode = \"ratchet\", threshold = 30 }\n",
         )
         .unwrap();
-        let mut c = d.core();
+        let mut c = d.engine();
         assert_eq!(
             c.desired(&MX_MASTER_3S),
             [
@@ -461,12 +461,12 @@ mod tests {
     #[test]
     fn set_without_a_mouse_saves_for_later() {
         let d = Dir::new("set");
-        let mut c = d.core();
+        let mut c = d.engine();
         let r = c.set("dpi", "1200").unwrap();
         assert!(r.applied.is_none() && r.note.is_some());
         c.set("smartshift-mode", "free-spin").unwrap();
         // Saved to the two files, and read back by a new daemon.
-        let c2 = d.core();
+        let c2 = d.engine();
         assert_eq!(
             c2.desired(&MX_MASTER_3S),
             [SettingValue::Dpi(1200), SettingValue::SmartshiftMode(1)]
@@ -488,7 +488,7 @@ mod tests {
             "format_version = 1\n[device.\"mx-master-3s\"]\ndpi = 900\n",
         )
         .unwrap();
-        let mut c = d.core();
+        let mut c = d.engine();
         fs::write(&file, "format_version = 1\ndpi = \n").unwrap();
         c.reload_config();
         // The last valid config stays, and `set` refuses to overwrite the file.
