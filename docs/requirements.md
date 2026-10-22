@@ -4,6 +4,19 @@
 
 **hid-lab** — A native Linux configuration app and background service for Logitech HID++ mice, starting with the **Logitech MX Master 3S**, built on a reusable HID inspection and protocol-research toolkit.
 
+### Names and identifiers
+
+| What | Name |
+|---|---|
+| Desktop app (user-facing name) | **Cursiva** |
+| Application ID (GTK, `.desktop`, icons) | `dev.ozkkar.Cursiva` |
+| Daemon D-Bus well-known name | `dev.ozkkar.Cursiva.Daemon1` |
+| CLI binary | `hid-lab` |
+| Internal crates | `hidlab-*` |
+
+The D-Bus object paths and interface names derive from the daemon name
+(`/dev/ozkkar/Cursiva/Daemon1`, interface `dev.ozkkar.Cursiva.Daemon1`).
+
 ---
 
 ## 1. Vision
@@ -491,12 +504,14 @@ Whatever the cause turns out to be, hid-lab must detect it at runtime and tell t
 - Writes from the daemon: only the functions confirmed above.
 - Main-wheel scroll direction is not written to the device; GNOME's natural-scrolling setting controls it. The 0x2121 wheel mode is not written in this milestone.
 - **Re-application on every event in §7.** This milestone is not done until the §7 acceptance test passes over Bluetooth.
+- After re-applying and verifying, the daemon verifies again 1–2 s later to detect anything (for example the kernel driver) overwriting what was applied. Both checks are part of the measured time.
+- SmartShift mode follows the user: the daemon listens to the 0x2121 ratchet notifications (one per mode-button press, CONFIRMED) and keeps the last mode chosen, by button or by the app. On reconnect, if the mouse lost that mode, the daemon restores it. The config file stores the threshold and the initial mode. Details are proposed from the H4-06 persistence data before 4c is implemented.
 
 ### Milestone B — Logi Bolt receiver
 
 - Receiver discovery, paired-device enumeration by device index, receiver connection notifications, short reports.
 - Hardware tests over Bolt for everything Milestones 1–4 cover over Bluetooth, and the §7 receiver plug/unplug event.
-- Scheduled after Milestone 4. Whether the MVP (Milestone 5) waits for it is not decided yet.
+- Scheduled after Milestone 4. Not part of the MVP: the MVP is Bluetooth only.
 
 ### Milestone 5 — GUI MVP
 
@@ -525,10 +540,10 @@ Lab tooling can be pulled earlier when a feature needs investigation, but the pr
 On a fresh Fedora GNOME Wayland install, the user can:
 
 1. install hid-lab with one command;
-2. open the app and see the MX Master 3S (Bolt or Bluetooth) with battery level;
+2. open the app and see the MX Master 3S over Bluetooth with battery level;
 3. change DPI, SmartShift, scroll direction, smooth scroll, thumb-wheel direction, and basic button mappings, with immediate effect;
 4. close the app;
-5. reboot, sleep, switch Easy-Switch channel and back, unplug/replug the receiver;
+5. reboot, sleep, switch Easy-Switch channel and back, turn the mouse off and on;
 6. find every setting still active, without opening the app;
 7. never need root, a terminal, or a config file for any of the above.
 
@@ -580,3 +595,9 @@ The question this project answers is not "can Linux talk to this mouse?" (it can
 | 2026-10-21 | Main-wheel scroll direction is controlled by GNOME's natural-scrolling setting, not written to the device. The 0x2121 mode is not written in Milestone 4. Thumb-wheel inversion (0x2150) may be written to the device. |
 | 2026-10-21 | Write functions are confirmed one at a time with `hid-lab lab write` (§13 exception), starting with DPI, SmartShift mode and threshold, and thumb-wheel inversion. |
 | 2026-10-21 | udev hotplug, deferred from Milestone 1, is part of Milestone 4. |
+| 2026-10-21 | The desktop app is named **Cursiva**: app ID `dev.ozkkar.Cursiva`, daemon D-Bus name `dev.ozkkar.Cursiva.Daemon1`. The CLI and crates keep the hid-lab names. |
+| 2026-10-21 | The MVP (Milestone 5) is Bluetooth only. Bolt stays in Milestone B. |
+| 2026-10-21 | SmartShift mode: config stores threshold and initial mode; the daemon tracks the last chosen mode from 0x2121 notifications and restores it after reconnect if lost. |
+| 2026-10-21 | Re-application is verified twice: right after applying, and again 1–2 s later. |
+| 2026-10-21 | `hid-lab lab write --write` requires an explicit device; `--dry-run` may auto-select. |
+| 2026-10-21 | Hotplug uses the `udev` crate (libudev; `systemd-devel` at build time). D-Bus uses `zbus`, config uses `toml`. |

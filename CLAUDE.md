@@ -12,6 +12,8 @@ Instructions for Claude Code working in this repository. Read this file fully be
 - Milestone 0 diagnosis: `docs/diagnosis.md`.
 - udev rule: `packaging/udev/70-hid-lab-logitech.rules`.
 
+Names: the desktop app is **Cursiva** (app ID `dev.ozkkar.Cursiva`); the daemon's D-Bus name is `dev.ozkkar.Cursiva.Daemon1`. The CLI (`hid-lab`) and the crates (`hidlab-*`) keep the hid-lab names.
+
 The user communicates in **Spanish**. Reply in Spanish; code, comments, commit messages and docs in English.
 
 ## Project state
@@ -21,8 +23,8 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 0 Diagnosis | Done. Cause: missing `uaccess` udev rule |
 | 1 + 2 Discovery, HID++ core, feature enumeration | Done, framing CONFIRMED |
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
-| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Plan pending the user's approval |
-| B Logi Bolt receiver | Scheduled after 4 |
+| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a in progress; wait for H4 results before 4b; propose SmartShift-mode details before 4c |
+| B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
 | 5–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
@@ -57,7 +59,7 @@ hid-lab lab read     [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--sh
 hid-lab lab watch    [<device>] [--duration <s>] [--json] [--features-from <file>]
 ```
 
-Dependencies: `libc`, `serde`, `serde_json`, `thiserror`. Explain why before adding any other crate, and verify its current version with `cargo info`.
+Dependencies: `libc`, `serde`, `serde_json`, `thiserror`; approved for Milestone 4: `udev` (needs `systemd-devel` to build), `zbus`, `toml`. Explain why before adding any other crate, and verify its current version with `cargo info`.
 
 ## Protocol work
 
