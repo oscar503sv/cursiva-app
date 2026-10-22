@@ -27,3 +27,22 @@ pub(crate) fn soft<T>(
         }
     }
 }
+
+/// Hex of `p[from..]` with trailing zero bytes removed (long-report padding).
+pub(crate) fn tail_hex(p: &[u8], from: usize) -> String {
+    let tail = p.get(from..).unwrap_or(&[]);
+    let end = tail.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
+    hidlab_hidpp::hex(&tail[..end])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tail_hex_strips_padding() {
+        assert_eq!(tail_hex(&[1, 2, 3, 0, 0], 1), "02 03");
+        assert_eq!(tail_hex(&[1, 0, 0], 1), "");
+        assert_eq!(tail_hex(&[1], 5), "");
+    }
+}

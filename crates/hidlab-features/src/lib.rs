@@ -6,6 +6,7 @@
 
 pub mod allowlist;
 pub mod device_name;
+pub mod firmware;
 pub mod reader;
 mod util;
 
