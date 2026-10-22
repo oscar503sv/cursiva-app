@@ -6,6 +6,7 @@
 
 pub mod allowlist;
 pub mod battery;
+pub mod change_host;
 pub mod device_name;
 pub mod dpi;
 pub mod firmware;
