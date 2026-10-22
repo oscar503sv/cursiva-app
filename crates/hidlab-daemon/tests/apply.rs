@@ -104,7 +104,7 @@ fn invalid_dpi_is_not_sent() {
     let map = map_for(&mut s, &FEATURES);
     let mut r = Reader::new(&mut s, map);
     let report = apply(&mut r, &MX_MASTER_3S, &[SettingValue::Dpi(1625)]);
-    assert_eq!(report.items[0].result, ItemResult::Failed);
+    assert_eq!(report.items[0].result, ItemResult::Rejected);
     assert!(report.items[0].error.as_deref().unwrap().contains("1625"));
     assert!(!s.into_parts().0.seen.contains(&(0x2201, 3)));
 }

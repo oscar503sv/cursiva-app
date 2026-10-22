@@ -22,6 +22,9 @@ pub enum ItemResult {
     Written,
     /// Written, but the read-back does not match.
     Mismatch,
+    /// Refused before sending because the device cannot take this value
+    /// (for example a DPI outside its list): see `error`.
+    Rejected,
     /// Not applied: see `error`.
     Failed,
 }
@@ -73,12 +76,17 @@ pub fn features_for(profile: &DeviceProfile) -> Vec<FeatureId> {
     out
 }
 
-fn failed(target: SettingValue, before: Option<SettingValue>, error: String) -> ApplyItem {
+fn not_applied(
+    result: ItemResult,
+    target: SettingValue,
+    before: Option<SettingValue>,
+    error: String,
+) -> ApplyItem {
     ApplyItem {
         setting: target.kind(),
         target,
         before,
-        result: ItemResult::Failed,
+        result,
         checks: Vec::new(),
         error: Some(error),
     }
@@ -102,7 +110,7 @@ fn apply_one<C: RawChannel>(
     }
     let plan = match settings::plan(&before_snap, target) {
         Ok(p) => p,
-        Err(e) => return Ok(failed(target, before, e)),
+        Err(e) => return Ok(not_applied(ItemResult::Rejected, target, before, e)),
     };
     let outcome = settings::execute(r, WriteAuth::Confirmed, &before_snap, plan)?;
     Ok(ApplyItem {
@@ -132,11 +140,17 @@ pub fn apply<C: RawChannel>(
     let mut fatal: Option<String> = None;
     for &target in desired {
         if let Some(e) = &fatal {
-            items.push(failed(target, None, format!("not sent: {e}")));
+            items.push(not_applied(
+                ItemResult::Failed,
+                target,
+                None,
+                format!("not sent: {e}"),
+            ));
             continue;
         }
         if !profile.supports(target.kind()) {
-            items.push(failed(
+            items.push(not_applied(
+                ItemResult::Rejected,
                 target,
                 None,
                 format!("{} does not support {}", profile.name, target.kind().name()),
@@ -149,7 +163,7 @@ pub fn apply<C: RawChannel>(
                 if e.is_fatal() {
                     fatal = Some(e.to_string());
                 }
-                items.push(failed(target, None, e.to_string()));
+                items.push(not_applied(ItemResult::Failed, target, None, e.to_string()));
             }
         }
     }
