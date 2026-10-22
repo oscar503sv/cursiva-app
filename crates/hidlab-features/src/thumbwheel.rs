@@ -12,6 +12,17 @@ use serde::Serialize;
 use crate::reader::{ReadError, Reader};
 use crate::util::{need, tail_hex};
 
+/// Bytes 0 and 1, plus any non-zero bytes after them.
+fn raw(p: &[u8]) -> String {
+    let rest = tail_hex(p, 2);
+    let head = hidlab_hidpp::hex(&p[..2]);
+    if rest.is_empty() {
+        head
+    } else {
+        format!("{head} {rest}")
+    }
+}
+
 pub const FEATURE: FeatureId = FeatureId(0x2150);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -30,7 +41,7 @@ pub fn decode(p: &[u8]) -> Result<Thumbwheel, ReadError> {
         diverted: p[0] & 0x01 != 0,
         inverted: p[1] & 0x01 != 0,
         unknown_bits: (rest != [0, 0]).then(|| hidlab_hidpp::hex(&rest)),
-        raw_hex: tail_hex(p, 0),
+        raw_hex: raw(p),
     })
 }
 
@@ -48,6 +59,7 @@ mod tests {
         let t = decode(&[0x00, 0x01, 0x00]).unwrap();
         assert!(!t.diverted && t.inverted);
         assert_eq!(t.unknown_bits, None);
+        assert_eq!(t.raw_hex, "00 01");
         let t = decode(&[0x03, 0x00]).unwrap();
         assert!(t.diverted);
         assert_eq!(t.unknown_bits.as_deref(), Some("02 00"));
