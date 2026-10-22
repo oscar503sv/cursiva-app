@@ -8,7 +8,7 @@
 
 use std::time::{Duration, Instant};
 
-use hidlab_transport::RawChannel;
+use hidlab_transport::{HidrawDevice, RawChannel};
 
 use crate::error::HidppError;
 use crate::frame::{DEVICE_INDEX_DIRECT, Frame, ReportKind, Request, decode, hex};
@@ -35,6 +35,23 @@ impl Default for SessionConfig {
             report: ReportKind::Long,
             sw_id: DEFAULT_SW_ID,
             timeout: DEFAULT_TIMEOUT,
+        }
+    }
+}
+
+impl SessionConfig {
+    /// Parameters for `device`: long reports when the descriptor declares
+    /// `0x11` (or cannot be read), short only if it declares only `0x10`.
+    pub fn for_device(device: &HidrawDevice, index: Option<u8>, timeout: Duration) -> Self {
+        let report = match &device.descriptor {
+            Some(d) if !d.has_long_report() && d.has_short_report() => ReportKind::Short,
+            _ => ReportKind::Long,
+        };
+        Self {
+            device_index: index.unwrap_or(DEVICE_INDEX_DIRECT),
+            report,
+            timeout,
+            ..Self::default()
         }
     }
 }

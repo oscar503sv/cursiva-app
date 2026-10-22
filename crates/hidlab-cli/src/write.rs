@@ -9,13 +9,13 @@ use hidlab_features::lab_write::{
     self, SettingKind, SettingValue, Snapshot, WriteOutcome, WritePlan,
 };
 use hidlab_features::{FeatureMap, Reader, WriteIntent, write_allowed};
-use hidlab_hidpp::{Disposition, Session, TranscriptEntry, reference_name};
+use hidlab_hidpp::{Disposition, Session, SessionConfig, TranscriptEntry, reference_name};
 use hidlab_transport::{Hidraw, HidrawDevice, discover};
 use serde::{Deserialize, Serialize};
 
 use crate::args::{WriteArgs, WriteMode};
 use crate::output::DeviceJson;
-use crate::target::{select, session_config};
+use crate::target::select;
 
 /// The value a setting had before the first experimental write.
 #[derive(Debug, Serialize, Deserialize)]
@@ -118,7 +118,7 @@ pub fn run(args: &WriteArgs) -> Result<(), String> {
     let record_file = record_path(&dir, args.setting);
     let discovery = discover().map_err(|e| e.to_string())?;
     let (number, device) = select(&discovery, args.device.as_deref())?;
-    let config = session_config(device, None, args.timeout);
+    let config = SessionConfig::for_device(device, None, args.timeout);
     let channel = Hidraw::open(&device.node).map_err(|e| e.to_string())?;
     let mut session = Session::new(channel, config);
 

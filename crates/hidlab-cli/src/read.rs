@@ -3,13 +3,13 @@
 use hidlab_features::battery::Battery;
 use hidlab_features::dpi::DpiEntry;
 use hidlab_features::{DeviceState, Reading, firmware, read_all};
-use hidlab_hidpp::{ReportKind, Session, TranscriptEntry, reference_name};
+use hidlab_hidpp::{ReportKind, Session, SessionConfig, TranscriptEntry, reference_name};
 use hidlab_transport::{Hidraw, HidrawDevice, PowerSupply, discover, power_supplies_for};
 use serde::Serialize;
 
 use crate::args::FeaturesArgs;
 use crate::output::{DeviceJson, REDACTED, table};
-use crate::target::{select, session_config};
+use crate::target::select;
 
 #[derive(Serialize)]
 struct ReadJson {
@@ -64,7 +64,7 @@ fn compare_battery(b: &Battery, supplies: &[PowerSupply]) -> Option<BatteryCompa
 pub fn run(args: &FeaturesArgs) -> Result<(), String> {
     let discovery = discover().map_err(|e| e.to_string())?;
     let (number, device) = select(&discovery, args.device.as_deref())?;
-    let config = session_config(device, args.index, args.timeout);
+    let config = SessionConfig::for_device(device, args.index, args.timeout);
 
     let channel = Hidraw::open(&device.node).map_err(|e| e.to_string())?;
     let mut session = Session::new(channel, config);

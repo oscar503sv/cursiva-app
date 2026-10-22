@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::args::FeaturesArgs;
 use crate::output::{DeviceJson, table};
-use crate::target::{select, session_config};
+use crate::target::select;
 
 #[derive(Serialize)]
 struct FeaturesJson {
@@ -64,7 +64,7 @@ pub fn run(args: &FeaturesArgs) -> Result<(), String> {
     let discovery = discover().map_err(|e| e.to_string())?;
     let (number, device) = select(&discovery, args.device.as_deref())?;
 
-    let config = session_config(device, args.index, args.timeout);
+    let config = SessionConfig::for_device(device, args.index, args.timeout);
     let report = config.report;
 
     let channel = Hidraw::open(&device.node).map_err(|e| e.to_string())?;
