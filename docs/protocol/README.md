@@ -408,7 +408,7 @@ f0 getRatchetControlMode() -> [mode, threshold, byte2]   mode 1 free-spin, 2 rat
 
 O-4: mode 2 (ratchet), threshold 10, byte 2 `0x0a`. Byte 2 is UNKNOWN; it
 equalled the threshold in O-4, which is an observation, not a meaning.
-Tests: H3-08, H3-09.
+Test: H3-08.
 
 ### P-027 — 0x2121 HiResWheel
 
@@ -425,7 +425,7 @@ change it without coordinating with the kernel driver.
 
 O-4: multiplier 15, has invert, has ratchet switch; mode `0x02` (high
 resolution, as the kernel sets it); ratchet switch `0x01`, consistent with
-SmartShift mode 2 at the same moment. Tests: H3-08, H3-09.
+SmartShift mode 2 at the same moment. Test: H3-08.
 
 ### P-028 — 0x2150 Thumbwheel
 
