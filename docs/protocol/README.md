@@ -272,8 +272,13 @@ with getFeature on every run.
 
 ### Observation O-4 (2026-10-21)
 
-`hid-lab lab read` was run once in the user's session by Claude Code. The
-mouse was not touched and was not charging (kernel status Discharging). The evidence file is
+`hid-lab lab read --json` was run in the user's session by Claude Code, with
+the mouse not charging (kernel status Discharging). The mouse was **moving**
+during this run: the session ignored 36 input reports with report ID `0x02`
+(pointer movement), and no unrelated HID++ report. All requests still
+matched. A separate text-mode run a moment earlier ignored 0 reports.
+Correction: an earlier version of this entry said the mouse was not touched;
+the user pointed out the 36 ignored reports in the evidence file. The evidence file is
 `mx-master-3s-state.json`. Values below marked "O-4" come from it. No
 physical action was performed, so nothing here is CONFIRMED yet. The
 promotion tests are listed in `docs/hardware-test.md`, section M3.
