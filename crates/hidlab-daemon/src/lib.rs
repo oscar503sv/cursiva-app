@@ -7,5 +7,6 @@
 
 pub mod apply;
 pub mod config;
+pub mod conflicts;
 pub mod paths;
 pub mod state;
