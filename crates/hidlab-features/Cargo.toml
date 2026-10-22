@@ -1,0 +1,17 @@
+[package]
+name = "hidlab-features"
+description = "Typed read-only access to individual HID++ 2.0 features"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hidlab-hidpp.workspace = true
+hidlab-transport.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

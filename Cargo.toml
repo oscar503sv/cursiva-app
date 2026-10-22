@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["crates/hidlab-transport", "crates/hidlab-hidpp", "crates/hidlab-cli"]
+members = [
+    "crates/hidlab-transport",
+    "crates/hidlab-hidpp",
+    "crates/hidlab-features",
+    "crates/hidlab-cli",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +17,7 @@ publish = false
 [workspace.dependencies]
 hidlab-transport = { path = "crates/hidlab-transport" }
 hidlab-hidpp = { path = "crates/hidlab-hidpp" }
+hidlab-features = { path = "crates/hidlab-features" }
 libc = "0.2.191"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
