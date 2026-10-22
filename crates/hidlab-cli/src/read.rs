@@ -278,6 +278,7 @@ fn print_state(s: &DeviceState, cmp: Option<&BatteryComparison>, show_unique: bo
                 vec![
                     c.index.to_string(),
                     c.cid.clone(),
+                    c.cid_reference_name.unwrap_or("unknown").to_owned(),
                     c.tid.clone(),
                     format!("0x{:04x}", c.flags),
                     c.flag_names.join(","),
@@ -297,6 +298,7 @@ fn print_state(s: &DeviceState, cmp: Option<&BatteryComparison>, show_unique: bo
             &[
                 "#",
                 "CID",
+                "reference name*",
                 "TID",
                 "flags",
                 "capabilities",
@@ -309,6 +311,7 @@ fn print_state(s: &DeviceState, cmp: Option<&BatteryComparison>, show_unique: bo
         for line in t.lines() {
             println!("  {line}");
         }
+        println!("  * Reference names come from Solaar and are not verified on this device.");
         notes(&rc.notes);
     }
 
