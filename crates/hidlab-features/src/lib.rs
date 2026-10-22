@@ -11,17 +11,17 @@ pub mod device_name;
 pub mod dpi;
 pub mod firmware;
 pub mod hires_wheel;
-pub mod lab_write;
 pub mod reader;
 pub mod reprog_controls;
+pub mod settings;
 pub mod smartshift;
 pub mod state;
 pub mod thumbwheel;
 mod util;
 
 pub use allowlist::{
-    KNOWN_WRITES, NEVER_WRITE, READ_ALLOWLIST, ReadFn, WRITE_EXPERIMENT_ALLOWLIST, allowed,
-    write_allowed,
+    CONFIRMED_WRITES, ConfirmedWrite, KNOWN_WRITES, NEVER_WRITE, READ_ALLOWLIST, ReadFn,
+    WRITE_EXPERIMENT_ALLOWLIST, allowed, confirmed_write, write_allowed,
 };
-pub use reader::{FeatureMap, ReadError, Reader, WriteIntent};
+pub use reader::{FeatureMap, ReadError, Reader, WriteAuth, WriteIntent};
 pub use state::{DeviceState, Reading, TARGET_FEATURES, read_all};

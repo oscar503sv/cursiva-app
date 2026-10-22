@@ -1,15 +1,16 @@
-//! Controlled write experiments for `hid-lab lab write` (requirements §13).
+//! Writable settings, shared by `hid-lab lab write` and the daemon.
 //!
 //! Each setting knows how to read its current value, build the write bytes
-//! (from Solaar's documented behavior, status LIKELY), and verify the result
-//! by reading back the written field and every field that must not change.
+//! (from Solaar's documented behavior, CONFIRMED by the hardware tests H4,
+//! P-030 to P-032), and verify the result by reading back the written field
+//! and every field that must not change.
 //!
 //! Sources (R-2, Solaar at the pinned commit):
 //! - DPI: `AdjustableDpi` writes function 0x30 with prefix `00` and the
 //!   value as 2 bytes big-endian.
 //! - SmartShift: `ScrollRatchet` writes function 0x10 with `[mode]`;
-//!   `SmartShift` writes `[0, threshold]`. A 0 in the other field is
-//!   assumed to mean "no change" (HYPOTHESIS, checked by the read-back).
+//!   `SmartShift` writes `[0, threshold]`. A 0 in the other field means
+//!   "no change" (CONFIRMED, P-031).
 //! - Thumb wheel: `ThumbInvert` writes function 0x20 with byte 1 bit 0 =
 //!   invert, keeping the other bits of the current value.
 
@@ -17,10 +18,10 @@ use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
 use serde::{Deserialize, Serialize};
 
-use crate::reader::{ReadError, Reader, WriteIntent};
+use crate::reader::{ReadError, Reader, WriteAuth};
 use crate::{dpi, smartshift, thumbwheel};
 
-/// A setting that `lab write` can change.
+/// A setting hid-lab can change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SettingKind {
@@ -298,14 +299,14 @@ pub struct WriteOutcome {
     pub pass: bool,
 }
 
-/// Sends `plan` and verifies it. Requires an explicit [`WriteIntent`].
+/// Sends `plan` through the write list `auth` grants and verifies it.
 pub fn execute<C: RawChannel>(
     r: &mut Reader<'_, C>,
-    intent: &WriteIntent,
+    auth: WriteAuth<'_>,
     before: &Snapshot,
     plan: WritePlan,
 ) -> Result<WriteOutcome, ReadError> {
-    let response = r.write(intent, plan.feature, plan.function, &plan.params)?;
+    let response = r.write(auth, plan.feature, plan.function, &plan.params)?;
     let after = snapshot(r, plan.target.kind())?;
     let checks = verify(before, &after, plan.target);
     let end = response.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
@@ -378,7 +379,7 @@ mod tests {
     fn verify_catches_side_effects() {
         let ok = verify(&ss(2, 10), &ss(1, 10), SettingValue::SmartshiftMode(1));
         assert!(ok.iter().all(|c| c.ok));
-        // Threshold changed by a mode write: the "0 = no change" hypothesis failed.
+        // Threshold changed by a mode write: a side effect.
         let bad = verify(&ss(2, 10), &ss(1, 0), SettingValue::SmartshiftMode(1));
         assert!(!bad.iter().all(|c| c.ok));
         assert_eq!(bad[1].field, "threshold (unchanged)");

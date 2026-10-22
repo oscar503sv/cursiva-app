@@ -1,6 +1,6 @@
-//! The only HID++ functions hid-lab is allowed to call in milestone 3.
+//! The only HID++ functions hid-lab is allowed to call.
 //!
-//! Every entry is a read documented by at least one public source. A
+//! Every read entry is documented by at least one public source. A
 //! function that no source documents is never called, because it could be
 //! a write. See docs/protocol/README.md for the status of each entry.
 
@@ -63,20 +63,63 @@ pub const KNOWN_WRITES: &[(u16, u8)] = &[
 ];
 
 /// Write functions that `hid-lab lab write` may send to confirm them on the
-/// real device (requirements §13 exception). Each is documented by a source;
-/// none is CONFIRMED until its hardware test passes.
+/// real device (requirements §13 exception). Each is documented by a source.
+/// The ones that passed their hardware test are also in [`CONFIRMED_WRITES`].
 pub const WRITE_EXPERIMENT_ALLOWLIST: &[ReadFn] = &[
     r(0x2201, 3, "setSensorDpi", "solaar"),
     r(0x2110, 1, "setRatchetControlMode", "solaar"),
     r(0x2150, 2, "setThumbwheelReporting", "solaar"),
 ];
 
-/// Writes hid-lab must never send in this milestone: the kernel owns the
+/// Writes hid-lab must never send: the kernel owns the
 /// wheel mode, and changing host moves the mouse away.
 pub const NEVER_WRITE: &[(u16, u8)] = &[
     (0x2121, 2), // setWheelMode
     (0x1814, 1), // setCurrentHost
 ];
+
+/// A write function confirmed on the real device, the only kind the daemon
+/// may send (requirements §13).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConfirmedWrite {
+    pub feature: FeatureId,
+    pub function: u8,
+    pub name: &'static str,
+    /// Entry in docs/protocol/README.md holding the evidence.
+    pub evidence: &'static str,
+}
+
+/// Writes confirmed by the hardware tests H4 (observation O-6).
+pub const CONFIRMED_WRITES: &[ConfirmedWrite] = &[
+    ConfirmedWrite {
+        feature: FeatureId(0x2201),
+        function: 3,
+        name: "setSensorDpi",
+        evidence: "P-030",
+    },
+    ConfirmedWrite {
+        feature: FeatureId(0x2110),
+        function: 1,
+        name: "setRatchetControlMode",
+        evidence: "P-031",
+    },
+    ConfirmedWrite {
+        feature: FeatureId(0x2150),
+        function: 2,
+        name: "setThumbwheelReporting",
+        evidence: "P-032",
+    },
+];
+
+/// Looks up a confirmed write.
+pub fn confirmed_write(feature: FeatureId, function: u8) -> Option<&'static ConfirmedWrite> {
+    if NEVER_WRITE.contains(&(feature.0, function)) {
+        return None;
+    }
+    CONFIRMED_WRITES
+        .iter()
+        .find(|w| w.feature == feature && w.function == function)
+}
 
 /// Looks up an allowed experimental write.
 pub fn write_allowed(feature: FeatureId, function: u8) -> Option<&'static ReadFn> {
@@ -126,6 +169,26 @@ mod tests {
         }
         for rf in READ_ALLOWLIST {
             assert!(write_allowed(rf.feature, rf.function).is_none());
+        }
+    }
+
+    #[test]
+    fn confirmed_writes_are_the_tested_experiments() {
+        let got: Vec<(u16, u8)> = CONFIRMED_WRITES
+            .iter()
+            .map(|w| (w.feature.0, w.function))
+            .collect();
+        assert_eq!(got, [(0x2201, 3), (0x2110, 1), (0x2150, 2)]);
+        for w in CONFIRMED_WRITES {
+            // Only a write that went through `lab write` can be confirmed.
+            assert!(write_allowed(w.feature, w.function).is_some());
+            assert!(allowed(w.feature, w.function).is_none());
+        }
+        for &(f, func) in NEVER_WRITE {
+            assert!(confirmed_write(FeatureId(f), func).is_none());
+        }
+        for rf in READ_ALLOWLIST {
+            assert!(confirmed_write(rf.feature, rf.function).is_none());
         }
     }
 

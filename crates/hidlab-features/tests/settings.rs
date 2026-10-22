@@ -3,8 +3,8 @@
 mod common;
 
 use common::{FakeDevice, map_for};
-use hidlab_features::lab_write::{self, SettingKind, SettingValue};
-use hidlab_features::{Reader, WriteIntent};
+use hidlab_features::settings::{self, SettingKind, SettingValue};
+use hidlab_features::{Reader, WriteAuth, WriteIntent};
 
 /// A fake that stores DPI, SmartShift and thumb wheel state. If
 /// `zero_means_keep` is false, a 0 field overwrites the stored value.
@@ -44,14 +44,14 @@ fn stateful(zero_means_keep: bool) -> FakeDevice {
     )
 }
 
-fn run(dev: FakeDevice, target: SettingValue) -> lab_write::WriteOutcome {
+fn run(dev: FakeDevice, target: SettingValue) -> settings::WriteOutcome {
     let mut s = dev.session();
     let map = map_for(&mut s, &[0x2201, 0x2110, 0x2150]);
     let mut r = Reader::new(&mut s, map);
-    let before = lab_write::snapshot(&mut r, target.kind()).unwrap();
-    let plan = lab_write::plan(&before, target).unwrap();
+    let before = settings::snapshot(&mut r, target.kind()).unwrap();
+    let plan = settings::plan(&before, target).unwrap();
     let intent = WriteIntent::explicit_user_request();
-    lab_write::execute(&mut r, &intent, &before, plan).unwrap()
+    settings::execute(&mut r, WriteAuth::Experiment(&intent), &before, plan).unwrap()
 }
 
 #[test]
@@ -86,9 +86,9 @@ fn only_the_planned_write_function_is_sent() {
     let mut s = stateful(true).session();
     let map = map_for(&mut s, &[0x2201, 0x2110, 0x2150]);
     let mut r = Reader::new(&mut s, map);
-    let before = lab_write::snapshot(&mut r, SettingKind::ThumbwheelInvert).unwrap();
-    let plan = lab_write::plan(&before, SettingValue::ThumbwheelInvert(true)).unwrap();
-    lab_write::execute(&mut r, &WriteIntent::explicit_user_request(), &before, plan).unwrap();
+    let before = settings::snapshot(&mut r, SettingKind::ThumbwheelInvert).unwrap();
+    let plan = settings::plan(&before, SettingValue::ThumbwheelInvert(true)).unwrap();
+    settings::execute(&mut r, WriteAuth::Confirmed, &before, plan).unwrap();
     let seen = s.into_parts().0.seen;
     assert_eq!(seen, [(0x2150, 1), (0x2150, 2), (0x2150, 1)]);
 }

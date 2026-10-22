@@ -5,10 +5,10 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hidlab_features::lab_write::{
+use hidlab_features::settings::{
     self, SettingKind, SettingValue, Snapshot, WriteOutcome, WritePlan,
 };
-use hidlab_features::{FeatureMap, Reader, WriteIntent, write_allowed};
+use hidlab_features::{FeatureMap, Reader, WriteAuth, WriteIntent, confirmed_write, write_allowed};
 use hidlab_hidpp::{Disposition, Session, SessionConfig, TranscriptEntry, reference_name};
 use hidlab_transport::{Hidraw, HidrawDevice, discover};
 use serde::{Deserialize, Serialize};
@@ -139,7 +139,11 @@ pub fn run(args: &WriteArgs) -> Result<(), String> {
                 function: w.function,
                 name: w.name,
                 source: w.source,
-                status: "LIKELY",
+                status: if confirmed_write(w.feature, w.function).is_some() {
+                    "CONFIRMED"
+                } else {
+                    "LIKELY"
+                },
             },
         ),
         before: None,
@@ -219,7 +223,7 @@ fn experiment(
         ));
     }
     let mut r = Reader::new(session, map);
-    let before: Snapshot = lab_write::snapshot(&mut r, kind).map_err(|e| e.to_string())?;
+    let before: Snapshot = settings::snapshot(&mut r, kind).map_err(|e| e.to_string())?;
     let current = before.value(kind).ok_or("cannot read the current value")?;
     out.before = Some(current);
 
@@ -262,7 +266,7 @@ fn experiment(
         return Ok(());
     }
 
-    let plan = lab_write::plan(&before, target)?;
+    let plan = settings::plan(&before, target)?;
     out.plan = Some(plan.clone());
     if args.mode == WriteMode::DryRun {
         out.result = "dry_run";
@@ -295,7 +299,8 @@ fn experiment(
 
     let intent = WriteIntent::explicit_user_request();
     out.sent = true;
-    let outcome = lab_write::execute(&mut r, &intent, &before, plan).map_err(|e| e.to_string())?;
+    let outcome = settings::execute(&mut r, WriteAuth::Experiment(&intent), &before, plan)
+        .map_err(|e| e.to_string())?;
     out.result = if outcome.pass { "pass" } else { "mismatch" };
     if outcome.pass && args.value.is_none() {
         fs::remove_file(record_file).map_err(|e| e.to_string())?;

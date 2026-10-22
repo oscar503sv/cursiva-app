@@ -159,8 +159,9 @@ required with --write. --dry-run may auto-select the only Logitech HID++ device.
 Originals and a log of every write are kept in
 $XDG_STATE_HOME/hid-lab/lab-write/ (default ~/.local/state/hid-lab/lab-write/).
 
-These write functions are LIKELY, not yet CONFIRMED. This command exists to
-confirm them on the real device, one at a time (requirements §13).
+This command exists to confirm write functions on the real device, one at a
+time (requirements §13). The four settings above were confirmed by the
+hardware tests H4; the JSON output shows each function's status.
 ";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -227,9 +228,9 @@ pub enum WriteMode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WriteArgs {
-    pub setting: hidlab_features::lab_write::SettingKind,
+    pub setting: hidlab_features::settings::SettingKind,
     /// `None` with --restore.
-    pub value: Option<hidlab_features::lab_write::SettingValue>,
+    pub value: Option<hidlab_features::settings::SettingValue>,
     pub device: Option<String>,
     pub mode: WriteMode,
     pub json: bool,
@@ -446,7 +447,7 @@ fn parse_hotplug(rest: Vec<&str>) -> Result<Command, String> {
 }
 
 fn parse_write(rest: Vec<&str>) -> Result<Command, String> {
-    use hidlab_features::lab_write::SettingKind;
+    use hidlab_features::settings::SettingKind;
     const TRY: &str = "Try: hid-lab lab write --help";
     let mut positionals: Vec<&str> = Vec::new();
     let (mut dry, mut write, mut restore, mut json) = (false, false, false, false);
@@ -615,7 +616,7 @@ mod tests {
 
     #[test]
     fn write_args() {
-        use hidlab_features::lab_write::{SettingKind, SettingValue};
+        use hidlab_features::settings::{SettingKind, SettingValue};
         let Ok(Command::Write(w)) = parse(["lab", "write", "dpi", "1600", "hidraw2", "--write"])
         else {
             panic!()
