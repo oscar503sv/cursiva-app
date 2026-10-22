@@ -5,7 +5,9 @@
 //! device at runtime. Bytes whose meaning no source documents are kept raw.
 
 pub mod allowlist;
+pub mod device_name;
 pub mod reader;
+mod util;
 
 pub use allowlist::{KNOWN_WRITES, READ_ALLOWLIST, ReadFn, allowed};
 pub use reader::{FeatureMap, ReadError, Reader};
