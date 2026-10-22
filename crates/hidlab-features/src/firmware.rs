@@ -7,7 +7,7 @@
 //! The unit ID is a serial number. Callers must redact it by default, in
 //! decoded output and in the transcript ([`redact_unit_id`]).
 
-use hidlab_hidpp::{FeatureId, Transcript};
+use hidlab_hidpp::{Direction, FeatureId, Transcript};
 use hidlab_transport::RawChannel;
 use serde::Serialize;
 
@@ -167,7 +167,7 @@ pub fn redact_unit_id(transcript: &mut Transcript, feature_index: u8, sw_id: u8)
             && (bytes[0] == "10" || bytes[0] == "11")
             && bytes[2] == fi
             && bytes[3] == fn_sw
-            && e.dir == hidlab_hidpp::Direction::Rx
+            && e.dir == Direction::Rx
         {
             for b in &mut bytes[5..9] {
                 *b = REDACTED_BYTE.to_owned();
@@ -177,10 +177,37 @@ pub fn redact_unit_id(transcript: &mut Transcript, feature_index: u8, sw_id: u8)
     }
 }
 
+/// Redacts the unit ID in `transcript` without knowing the feature index in
+/// advance: the index is taken from the recorded root getFeature(0x0003)
+/// answer. Works on partial transcripts after a failed read.
+pub fn redact_unit_id_in_transcript(transcript: &mut Transcript, sw_id: u8) {
+    let sw = format!("{sw_id:02x}");
+    let mut index = None;
+    for tx in transcript.entries.iter().filter(|e| e.dir == Direction::Tx) {
+        let b: Vec<&str> = tx.hex.split(' ').collect();
+        if b.len() >= 6 && b[2] == "00" && b[3] == sw && b[4] == "00" && b[5] == "03" {
+            index = transcript
+                .entries
+                .iter()
+                .find(|e| {
+                    e.request == tx.request
+                        && e.dir == Direction::Rx
+                        && e.disposition == hidlab_hidpp::Disposition::Matched
+                })
+                .and_then(|rx| rx.hex.split(' ').nth(4))
+                .and_then(|h| u8::from_str_radix(h, 16).ok())
+                .filter(|&i| i != 0);
+        }
+    }
+    if let Some(i) = index {
+        redact_unit_id(transcript, i, sw_id);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hidlab_hidpp::{Direction, Disposition, TranscriptEntry};
+    use hidlab_hidpp::{Disposition, TranscriptEntry};
 
     #[test]
     fn decodes_device_info() {
@@ -248,5 +275,43 @@ mod tests {
         assert_eq!(t.entries[0].hex, "11 ff 02 0b 00 00 00 00 00 00");
         assert_eq!(t.entries[1].hex, "11 ff 02 0b 03 ** ** ** ** 00 0a b0");
         assert_eq!(t.entries[2].hex, "11 ff 02 1b 00 de ad be ef 00 00 00");
+    }
+
+    #[test]
+    fn finds_index_from_get_feature_and_redacts() {
+        let e = |request, dir, disposition, hex: &str| TranscriptEntry {
+            request,
+            t_us: 0,
+            dir,
+            disposition,
+            hex: hex.into(),
+        };
+        let mut t = Transcript::default();
+        t.push(e(
+            1,
+            Direction::Tx,
+            Disposition::Sent,
+            "11 ff 00 0b 00 03 00",
+        ));
+        t.push(e(
+            1,
+            Direction::Rx,
+            Disposition::Matched,
+            "11 ff 00 0b 02 00 04",
+        ));
+        t.push(e(
+            2,
+            Direction::Tx,
+            Disposition::Sent,
+            "11 ff 02 0b 00 00 00",
+        ));
+        t.push(e(
+            2,
+            Direction::Rx,
+            Disposition::Matched,
+            "11 ff 02 0b 03 de ad be ef 00",
+        ));
+        redact_unit_id_in_transcript(&mut t, 0x0B);
+        assert_eq!(t.entries[3].hex, "11 ff 02 0b 03 ** ** ** ** 00");
     }
 }
