@@ -129,3 +129,214 @@ Privacy issue found in step 4: `lab watch` kept other programs' HID++ answers
 unredacted, including the unit ID returned to the concurrent `lab read`.
 Fixed in `lab watch`; the committed copy of that capture was sanitized. The
 user deleted the original file.
+
+## M4a — Hotplug and write experiments (MX Master 3S over Bluetooth)
+
+Run in this order. Steps H4-02 to H4-06 write to the mouse, but each ends
+by restoring the original value. Do not run Solaar, logid or any other
+mouse tool during these tests.
+
+### Preparation
+
+```bash
+cargo build --release
+mkdir -p ~/hidlab-m4a
+./target/release/hid-lab lab devices
+DEV=hidraw2   # use the node `lab devices` shows for the MX Master 3S
+./target/release/hid-lab lab features --json > ~/hidlab-m4a/features.json
+./target/release/hid-lab lab read --json > ~/hidlab-m4a/00-before.json
+```
+
+If the mouse reconnects during a test, run `lab devices` again. If the node
+changed, set `DEV` to the new one.
+
+### H4-01 — Hotplug
+
+```bash
+./target/release/hid-lab lab hotplug --duration 180 --json > ~/hidlab-m4a/01-hotplug.json
+```
+
+While it listens, wait about 15 seconds between actions:
+
+1. Turn the mouse off with the switch underneath, wait 10 seconds, turn it on and move it.
+2. Press Easy-Switch to move to another channel, wait 10 seconds, return to channel 2 and move the mouse.
+3. Turn Bluetooth off in GNOME's quick settings, wait 10 seconds, turn it on and move the mouse.
+
+Pass: for each action the file has a `remove` and then an `add` for
+`046D:B034`, and every `add` has access `ok`.
+
+Observation, not pass/fail: does the mouse disconnect by itself when idle?
+
+```bash
+./target/release/hid-lab lab hotplug --duration 900 --json > ~/hidlab-m4a/01b-idle.json
+```
+
+Do not touch the mouse for about 14 minutes, then move it during the last
+minute. Report whether a `remove` appeared while it was idle.
+
+### H4-02 — DPI
+
+```bash
+./target/release/hid-lab lab write dpi 1600 --dry-run
+./target/release/hid-lab lab write dpi 1600 $DEV --write --json > ~/hidlab-m4a/02a-dpi-1600.json
+```
+
+Move the mouse slowly the same physical distance as before, for example
+along the edge of a book. The pointer must travel clearly farther.
+
+```bash
+./target/release/hid-lab lab write dpi 400 $DEV --write --json > ~/hidlab-m4a/02b-dpi-400.json
+```
+
+The same movement must move the pointer clearly less.
+
+```bash
+./target/release/hid-lab lab write dpi --restore $DEV --write --json > ~/hidlab-m4a/02c-dpi-restore.json
+```
+
+The pointer speed must feel as it did at the start.
+
+Pass: the three files have `"result": "pass"` (check with
+`grep '"result"' ~/hidlab-m4a/02*.json`), and the pointer speed changed as
+described. Promotes P-030.
+
+### H4-03 — SmartShift mode
+
+Terminal 1:
+
+```bash
+./target/release/hid-lab lab watch --duration 120 --json \
+  --features-from ~/hidlab-m4a/features.json > ~/hidlab-m4a/03-watch-mode.json
+```
+
+Terminal 2, while terminal 1 listens:
+
+```bash
+./target/release/hid-lab lab write smartshift-mode free-spin $DEV --write --json > ~/hidlab-m4a/03a-free-spin.json
+```
+
+Turn the wheel slowly: it must spin freely, without clicks.
+
+```bash
+./target/release/hid-lab lab write smartshift-mode ratchet $DEV --write --json > ~/hidlab-m4a/03b-ratchet.json
+```
+
+Turn the wheel slowly: it must click again.
+
+```bash
+./target/release/hid-lab lab write smartshift-mode --restore $DEV --write --json > ~/hidlab-m4a/03c-restore.json
+```
+
+Pass: `03a` and `03b` have `"result": "pass"`, including the check that the
+threshold did not change, and the wheel felt as described. `03c` normally
+says `no_change`, because the mouse is already back in ratchet. Promotes
+P-031 for the mode and the "0 = no change" hypothesis for the threshold.
+
+Observation, not pass/fail: does `03-watch-mode.json` contain 0x2121
+notifications at the moments of the writes? The answer decides whether the
+daemon can learn about its own mode changes from notifications.
+
+### H4-04 — SmartShift threshold
+
+Make sure the wheel is in ratchet mode (clicking). Terminal 1:
+
+```bash
+./target/release/hid-lab lab watch --duration 180 --json \
+  --features-from ~/hidlab-m4a/features.json > ~/hidlab-m4a/04-watch-threshold.json
+```
+
+Terminal 2:
+
+```bash
+./target/release/hid-lab lab write smartshift-threshold 3 $DEV --write --json > ~/hidlab-m4a/04a-threshold-3.json
+```
+
+Give the wheel the same moderate flick three times. With threshold 3 it
+should switch to free spin easily.
+
+```bash
+./target/release/hid-lab lab write smartshift-threshold 40 $DEV --write --json > ~/hidlab-m4a/04b-threshold-40.json
+```
+
+Give the same moderate flick three times. With threshold 40 it should keep
+clicking, or need a much harder flick to spin freely.
+
+```bash
+./target/release/hid-lab lab write smartshift-threshold --restore $DEV --write --json > ~/hidlab-m4a/04c-restore.json
+```
+
+Pass: the three files have `"result": "pass"`, including the check that the
+mode did not change. The flicks behaved differently at 3 and at 40. The
+watch file shows 0x2121 notifications (`00`, then `01` when the wheel slows)
+for the flicks at 3, and fewer or none at 40. Promotes P-031 for the
+threshold.
+
+### H4-05 — Thumb wheel inversion
+
+Open a window that scrolls sideways, for example a wide web page or GNOME
+Text Editor with line wrapping off and a long line. Roll the thumb wheel
+forward and note the direction.
+
+```bash
+./target/release/hid-lab lab write thumbwheel-invert on $DEV --write --json > ~/hidlab-m4a/05a-invert-on.json
+```
+
+Roll the thumb wheel forward: it must scroll the opposite way.
+
+```bash
+./target/release/hid-lab lab write thumbwheel-invert --restore $DEV --write --json > ~/hidlab-m4a/05b-restore.json
+```
+
+Rolling forward must scroll as at the start.
+
+Pass: both files have `"result": "pass"`, including the checks that
+`diverted` and the other bits did not change, and the direction flipped and
+came back. Promotes P-032.
+
+### H4-06 — Persistence, observation only
+
+This step has no pass or fail. It records which settings survive which
+events, to design the re-application in 4c.
+
+Set four non-default values:
+
+```bash
+./target/release/hid-lab lab write dpi 1600 $DEV --write
+./target/release/hid-lab lab write smartshift-threshold 40 $DEV --write
+./target/release/hid-lab lab write thumbwheel-invert on $DEV --write
+./target/release/hid-lab lab write smartshift-mode free-spin $DEV --write
+./target/release/hid-lab lab read --json > ~/hidlab-m4a/06a-set.json
+```
+
+After each event, wait until the pointer moves again, run `lab devices`,
+update `DEV` if needed, then read:
+
+1. Easy-Switch to another channel and back:
+   `./target/release/hid-lab lab read --json > ~/hidlab-m4a/06b-after-channel.json`
+2. Mouse switch off and on:
+   `./target/release/hid-lab lab read --json > ~/hidlab-m4a/06c-after-power.json`
+3. Leave the mouse untouched for 15 minutes, then move it:
+   `./target/release/hid-lab lab read --json > ~/hidlab-m4a/06d-after-idle.json`
+4. Suspend the computer with `systemctl suspend`, wake it, move the mouse:
+   `./target/release/hid-lab lab read --json > ~/hidlab-m4a/06e-after-suspend.json`
+
+Restore everything and check that nothing is left over:
+
+```bash
+./target/release/hid-lab lab write dpi --restore $DEV --write
+./target/release/hid-lab lab write smartshift-threshold --restore $DEV --write
+./target/release/hid-lab lab write thumbwheel-invert --restore $DEV --write
+./target/release/hid-lab lab write smartshift-mode --restore $DEV --write
+./target/release/hid-lab lab read --json > ~/hidlab-m4a/06f-restored.json
+ls ~/.local/state/hid-lab/lab-write/
+```
+
+The last command should list only `log.jsonl`. If a setting was lost
+during an event, its restore may print `NO CHANGE`; that is expected.
+
+### What to send back
+
+The files in `~/hidlab-m4a/`, a copy of
+`~/.local/state/hid-lab/lab-write/log.jsonl`, and a short note per test
+about what you felt and saw. The files redact the Bluetooth address and do
+not contain the unit ID.
