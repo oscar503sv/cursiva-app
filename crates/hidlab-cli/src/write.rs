@@ -187,8 +187,15 @@ pub fn run(args: &WriteArgs) -> Result<(), String> {
     } else {
         print_text(&out);
     }
+    let what = if out.sent {
+        "the write was sent"
+    } else {
+        "nothing was written"
+    };
     match (result, out.result) {
-        (Err(e), _) => Err(e),
+        // In text mode the details were already printed above.
+        (Err(e), _) if args.json => Err(e),
+        (Err(_), _) => Err(format!("{what}; see the error above")),
         (Ok(()), "mismatch") => Err("the read-back does not match; see the checks above".into()),
         _ => Ok(()),
     }
