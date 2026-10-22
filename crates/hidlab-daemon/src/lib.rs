@@ -8,5 +8,6 @@
 pub mod apply;
 pub mod config;
 pub mod conflicts;
+pub mod log;
 pub mod paths;
 pub mod state;
