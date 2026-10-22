@@ -94,7 +94,7 @@ Source: R-1, R-2. Evidence: all requests sent with `0xFF` were answered with
 | Fact | Status | Evidence |
 |---|---|---|
 | The device echoes the request's non-zero `sw_id` (`0x0B`) | **CONFIRMED** | Every response in O-1 carries `0x?B` in byte 3; O-2 and O-3 matched on it |
-| Device notifications carry `sw_id = 0` | LIKELY | R-1, R-2. The 48 ignored reports in O-3 were not decoded one by one |
+| Device notifications carry `sw_id = 0` | **CONFIRMED** | 7 notifications with `sw_id 0` in O-5 (`evidence/m3/04` and `05`); see P-029 |
 
 ### P-005 — The device may answer in a different report size than the request
 
@@ -275,17 +275,41 @@ with getFeature on every run.
 `hid-lab lab read --json` was run in the user's session by Claude Code, with
 the mouse not charging (kernel status Discharging). The mouse was **moving**
 during this run: the session ignored 36 input reports with report ID `0x02`
-(pointer movement), and no unrelated HID++ report. All requests still
+(pointer movement) and no unrelated HID++ report. All requests still
 matched. A separate text-mode run a moment earlier ignored 0 reports.
 Correction: an earlier version of this entry said the mouse was not touched;
-the user pointed out the 36 ignored reports in the evidence file. The evidence file is
-`mx-master-3s-state.json`. Values below marked "O-4" come from it. No
-physical action was performed, so nothing here is CONFIRMED yet. The
-promotion tests are listed in `docs/hardware-test.md`, section M3.
+the user pointed out the 36 ignored reports in the evidence file. The
+evidence file is `mx-master-3s-state.json`.
+
+### Observation O-5 (2026-10-21) — user's hardware tests H3
+
+The user ran every step of `docs/hardware-test.md` section M3 on their own
+machine, as a normal user, over Bluetooth. Captures are in `evidence/m3/`
+(Bluetooth address and unit ID redacted; see the `sanitized` field of the two
+watch files). Each claim below was checked against these files.
+
+| File | Step | Conditions |
+|---|---|---|
+| `features.json` | prep | identical feature list to `mx-master-3s-features.json` |
+| `01-baseline.json` | 1 | idle, no cable |
+| `02-after-press-1.json` | 2 | after one press of the mode button |
+| `03-after-press-2.json` | 2 | after a second press |
+| `04-watch-mode-button.json` | 3 | `lab watch` 30 s while pressing the mode button |
+| `05-watch-cable.json` | 4 | `lab watch` 120 s: cable plugged, `lab read`, cable unplugged |
+| `06-read-charging.json` | 4 | cable plugged |
+| `07-after-channel-switch.json` | 5 | after switching to another channel and back |
+
+User's report: the 7 non-virtual controls correspond to the 7 physical
+buttons; each mode-button press toggled the wheel between clicks and free
+spin, matching the reads; notifications appeared on mode-button presses; the
+cable test worked; channel LED 2 was lit before and after the switch.
+
+All five reads: no error, every target feature read, the same feature indices,
+0 ignored reports.
 
 ### P-020 — 0x0005 DeviceName
 
-Status: **LIKELY**. Sources: R-1 (GET_COUNT, GET_DEVICE_NAME, GET_TYPE), R-2 (`get_name`, `get_kind`, `DEVICE_KIND`).
+Sources: R-1 (GET_COUNT, GET_DEVICE_NAME, GET_TYPE), R-2 (`get_name`, `get_kind`, `DEVICE_KIND`).
 
 ```text
 f0 getDeviceNameCount()       -> [length]
@@ -293,11 +317,14 @@ f1 getDeviceName(char_index)  -> up to 16 name bytes per long report; repeat unt
 f2 getDeviceType()            -> [type]   R-2 table: 0 keyboard ... 3 mouse ... 7 receiver
 ```
 
-O-4: length 12, name `MX Master 3S`, type 3. Test: H3-01.
+| Fact | Status | Evidence |
+|---|---|---|
+| f0 length, f1 at char index 0, f2 type | **CONFIRMED** | O-4 and five O-5 reads: length 12, name `MX Master 3S` (the end of `HID_NAME`), type 3 = mouse, matching the device |
+| f1 with char index > 0 (names longer than 16 bytes) | LIKELY | Not exercised: this name fits one chunk |
 
 ### P-021 — 0x0003 DeviceFwVersion
 
-Status: **LIKELY**. Sources: R-2 (`get_firmware`, `get_ids`, `FirmwareKind`), R-1 (`hidpp_get_serial`: bytes 1..5 of f0 are the serial).
+Sources: R-2 (`get_firmware`, `get_ids`, `FirmwareKind`), R-1 (`hidpp_get_serial`: bytes 1..5 of f0 are the serial).
 
 ```text
 f0 getDeviceInfo()   -> [entity_count, unit_id[4], byte5?, transport_bits, model_ids[6], ...]
@@ -308,61 +335,71 @@ f1 getFwInfo(entity) -> [type, ...]   type & 0x0F: 0 firmware, 1 bootloader, 2 h
    type 2:        [type, hardware_version]
 ```
 
-The unit ID is a serial number. It is redacted by default in decoded output
-and in the transcript; `--show-unique` shows it.
+The unit ID is a serial number. It is redacted by default in decoded output,
+in `lab read` transcripts and, since the fix after O-5, in `lab watch`.
 
-O-4: 3 entities; transport bits `0x02` with model ID `btle=B034`, which equals
-the Bluetooth product ID in `HID_ID`. Entity 0: bootloader `BL1` 69.01 build
-`0x0006`. Entity 1: firmware `RBM` 22.01 build `0x0006`. Both have extras
-`b0 34 bb 51 90 e8`; meaning UNKNOWN, checked not to contain the unit ID or
-the Bluetooth address. Entity 2: type byte `0x05`, not in R-2's table
-(UNKNOWN), raw `05 00 00 00 00 00 01 26`. Byte 5 and byte 8: UNKNOWN.
-Test: H3-02.
+| Fact | Status | Evidence |
+|---|---|---|
+| f0 entity count, transport bits and model ID position | **CONFIRMED** | Six reads (O-4 and O-5): `btle=B034`, equal to the Bluetooth product ID in `HID_ID`; 3 entities |
+| Unit ID at f0 bytes 1..5 | LIKELY | R-1 and R-2 agree; no independent source on this system |
+| f1 layout for types 0 and 1 | LIKELY | Readable names `BL1` and `RBM`, versions 69.01 and 22.01, build `0x0006`, stable in six reads (O-4 and O-5); no independent version check (the optional fwupd comparison was not run) |
+| Entity 2 type byte `0x05`, raw `05 00 00 00 00 00 01 26` | UNKNOWN | Not in R-2's table |
+| f0 byte 5, f1 byte 8, extras `b0 34 bb 51 90 e8` | UNKNOWN | Extras checked not to contain the unit ID or the Bluetooth address |
 
 ### P-022 — 0x1004 UnifiedBattery
 
-Status: **LIKELY**, with a conflict. Sources: R-1 (GET_CAPABILITIES, GET_STATUS, level and flag bits, status mapping), R-2 (`decipher_battery_unified`).
+Sources: R-1 (GET_CAPABILITIES, GET_STATUS, level and flag bits, status mapping, event 0), R-2 (`decipher_battery_unified`, `notifications.py`).
 
 ```text
 f0 getCapabilities() -> [supported_levels, flags]   flags bit0 rechargeable, bit1 state_of_charge
 f1 getStatus()       -> [soc_%, level_bits, charging_status, external_power]
                         level bits: 0x01 critical, 0x02 low, 0x04 good, 0x08 full
+event f0 (sw_id 0)   -> same layout as getStatus
 ```
 
-| charging_status | R-1 kernel | R-2 Solaar | Status |
+| Fact | Status | Evidence |
+|---|---|---|
+| Byte 0 = state of charge, % | **CONFIRMED** | Equal to the kernel's `capacity` in all six reads, at two values (35 and 40) |
+| charging_status 0 = discharging | **CONFIRMED** | Reads without cable; kernel status Discharging |
+| charging_status 1 = charging | **CONFIRMED** | `06-read-charging.json` with cable; kernel status Charging; notifications in `05-watch-cable.json` |
+| charging_status 2 (kernel: charging slow; Solaar: almost full) | HYPOTHESIS | References conflict; not observed |
+| charging_status 3 (complete / full) | LIKELY | References agree; not observed |
+| charging_status 4 (kernel: error; Solaar: slow recharge) | HYPOTHESIS | References conflict; not observed |
+| Byte 3 = 1 while a cable is connected, 0 otherwise | LIKELY | R-1 names it `external_power_status` without interpreting it; observed 0 → 1 → 0 across one plug/unplug |
+| Level bit `0x04` good | LIKELY | Only this level observed |
+| f0 capabilities `0f 03` | LIKELY | One value |
+| Event f0 with the getStatus layout | **CONFIRMED** | `05-watch-cable.json`: 3 notifications whose bytes match the reads and the cable state |
+
+Battery notifications in `05-watch-cable.json` (feature index `0x08`):
+
+| Time | Bytes | Meaning | Matches |
 |---|---|---|---|
-| 0 | discharging | discharging | LIKELY |
-| 1 | charging | recharging | LIKELY |
-| 2 | charging slow | almost full | HYPOTHESIS (references conflict) |
-| 3 | complete | full | LIKELY |
-| 4 | error | slow recharge | HYPOTHESIS (references conflict) |
+| 25.0 s | `23 04 01 01` | 35 %, good, charging, byte 3 = 1 | cable plugged |
+| 85.6 s | `28 04 01 01` | 40 %, good, charging, byte 3 = 1 | while charging |
+| 107.7 s | `28 04 00 00` | 40 %, good, discharging, byte 3 = 0 | cable unplugged |
 
-`external_power` (byte 3) is passed along by R-1 but not interpreted by either
-reference: UNKNOWN.
-
-The kernel reports the same feature through
-`/sys/class/power_supply/hidpp_battery_N`, whose `device` link is the HID
-device of the mouse. `lab read` compares both. This checks hid-lab's decoding
-against the kernel's, not against an independent sensor.
-
-O-4: capabilities all four levels, flags rechargeable and state_of_charge;
-status 35 %, level good, charging 0, external power 0. Kernel
-`hidpp_battery_0`: capacity 35, Discharging. Match. Tests: H3-03, H3-04.
+The charge rose from 35 % to 40 % in about one minute of charging. The
+kernel reported the same values. Why the step is that large is UNKNOWN.
 
 ### P-023 — 0x1814 ChangeHost
 
-Status: **LIKELY**. Source: R-2 (`ChangeHost` setting, read f0). f1 (setCurrentHost) is a write that switches the mouse away; it is never called.
+Source: R-2 (`ChangeHost` setting, read f0). f1 (setCurrentHost) is a write that switches the mouse away; it is never called.
 
 ```text
 f0 getHostInfo() -> [host_count, current_host (0-based), ...]
 ```
 
-O-4: 3 hosts, current host 1, shown as channel 2. Bytes 2.. were zero.
-Test: H3-05.
+Status: **CONFIRMED** (O-5). All six reads (O-4 and O-5) return `03 01`: 3 hosts and
+host 1, shown as channel 2. The user saw LED 2 lit before and after a real
+channel switch. The switch did reconnect the mouse: the kernel registered
+its battery again under a new name (`hidpp_battery_0` before,
+`hidpp_battery_1` after). The hidraw node stayed `hidraw2` this time, and
+`lab read` found the mouse without arguments. Only current-host value 1 can
+be observed from this computer.
 
 ### P-024 — 0x1B04 ReprogControlsV4
 
-Status: **LIKELY**. Sources: R-1 (GET_COUNT, GET_CID_INFO, flag bit0 mouse, bit5 divertable), R-2 (`KeysArrayV4._query_key`, `_getCidReporting`, `KeyFlag`, `MappingFlag`, `special_keys.CONTROL`, `Task`). f3 (setCidReporting) is never called.
+Sources: R-1 (GET_COUNT, GET_CID_INFO, flag bit0 mouse, bit5 divertable), R-2 (`KeysArrayV4._query_key`, `_getCidReporting`, `KeyFlag`, `MappingFlag`, `special_keys.CONTROL`, `Task`). f3 (setCidReporting) is never called.
 
 ```text
 f0 getCount()             -> [count]
@@ -373,7 +410,7 @@ f2 getCidReporting(cid BE)-> [cid u16 BE, mflags_lo, mapped_to u16 BE, mflags_hi
                              mapped_to 0 means "itself"
 ```
 
-O-4 (reference names from R-2, not verified):
+Controls (identical in O-4 and all five O-5 reads; reference names from R-2):
 
 | # | CID | Reference name | TID | Flags | Reporting |
 |---|---|---|---|---|---|
@@ -386,12 +423,18 @@ O-4 (reference names from R-2, not verified):
 | 6 | 0x00C4 | Smart_Shift | 0x009D | same as #2 | none |
 | 7 | 0x00D7 | Virtual_Gesture_Button | 0x00B4 | divertable, virtual, raw_xy, force_raw_xy | none |
 
-Every control reported itself as its mapping target and no reporting flag was
-set, which fits a mouse that no software has diverted. Test: H3-06.
+| Fact | Status | Evidence |
+|---|---|---|
+| f0 count = 8; f1 CID and TID positions | **CONFIRMED** | Six identical reads (O-4 and O-5); the 7 non-virtual controls match the 7 physical buttons (user, O-5) |
+| f1 bit0 `mouse`, bit7 `virtual` | **CONFIRMED** | Set on exactly the 7 physical controls and the 1 virtual control |
+| Which physical button each CID is | LIKELY | Names come from R-2. Proving it needs a diverted press, which is a write |
+| Other capability bits (divertable, raw_xy, ...) | LIKELY | Not testable without writes |
+| f2 echoes the CID; mapped_to = itself | **CONFIRMED** | All 8 controls, six reads (O-4 and O-5) |
+| f2 reporting flag bits | LIKELY | Only the value 0 (nothing diverted) observed |
 
 ### P-025 — 0x2201 AdjustableDpi
 
-Status: **LIKELY**. Source: R-2 only (`AdjustableDpi`: list f1, read f2; `produce_dpi_list`). f0 is not documented and not called. f3 (setSensorDpi) is never called.
+Status: **LIKELY** (unchanged). Source: R-2 only (`AdjustableDpi`: list f1, read f2; `produce_dpi_list`). f0 is not documented and not called. f3 (setSensorDpi) is never called.
 
 ```text
 f1 getSensorDpiList(sensor 0) -> [sensor, u16 BE values..., 0x0000]
@@ -400,54 +443,72 @@ f1 getSensorDpiList(sensor 0) -> [sensor, u16 BE values..., 0x0000]
 f2 getSensorDpi()             -> [sensor, dpi u16 BE, default_dpi u16 BE]; dpi 0 = default
 ```
 
-Only the first list page is read. O-4: list `200..8000 step 50`, terminated;
-current 1000, default 1000. Test: H3-07.
+Only the first list page is read. List `200..8000 step 50`, current 1000,
+default 1000, stable in six reads (O-4 and O-5). Only one current value was observed,
+so this needs a DPI change (milestone 4) to confirm.
 
 ### P-026 — 0x2110 SmartShift
 
-Status: **LIKELY**. Source: R-2 only (`ScrollRatchet`, `SmartShift`: read f0). f1 is a write and is never called.
+Source: R-2 only (`ScrollRatchet`, `SmartShift`: read f0). f1 is a write and is never called.
 
 ```text
 f0 getRatchetControlMode() -> [mode, threshold, byte2]   mode 1 free-spin, 2 ratchet
 ```
 
-O-4: mode 2 (ratchet), threshold 10, byte 2 `0x0a`. Byte 2 is UNKNOWN; it
-equalled the threshold in O-4, which is an observation, not a meaning.
-Test: H3-08.
+| Fact | Status | Evidence |
+|---|---|---|
+| Mode 2 = ratchet, 1 = free spin | **CONFIRMED** | `01` mode 2, `02` mode 1, `03` mode 2, each matching what the user felt on the wheel |
+| Byte 1 = auto-disengage threshold | LIKELY | Only the value 10 observed |
+| Byte 2 | UNKNOWN | Always `0x0a`, equal to the threshold |
 
 ### P-027 — 0x2121 HiResWheel
 
-Status: **LIKELY**. Sources: R-1 (f0 multiplier; f2 setWheelMode bits, written by the kernel on connect with high resolution on), R-2 (`get_hires_wheel`: f0, f1, f3).
+Sources: R-1 (f0 multiplier; f2 setWheelMode bits, written by the kernel on connect with high resolution on), R-2 (`get_hires_wheel`: f0, f1, f3; `notifications.py`: event f1 byte 0 = ratchet).
 
 ```text
 f0 getWheelCapability()    -> [multiplier, flags]   0x08 has invert, 0x04 has ratchet switch
 f1 getWheelMode()          -> [mode]   bit0 diverted to HID++, bit1 high resolution, bit2 inverted
 f3 getRatchetSwitchState() -> [state]  bit0 ratchet
+event f1 (sw_id 0)         -> [ratchet]  1 ratchet, 0 free spin (R-2)
 ```
 
 hid-lab never calls f2. The kernel owns this mode; later milestones must not
 change it without coordinating with the kernel driver.
 
-O-4: multiplier 15, has invert, has ratchet switch; mode `0x02` (high
-resolution, as the kernel sets it); ratchet switch `0x01`, consistent with
-SmartShift mode 2 at the same moment. Test: H3-08.
+| Fact | Status | Evidence |
+|---|---|---|
+| f3 bit0 = ratchet | **CONFIRMED** | `01` 1, `02` 0, `03` 1, in step with SmartShift mode and the user's feel |
+| f1 mode `0x02` = high resolution on | LIKELY | One value, consistent with the kernel enabling it on connect |
+| f0 multiplier 15, has invert, has ratchet switch | LIKELY | One value |
+| f0 flag bit `0x10`, f0 bytes 2..3 (`18 18`) | UNKNOWN | f0 answers `0f 1c 18 18` |
+| Event f1 with byte 0 = ratchet state | LIKELY, **held** | 4 notifications alternating `00`/`01`; see "Open question" below |
 
 ### P-028 — 0x2150 Thumbwheel
 
-Status: **LIKELY**. Source: R-2 only (`ThumbMode`, `ThumbInvert`: read f1). f0 is not documented and not called. f2 is a write and is never called.
+Status: **LIKELY** (unchanged). Source: R-2 only (`ThumbMode`, `ThumbInvert`: read f1). f0 is not documented and not called. f2 is a write and is never called.
 
 ```text
 f1 getThumbwheelStatus() -> [b0, b1, ...]   b0 bit0 diverted, b1 bit0 inverted
 ```
 
-O-4: `00 00`, not diverted, not inverted. With reads only, only the default
-can be observed; inversion stays LIKELY until a later milestone writes it.
-Test: H3-10.
+`00 00` in six reads (O-4 and O-5). Only the default can be observed without writes.
 
 ### P-029 — Notifications (software ID 0)
 
-Status: **LIKELY** that the device sends HID++ reports with `sw_id 0`
-unprompted (R-1, R-2). R-1 handles 0x1004 event 0 as a battery status
-update with the getStatus layout. `hid-lab lab watch` listens without sending
-and shows each such report with its feature index and raw bytes. No payload
-meaning is assumed. Tests: H3-11, H3-12.
+| Fact | Status | Evidence |
+|---|---|---|
+| The device sends unsolicited HID++ reports with `sw_id 0` | **CONFIRMED** | 7 in O-5: 3 battery, 4 wheel |
+| Battery: 0x1004 event f0 | **CONFIRMED** | See P-022 |
+| Mode button: 0x2121 event f1, not 0x2110 | LIKELY, **held** | `04-watch-mode-button.json`: 4 notifications, all 0x2121 f1; none from 0x2110 |
+| `lab watch` sees other programs' traffic without interfering | **CONFIRMED** | `05-watch-cable.json`: the user's `lab read` (sw_id `0x0B`) appears as 43 other-HID++ reports, and that read succeeded |
+| Kernel driver HID++ traffic during normal use | not observed | No reports with other software IDs besides hid-lab's in 150 s of watching |
+
+#### Open question (holds P-027 event and P-029 mode-button row)
+
+The test asked for three presses of the mode button. `04-watch-mode-button.json`
+contains four 0x2121 notifications, at 5.5 s, 7.2 s, 9.0 s and 14.0 s, with
+byte 0 = `00`, `01`, `00`, `01`. Four toggles start from ratchet and end in
+ratchet. Either the button was pressed four times, or one change came from
+something else, for example SmartShift switching to free spin automatically
+while the wheel turned fast. These rows stay LIKELY until the user says
+which.
