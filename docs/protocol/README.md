@@ -14,14 +14,19 @@ UNKNOWN
 
 | ID | Project | File | License | Use |
 |---|---|---|---|---|
-| R-1 | Linux kernel | `drivers/hid/hid-logitech-hidpp.c` | GPL-2.0 | Behavior described, no code copied |
-| R-2 | Solaar | `lib/logitech_receiver/` (hidpp20, base) | GPL-2.0 | Behavior described, no code copied |
+| R-1 | Linux kernel | `drivers/hid/hid-logitech-hidpp.c` | GPL-2.0-only | Behavior described, no code copied |
+| R-2 | Solaar | `lib/logitech_receiver/` (`hidpp20.py`, `settings_templates.py`, `special_keys.py`, `hidpp20_constants.py`, `common.py`) | GPL-2.0-or-later | Behavior described, no code copied |
+
+Milestone 3 entries were checked against R-1 at commit `4403278e4ea2` and R-2
+at commit `e7304c4c451c` (both `master`, read 2026-10-21). Function numbers
+below are 0..15; the sources write them as `function << 4` (`0x10` = f1).
 
 ## Evidence files
 
 | File | What | Captured |
 |---|---|---|
 | `mx-master-3s-features.json` | `hid-lab lab features --json`, MX Master 3S over Bluetooth, `HID_UNIQ` redacted, full TX/RX transcript | 2026-10-21, hid-lab 0.1.0, Fedora 44, kernel 7.2.11, BlueZ 5.87 |
+| `mx-master-3s-state.json` | `hid-lab lab read --json` (observation O-4), `HID_UNIQ` and firmware unit ID redacted (also in the transcript) | 2026-10-21, same system |
 
 Transcript entries are referenced below as `request N` (the `request` field).
 
@@ -255,3 +260,189 @@ Notes for milestone 3 (no conclusions drawn yet):
   getFeature at runtime and never hard-code the indices above.
 - `0x2250` and `0x2251` are not in the reference table. Their meaning is
   UNKNOWN until a public source is cited and the device behavior is checked.
+
+## Milestone 3 — feature state (read-only)
+
+hid-lab only sends the functions listed in
+`crates/hidlab-features/src/allowlist.rs`. A test proves that no function the
+references use as a write is in that list, and another test checks every
+request a full read sends against it. Functions that no reference documents
+are never called, because they could be writes. Feature indices are resolved
+with getFeature on every run.
+
+### Observation O-4 (2026-10-21)
+
+`hid-lab lab read` was run once in the user's session by Claude Code. The
+mouse was not touched and was not charging (kernel status Discharging). The evidence file is
+`mx-master-3s-state.json`. Values below marked "O-4" come from it. No
+physical action was performed, so nothing here is CONFIRMED yet. The
+promotion tests are listed in `docs/hardware-test.md`, section M3.
+
+### P-020 — 0x0005 DeviceName
+
+Status: **LIKELY**. Sources: R-1 (GET_COUNT, GET_DEVICE_NAME, GET_TYPE), R-2 (`get_name`, `get_kind`, `DEVICE_KIND`).
+
+```text
+f0 getDeviceNameCount()       -> [length]
+f1 getDeviceName(char_index)  -> up to 16 name bytes per long report; repeat until length
+f2 getDeviceType()            -> [type]   R-2 table: 0 keyboard ... 3 mouse ... 7 receiver
+```
+
+O-4: length 12, name `MX Master 3S`, type 3. Test: H3-01.
+
+### P-021 — 0x0003 DeviceFwVersion
+
+Status: **LIKELY**. Sources: R-2 (`get_firmware`, `get_ids`, `FirmwareKind`), R-1 (`hidpp_get_serial`: bytes 1..5 of f0 are the serial).
+
+```text
+f0 getDeviceInfo()   -> [entity_count, unit_id[4], byte5?, transport_bits, model_ids[6], ...]
+                        transport bits 0x01 bt, 0x02 btle, 0x04 wpid, 0x08 usb;
+                        each set bit consumes 2 bytes of model_ids, in that order
+f1 getFwInfo(entity) -> [type, ...]   type & 0x0F: 0 firmware, 1 bootloader, 2 hardware, 3 other
+   types 0 and 1: [type, name[3], major, minor, build u16 BE, byte8?, extras...]
+   type 2:        [type, hardware_version]
+```
+
+The unit ID is a serial number. It is redacted by default in decoded output
+and in the transcript; `--show-unique` shows it.
+
+O-4: 3 entities; transport bits `0x02` with model ID `btle=B034`, which equals
+the Bluetooth product ID in `HID_ID`. Entity 0: bootloader `BL1` 69.01 build
+`0x0006`. Entity 1: firmware `RBM` 22.01 build `0x0006`. Both have extras
+`b0 34 bb 51 90 e8`; meaning UNKNOWN, checked not to contain the unit ID or
+the Bluetooth address. Entity 2: type byte `0x05`, not in R-2's table
+(UNKNOWN), raw `05 00 00 00 00 00 01 26`. Byte 5 and byte 8: UNKNOWN.
+Test: H3-02.
+
+### P-022 — 0x1004 UnifiedBattery
+
+Status: **LIKELY**, with a conflict. Sources: R-1 (GET_CAPABILITIES, GET_STATUS, level and flag bits, status mapping), R-2 (`decipher_battery_unified`).
+
+```text
+f0 getCapabilities() -> [supported_levels, flags]   flags bit0 rechargeable, bit1 state_of_charge
+f1 getStatus()       -> [soc_%, level_bits, charging_status, external_power]
+                        level bits: 0x01 critical, 0x02 low, 0x04 good, 0x08 full
+```
+
+| charging_status | R-1 kernel | R-2 Solaar | Status |
+|---|---|---|---|
+| 0 | discharging | discharging | LIKELY |
+| 1 | charging | recharging | LIKELY |
+| 2 | charging slow | almost full | HYPOTHESIS (references conflict) |
+| 3 | complete | full | LIKELY |
+| 4 | error | slow recharge | HYPOTHESIS (references conflict) |
+
+`external_power` (byte 3) is passed along by R-1 but not interpreted by either
+reference: UNKNOWN.
+
+The kernel reports the same feature through
+`/sys/class/power_supply/hidpp_battery_N`, whose `device` link is the HID
+device of the mouse. `lab read` compares both. This checks hid-lab's decoding
+against the kernel's, not against an independent sensor.
+
+O-4: capabilities all four levels, flags rechargeable and state_of_charge;
+status 35 %, level good, charging 0, external power 0. Kernel
+`hidpp_battery_0`: capacity 35, Discharging. Match. Tests: H3-03, H3-04.
+
+### P-023 — 0x1814 ChangeHost
+
+Status: **LIKELY**. Source: R-2 (`ChangeHost` setting, read f0). f1 (setCurrentHost) is a write that switches the mouse away; it is never called.
+
+```text
+f0 getHostInfo() -> [host_count, current_host (0-based), ...]
+```
+
+O-4: 3 hosts, current host 1, shown as channel 2. Bytes 2.. were zero.
+Test: H3-05.
+
+### P-024 — 0x1B04 ReprogControlsV4
+
+Status: **LIKELY**. Sources: R-1 (GET_COUNT, GET_CID_INFO, flag bit0 mouse, bit5 divertable), R-2 (`KeysArrayV4._query_key`, `_getCidReporting`, `KeyFlag`, `MappingFlag`, `special_keys.CONTROL`, `Task`). f3 (setCidReporting) is never called.
+
+```text
+f0 getCount()             -> [count]
+f1 getCidInfo(index)      -> [cid u16 BE, tid u16 BE, flags_lo, pos, group, gmask, flags_hi]
+                             flags = flags_lo | flags_hi << 8 (R-2 KeyFlag names)
+f2 getCidReporting(cid BE)-> [cid u16 BE, mflags_lo, mapped_to u16 BE, mflags_hi]
+                             mflags = mflags_lo | mflags_hi << 8 (R-2 MappingFlag names);
+                             mapped_to 0 means "itself"
+```
+
+O-4 (reference names from R-2, not verified):
+
+| # | CID | Reference name | TID | Flags | Reporting |
+|---|---|---|---|---|---|
+| 0 | 0x0050 | Left_Button | 0x0038 | mouse, analytics_key_events | none |
+| 1 | 0x0051 | Right_Button | 0x0039 | mouse, analytics_key_events | none |
+| 2 | 0x0052 | Middle_Button | 0x003A | mouse, reprogrammable, divertable, raw_xy, analytics_key_events | none |
+| 3 | 0x0053 | Back_Button | 0x003C | same as #2 | none |
+| 4 | 0x0056 | Forward_Button | 0x003E | same as #2 | none |
+| 5 | 0x00C3 | Mouse_Gesture_Button | 0x00A9 | same as #2 | none |
+| 6 | 0x00C4 | Smart_Shift | 0x009D | same as #2 | none |
+| 7 | 0x00D7 | Virtual_Gesture_Button | 0x00B4 | divertable, virtual, raw_xy, force_raw_xy | none |
+
+Every control reported itself as its mapping target and no reporting flag was
+set, which fits a mouse that no software has diverted. Test: H3-06.
+
+### P-025 — 0x2201 AdjustableDpi
+
+Status: **LIKELY**. Source: R-2 only (`AdjustableDpi`: list f1, read f2; `produce_dpi_list`). f0 is not documented and not called. f3 (setSensorDpi) is never called.
+
+```text
+f1 getSensorDpiList(sensor 0) -> [sensor, u16 BE values..., 0x0000]
+                                 a value with top 3 bits 111 is a step (value & 0x1FFF);
+                                 the range runs from the previous value to the next one
+f2 getSensorDpi()             -> [sensor, dpi u16 BE, default_dpi u16 BE]; dpi 0 = default
+```
+
+Only the first list page is read. O-4: list `200..8000 step 50`, terminated;
+current 1000, default 1000. Test: H3-07.
+
+### P-026 — 0x2110 SmartShift
+
+Status: **LIKELY**. Source: R-2 only (`ScrollRatchet`, `SmartShift`: read f0). f1 is a write and is never called.
+
+```text
+f0 getRatchetControlMode() -> [mode, threshold, byte2]   mode 1 free-spin, 2 ratchet
+```
+
+O-4: mode 2 (ratchet), threshold 10, byte 2 `0x0a`. Byte 2 is UNKNOWN; it
+equalled the threshold in O-4, which is an observation, not a meaning.
+Tests: H3-08, H3-09.
+
+### P-027 — 0x2121 HiResWheel
+
+Status: **LIKELY**. Sources: R-1 (f0 multiplier; f2 setWheelMode bits, written by the kernel on connect with high resolution on), R-2 (`get_hires_wheel`: f0, f1, f3).
+
+```text
+f0 getWheelCapability()    -> [multiplier, flags]   0x08 has invert, 0x04 has ratchet switch
+f1 getWheelMode()          -> [mode]   bit0 diverted to HID++, bit1 high resolution, bit2 inverted
+f3 getRatchetSwitchState() -> [state]  bit0 ratchet
+```
+
+hid-lab never calls f2. The kernel owns this mode; later milestones must not
+change it without coordinating with the kernel driver.
+
+O-4: multiplier 15, has invert, has ratchet switch; mode `0x02` (high
+resolution, as the kernel sets it); ratchet switch `0x01`, consistent with
+SmartShift mode 2 at the same moment. Tests: H3-08, H3-09.
+
+### P-028 — 0x2150 Thumbwheel
+
+Status: **LIKELY**. Source: R-2 only (`ThumbMode`, `ThumbInvert`: read f1). f0 is not documented and not called. f2 is a write and is never called.
+
+```text
+f1 getThumbwheelStatus() -> [b0, b1, ...]   b0 bit0 diverted, b1 bit0 inverted
+```
+
+O-4: `00 00`, not diverted, not inverted. With reads only, only the default
+can be observed; inversion stays LIKELY until a later milestone writes it.
+Test: H3-10.
+
+### P-029 — Notifications (software ID 0)
+
+Status: **LIKELY** that the device sends HID++ reports with `sw_id 0`
+unprompted (R-1, R-2). R-1 handles 0x1004 event 0 as a battery status
+update with the getStatus layout. `hid-lab lab watch` listens without sending
+and shows each such report with its feature index and raw bytes. No payload
+meaning is assumed. Tests: H3-11, H3-12.
