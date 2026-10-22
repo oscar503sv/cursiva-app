@@ -10,6 +10,7 @@ pub mod device_name;
 pub mod dpi;
 pub mod firmware;
 pub mod reader;
+pub mod smartshift;
 mod util;
 
 pub use allowlist::{KNOWN_WRITES, READ_ALLOWLIST, ReadFn, allowed};
