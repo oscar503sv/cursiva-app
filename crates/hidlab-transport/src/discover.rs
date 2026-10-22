@@ -164,31 +164,9 @@ fn hidraw_number(name: &str) -> Option<u32> {
 mod tests {
     use super::*;
     use crate::hidraw::Access;
+    use crate::test_support::TempDir;
     use crate::uevent::Bus;
     use std::os::unix::fs::symlink;
-    use std::sync::atomic::{AtomicU32, Ordering};
-
-    /// A temporary directory removed on drop.
-    struct TempDir(PathBuf);
-
-    impl TempDir {
-        fn new() -> Self {
-            static N: AtomicU32 = AtomicU32::new(0);
-            let p = std::env::temp_dir().join(format!(
-                "hidlab-test-{}-{}",
-                std::process::id(),
-                N.fetch_add(1, Ordering::Relaxed)
-            ));
-            fs::create_dir_all(&p).unwrap();
-            Self(p)
-        }
-    }
-
-    impl Drop for TempDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
 
     // SYNTHETIC descriptor with HID++ report IDs 0x10 and 0x11.
     const HIDPP_DESC: &[u8] = &[0x06, 0x00, 0xFF, 0x85, 0x10, 0x85, 0x11];
