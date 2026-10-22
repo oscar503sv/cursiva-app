@@ -1,6 +1,7 @@
 //! Root (0x0000) and IFeatureSet (0x0001) functions, and full enumeration.
 //!
-//! Status: LIKELY (docs/protocol/README.md, P-008..P-012). Sources: Linux
+//! Status: CONFIRMED on the MX Master 3S over Bluetooth (docs/protocol/README.md,
+//! P-008..P-012). Sources: Linux
 //! `hid-logitech-hidpp.c` and Solaar (GPL-2.0), behavior described only.
 //! All requests here are read-only queries.
 

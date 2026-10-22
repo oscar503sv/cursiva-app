@@ -31,14 +31,20 @@ Transcript entries are referenced below as `request N` (the `request` field).
 normal user, by Claude Code. Both runs returned the same protocol version and
 the same 36 entries. The first run is the committed evidence file.
 
-**Promotion rule.** Entries below marked *observed in O-1* move from LIKELY to
-CONFIRMED once the user runs the following command themselves and the feature
-list matches the evidence file:
+### Observation O-2 (2026-10-21)
 
-```bash
-./target/release/hid-lab lab features --json > /tmp/features.json
-diff <(jq .features /tmp/features.json) <(jq .features docs/protocol/mx-master-3s-features.json)
-```
+The user ran `hid-lab lab features` on their own Fedora 44 machine, over
+Bluetooth, as a normal user. The user reported that the result matches
+`mx-master-3s-features.json`. Transcript not committed.
+
+### Observation O-3 (2026-10-21)
+
+The user ran `hid-lab lab features --json` again while moving the mouse and
+turning the wheel. The user reported `ignored_reports = 48` and the same 36
+entries (indices 0x00..0x23). Transcript not committed.
+
+O-1, O-2 and O-3 together make four runs with identical results, two of them
+by the user. Facts marked CONFIRMED below cite these observations.
 
 ## Transport facts
 
@@ -54,34 +60,36 @@ Consequence: over Bluetooth this mouse is addressed with long reports only.
 
 ## Framing facts
 
-### P-001 — Short and long report sizes
+### P-001 — Report sizes, and long reports only over Bluetooth
 
-Status: **LIKELY** (long observed in O-1; short not testable on this device)
-
-Short = report `0x10`, 7 bytes. Long = report `0x11`, 20 bytes.
-Source: R-1, R-2. Evidence: every TX/RX in O-1 is 20 bytes with ID `0x11`.
+| Fact | Status | Evidence |
+|---|---|---|
+| Long report = ID `0x11`, 20 bytes | **CONFIRMED** | Every TX/RX in O-1 is 20 bytes with ID `0x11`; O-2 and O-3 succeed with the same session |
+| The MX Master 3S over Bluetooth uses long reports only | **CONFIRMED** | T-1 (descriptor has no `0x10`); full enumeration with long reports only in O-1, O-2, O-3 |
+| Short report = ID `0x10`, 7 bytes | LIKELY | R-1, R-2. Not testable on this device; relevant later for the Bolt receiver |
 
 ### P-002 — Report layout
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** (O-1, O-2, O-3)
 
 `[report_id, device_index, feature_index, (function << 4) | sw_id, params...]`.
 Source: R-1, R-2. Evidence: every response in O-1 echoes bytes 1–3 of its
 request, e.g. request 1 TX `11 ff 00 1b ...`, RX `11 ff 00 1b 04 05 5a ...`.
+O-2 and O-3 return the same data through the same matching rules.
 
 ### P-003 — Device index `0xFF` for a directly connected device
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** for Bluetooth (O-1, O-2, O-3)
 
 Source: R-1, R-2. Evidence: all requests sent with `0xFF` were answered with
-`0xFF` over Bluetooth.
+`0xFF` over Bluetooth. Receiver indices 1..6 remain LIKELY and untested.
 
 ### P-004 — Software ID is echoed; notifications use 0
 
-Status: **LIKELY** (echo observed in O-1; sw_id 0 notifications not observed)
-
-hid-lab uses `sw_id = 0x0B`. Every response in O-1 carries `0x?B` in byte 3.
-Source: R-1, R-2.
+| Fact | Status | Evidence |
+|---|---|---|
+| The device echoes the request's non-zero `sw_id` (`0x0B`) | **CONFIRMED** | Every response in O-1 carries `0x?B` in byte 3; O-2 and O-3 matched on it |
+| Device notifications carry `sw_id = 0` | LIKELY | R-1, R-2. The 48 ignored reports in O-3 were not decoded one by one |
 
 ### P-005 — The device may answer in a different report size than the request
 
@@ -113,22 +121,24 @@ Sub-ID `0x8F` in the feature-index position, params
 
 ### P-008 — Root is at feature index `0x00`
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** (O-1, O-2, O-3)
 
 Evidence: request 4, getFeatureID(0) returns ID `0x0000`.
 
 ### P-009 — Root function 0, getFeature
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** for a supported feature (O-1, O-2, O-3). The
+"index 0 means not supported" answer has not been observed and stays LIKELY.
 
 Request params `[id_hi, id_lo]`. Response `[feature_index, feature_type, feature_version]`;
 index 0 means not supported (for any ID other than root). Source: R-1, R-2.
 Evidence: request 2, getFeature(`0x0001`) → `01 00 02`. This agrees with
 request 5, getFeatureID(1) → `0x0001`, type `0x00`, version 2.
 
-### P-010 — Root function 1, getProtocolVersion
+### P-010 — Root function 1, getProtocolVersion and ping echo
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** (O-1, O-2, O-3; hid-lab fails with a ping mismatch
+error otherwise, and none occurred)
 
 Request params `[0, 0, ping]`. Response `[major, minor, ping]`. Source: R-1.
 Evidence: request 1 sent ping `0x5A` and received `04 05 5a`. Protocol 4.5
@@ -138,14 +148,14 @@ matches the kernel log `HID++ 4.5 device connected` (diagnosis.md).
 
 ### P-011 — Function 0, getCount (root not counted)
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** (O-1, O-2, O-3)
 
 Evidence: request 3 → `0x23` (35). getFeatureID answered for every index
 0..=35 (36 entries, requests 4–39), so the count excludes root. Source: R-1, R-2.
 
 ### P-012 — Function 1, getFeatureID
 
-Status: **LIKELY** (observed in O-1)
+Status: **CONFIRMED** (O-1, O-2, O-3)
 
 Request params `[index]`. Response `[id_hi, id_lo, feature_type, feature_version]`.
 Evidence: requests 4–39. Source: R-1, R-2.
@@ -182,7 +192,8 @@ about 15 ms. The whole enumeration took about 0.77 s.
 
 ## MX Master 3S feature list (Bluetooth, PID `0xB034`)
 
-Status of the list: **LIKELY** (observed in O-1, two identical runs).
+Status of the list (IDs, indices, type bytes, versions): **CONFIRMED**
+(O-1, O-2, O-3: four identical runs, two by the user).
 Names are reference names from R-1/R-2 and are **not verified**. "unknown"
 means the ID is not in hid-lab's reference table; no name is guessed.
 

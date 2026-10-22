@@ -1,7 +1,7 @@
 //! HID++ report framing.
 //!
-//! Status of every fact here: LIKELY (see docs/protocol/README.md, entries
-//! P-001..P-005). Sources: Linux `drivers/hid/hid-logitech-hidpp.c` and
+//! Status of each fact: see docs/protocol/README.md, entries P-001..P-007
+//! (long-report framing CONFIRMED on the MX Master 3S over Bluetooth). Sources: Linux `drivers/hid/hid-logitech-hidpp.c` and
 //! Solaar (both GPL-2.0), behavior described, no code copied.
 //!
 //! ```text
