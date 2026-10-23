@@ -8,7 +8,7 @@
 //! The kernel itself writes the wheel mode (high resolution on) when the
 //! device connects. hid-lab only reads it.
 
-use hidlab_hidpp::FeatureId;
+use hidlab_hidpp::{FeatureId, Frame};
 use hidlab_transport::RawChannel;
 use serde::Serialize;
 
@@ -101,9 +101,53 @@ pub fn read<C: RawChannel>(r: &mut Reader<'_, C>) -> Result<HiResWheel, ReadErro
     })
 }
 
+/// Function of the ratchet event, and the software ID of notifications.
+const RATCHET_EVENT: u8 = 1;
+
+/// If `frame` is the 0x2121 ratchet event (function 1, software ID 0) from
+/// the feature at `feature_index`, returns its ratchet bit: `true` for
+/// ratchet, `false` for free spin. CONFIRMED: P-027, P-029. It fires on the
+/// mode button and on a 0x2110 mode write, not on automatic switching.
+pub fn ratchet_event(frame: &Frame, feature_index: u8) -> Option<bool> {
+    match frame {
+        Frame::Message {
+            feature_index: fi,
+            function: RATCHET_EVENT,
+            sw_id: 0,
+            params,
+            ..
+        } if *fi == feature_index => Some(params.first().is_some_and(|b| b & 0x01 != 0)),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recognises_only_the_ratchet_event() {
+        // SYNTHETIC frames; the layout matches `evidence/m4a/03-watch-mode.json`.
+        let mut r = [0u8; 20];
+        r[..5].copy_from_slice(&[0x11, 0xFF, 0x0F, 0x10, 0x01]);
+        let f = hidlab_hidpp::decode(&r).unwrap();
+        assert_eq!(ratchet_event(&f, 0x0F), Some(true));
+        assert_eq!(ratchet_event(&f, 0x0E), None);
+        r[4] = 0x00;
+        assert_eq!(
+            ratchet_event(&hidlab_hidpp::decode(&r).unwrap(), 0x0F),
+            Some(false)
+        );
+        // A response to our own request (sw_id 0x0C) is not an event.
+        r[3] = 0x1C;
+        assert_eq!(
+            ratchet_event(&hidlab_hidpp::decode(&r).unwrap(), 0x0F),
+            None
+        );
+        // Mouse movement is not HID++.
+        let mv = hidlab_hidpp::decode(&[0x02, 0, 1, 0, 0xFF, 0xFF, 0, 0]).unwrap();
+        assert_eq!(ratchet_event(&mv, 0x0F), None);
+    }
 
     #[test]
     fn decodes_all() {
