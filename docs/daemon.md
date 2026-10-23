@@ -5,10 +5,36 @@ the session bus. It runs as your user, never as root. While it runs it is
 the only program that changes the mouse's settings (requirements §5);
 `hid-lab lab write --write` refuses to run alongside it.
 
-Milestone 4b status: the daemon applies the configuration when it starts,
-on `hid-lab set` and on `hid-lab reapply`. It notices when the mouse
-connects and disconnects, but **does not yet re-apply after a reconnect**;
-that is phase 4c (requirements §7).
+## When it applies
+
+| Trigger | Event | Second check |
+|---|---|---|
+| `start` | the daemon starts with the mouse connected | yes |
+| `connect` | udev `add` for the mouse: switched on, back from another Easy-Switch channel, Bluetooth on again, woke and reconnected | yes |
+| `resume` | logind `PrepareForSleep(false)` with the mouse still connected | yes |
+| `reapply` | `hid-lab reapply` | no |
+| `set` | `hid-lab set` | no |
+
+For `start`, `connect` and `resume` the daemon pings the mouse every
+200 ms until it answers (at most 5 s), applies and verifies by reading
+back, and **reads everything again 1 s later**. If something overwrote a
+setting in between (for example another configurator), it logs a
+warning and re-applies once. All of it is measured from the event; `hid-lab
+status` shows the times, and the target is 2 s (requirements §7). Only
+settings that differ from the wanted value are written.
+
+## SmartShift mode follows you
+
+The daemon keeps the mouse open read-only and watches for the 0x2121
+ratchet event, which the mouse sends when you press the mode button (and
+when the mode is written). On each event it reads the 0x2110 mode and, if
+it changed, stores it in `state.toml` and emits `ModeChanged`. After a
+reconnect it restores that mode if the mouse has another one, for example
+because you changed it while the mouse was on another computer: each
+computer keeps its own mode.
+
+Because the mouse is open, the daemon also wakes for every movement report
+and skips it; that is the cost of seeing the mode button.
 
 ## Install (no root)
 
@@ -79,11 +105,12 @@ the types are in `crates/hidlab-daemon/src/api.rs`.
 
 | Member | Kind | Arguments | Returns |
 |---|---|---|---|
-| `GetStatus` | method | — | `hid-lab.daemon-status/1` |
+| `GetStatus` | method | — | `hid-lab.daemon-status/2` |
 | `Set` | method | setting, value (strings, as in `hid-lab set`) | `hid-lab.daemon-set/1` |
 | `Reapply` | method | — | `hid-lab.daemon-reapply/1` |
 | `DeviceChanged` | signal | `hid-lab.daemon-device/1` | — |
-| `Applied` | signal | apply report | — |
+| `Applied` | signal | apply record (trigger, report, times, second check); sent again when the second check finishes | — |
+| `ModeChanged` | signal | `hid-lab.daemon-mode/1` | — |
 
 Errors are `org.freedesktop.DBus.Error.Failed` with a message that says
 what to do.

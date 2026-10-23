@@ -2,7 +2,7 @@
 //! `$XDG_STATE_HOME/hid-lab/daemon/state.toml`.
 //!
 //! Today this is the last SmartShift mode chosen per device (requirements,
-//! Milestone 4): by the app now, by the mode button from 4c on. When the file
+//! Milestone 4): by the app or by the mode button. When the file
 //! has no mode, the config's initial mode is used.
 
 use std::collections::BTreeMap;

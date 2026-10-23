@@ -665,3 +665,15 @@ journal shows as stop/start pairs.
 | `lab write` refuses, Solaar detected, second instance refused (H4B-06) | user's report; journal shows the `solaar` warning |
 | Mouse back to the start | `06-after.json` equals `00-before.json`: DPI 1000, SmartShift `02 0a 0a`, thumb wheel `00 00` |
 
+### Observation O-8 (2026-10-22) — first request after idle
+
+Claude Code ran `hid-labd` from the 4c branch on a private session bus with
+an empty config (reads only; the user's own daemon kept running), with
+`HIDLAB_LOG=debug`. The mouse had not been touched for a while. The first
+readiness ping (getProtocolVersion, ping `0xC5`, 250 ms timeout) got no
+answer, and nothing else arrived. The retry 200 ms later was matched 17 ms
+after sending. Both pings used the same ping byte, so the matched answer may
+be a late answer to the first one. No file was kept. Status: UNKNOWN whether
+the mouse is slow to answer after idle or the first request was lost; the
+4c acceptance tests time every re-apply and will show whether this matters.
+

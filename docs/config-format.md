@@ -34,7 +34,7 @@ Not here on purpose:
 ## SmartShift mode
 
 The mode follows the user. The last mode chosen with `hid-lab set
-smartshift-mode` (and, from phase 4c on, with the mode button) is kept in
+smartshift-mode` or with the mouse's mode button is kept in
 `$XDG_STATE_HOME/hid-lab/daemon/state.toml`. `smartshift.mode` in this file
 is used only while that state file has no mode. Each computer keeps its own
 mode.

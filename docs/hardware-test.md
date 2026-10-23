@@ -529,3 +529,87 @@ Run by the user. Captures are in `docs/protocol/evidence/m4b/`; details in
 | H4B-04 | Pass | `applied 4 setting(s) ... verified` at restart |
 | H4B-05 | Pass (second run) | First run without switching the mouse off; repeat: DPI and inversion `DIFFERS`, then all `ok` after `reapply` in 157 ms, felt again |
 | H4B-06 | Pass | `lab write` refused, `solaar` detected, second instance exited |
+
+## M4c — §7 acceptance test over Bluetooth
+
+This closes Milestone 4. The daemon must bring every setting back, without
+you doing anything, within 2 s of each event. Do not run `hid-lab
+reapply` or `hid-lab set` during the events: the point is that nothing is
+needed.
+
+### Preparation
+
+Install the new build and restart the daemon:
+
+```bash
+mkdir -p ~/hidlab-m4c
+cargo install --path crates/hidlab-daemon --root ~/.local
+cargo install --path crates/hidlab-cli --root ~/.local
+systemctl --user restart hid-labd.service
+hid-lab set dpi 1600
+hid-lab set smartshift-threshold 30
+hid-lab set thumbwheel-invert on
+hid-lab set smartshift-mode free-spin
+hid-lab status
+hid-lab status --json > ~/hidlab-m4c/00-configured.json
+```
+
+All four settings must show `ok`. Free spin is set so you can tell whether
+the mode is kept.
+
+### How to check each event
+
+After each event, as soon as the pointer moves:
+
+1. Feel it: the pointer is fast, the thumb wheel scrolls the other way, and
+   the main wheel spins freely.
+2. Run `hid-lab status` and save `hid-lab status --json` to the file named
+   in the event.
+
+Pass for each event: in `status`, all four settings `ok`; under `Last
+apply`, the trigger named in the table (or `Connect` where noted), `4
+setting(s) verified`, `second check ... nothing overwritten` (or
+`re-applied: verified`), and a total of **2000 ms or less**. If the trigger
+is from an earlier event, the event did not reach the daemon: note it.
+
+### The events
+
+| # | Event | What to do | File | Expected trigger |
+|---|---|---|---|---|
+| A1 | Mouse off and on | Switch it off, wait 10 s, switch it on, move it | `01-power.json` | `Connect` |
+| A2 | Mouse sleep | Leave it untouched for 15 minutes, then move it | `02-idle.json` | none new if it did not disconnect (as in H4-01); `Connect` if it did |
+| A3 | Easy-Switch channel | Press Easy-Switch to another channel. **Wait until the pointer stops responding and the other channel's LED is lit**, then wait 10 s more. Press it again to return to channel 2 and move the mouse | `03-channel.json` | `Connect` |
+| A4 | System suspend | `systemctl suspend`, wake the computer, move the mouse | `04-suspend.json` | `Connect` or `Resume` |
+| A5 | Bluetooth off and on | Turn Bluetooth off in GNOME's quick settings, wait 10 s, turn it on, move the mouse | `05-bluetooth.json` | `Connect` |
+| A6 | Reboot | Reboot, log in, move the mouse | `06-reboot.json` | `Start` or `Connect` |
+
+For A2, first save `hid-lab status --json > ~/hidlab-m4c/02-before-idle.json`,
+then start the 15 minutes.
+
+### SmartShift mode follows the button
+
+| # | What to do | Pass |
+|---|---|---|
+| M1 | Press the mode button once (the wheel clicks), then run `hid-lab status` and `cat ~/.local/state/hid-lab/daemon/state.toml` | `smartshift-mode` wanted and current are both `ratchet`; the state file says `ratchet`; the journal says `SmartShift mode changed on the mouse to ratchet; remembered` |
+| M2 | Switch the mouse off and on, move it, run `hid-lab status --json > ~/hidlab-m4c/m2-after-power.json` | The wheel still clicks; `smartshift-mode` `ok` |
+| M3 | Run `systemctl --user stop hid-labd.service`, press the mode button (free spin; the daemon does not see it, as if you changed it on another computer), run `systemctl --user start hid-labd.service`, then `hid-lab status --json > ~/hidlab-m4c/m3-restored.json` | Within 2 s the wheel clicks again by itself: the daemon restored the remembered `ratchet`; trigger `Start` |
+
+### Back to normal
+
+Your usual values (DPI 1000, threshold 10, not inverted, ratchet):
+
+```bash
+hid-lab set dpi 1000
+hid-lab set smartshift-threshold 10
+hid-lab set thumbwheel-invert off
+hid-lab set smartshift-mode ratchet
+journalctl --user -u hid-labd.service --since today --no-pager -o cat > ~/hidlab-m4c/journal.txt
+cp ~/.config/hid-lab/config.toml ~/.local/state/hid-lab/daemon/state.toml ~/hidlab-m4c/
+```
+
+### What to send back
+
+The files in `~/hidlab-m4c/` and, for each event, a short note: whether you
+felt the settings come back without doing anything, and anything odd. If an
+event fails, write down what `hid-lab status` showed and send the files
+anyway.

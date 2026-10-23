@@ -23,7 +23,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 0 Diagnosis | Done. Cause: missing `uaccess` udev rule |
 | 1 + 2 Discovery, HID++ core, feature enumeration | Done, framing CONFIRMED |
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
-| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done (H4, O-6). 4b done (H4B, O-7). 4c in progress. SmartShift-mode design for 4c approved (requirements, Milestone 4) |
+| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done (H4, O-6). 4b done (H4B, O-7). 4c implemented; wait for the user's §7 acceptance results (M4c) before closing milestone 4 |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
 | 5–8 | Not started; do not start without approval |
 
@@ -71,7 +71,7 @@ hid-lab lab write    <setting> (<value> | --restore) [<device>] (--dry-run | --w
 
 `lab write` state (saved originals, `log.jsonl`) lives in `$XDG_STATE_HOME/hid-lab/lab-write/`. `lab write --write` refuses while `hid-labd` owns its D-Bus name.
 
-Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written.
+Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written. The user's own `hid-labd.service` normally runs: never stop or restart it; run a test instance on a private bus with `dbus-run-session`.
 
 Dependencies: `libc`, `serde`, `serde_json`, `thiserror`, `udev` (needs `systemd-devel` to build), `zbus` 5.13.2 (blocking API; 6.0.0 dropped it), `toml`. Explain why before adding any other crate, and verify its current version with `cargo info`.
 
