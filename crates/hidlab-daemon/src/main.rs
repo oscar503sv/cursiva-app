@@ -82,7 +82,8 @@ struct Daemon {
     engine: Arc<Mutex<Engine>>,
     conn: Connection,
     monitor: HotplugMonitor,
-    wake: UnixStream,
+    /// `None` once the logind thread is gone (or never started).
+    wake: Option<UnixStream>,
     sleep_rx: Receiver<SleepEvent>,
     sched: Scheduler,
     /// The mouse opened for listening only, with the 0x2121 feature index.
@@ -126,7 +127,23 @@ impl Daemon {
 
     fn on_wake(&mut self) {
         let mut buf = [0u8; 16];
-        while matches!(self.wake.read(&mut buf), Ok(n) if n > 0) {}
+        if let Some(w) = &mut self.wake {
+            loop {
+                match w.read(&mut buf) {
+                    Ok(0) => {
+                        // The thread ended; stop polling a socket at EOF.
+                        warn!(
+                            "the logind watcher stopped; resume is handled when the mouse reconnects"
+                        );
+                        self.wake = None;
+                        break;
+                    }
+                    Ok(_) => {}
+                    Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(_) => break,
+                }
+            }
+        }
         while let Ok(ev) = self.sleep_rx.try_recv() {
             match ev {
                 SleepEvent::Suspending => info!("system going to sleep"),
@@ -245,7 +262,8 @@ impl Daemon {
             });
             let mut fds = vec![
                 readable(self.monitor.as_raw_fd()),
-                readable(self.wake.as_raw_fd()),
+                // poll skips negative fds.
+                readable(self.wake.as_ref().map_or(-1, |w| w.as_raw_fd())),
             ];
             if let Some((h, _)) = &self.listener {
                 fds.push(readable(h.as_raw_fd()));
@@ -262,6 +280,9 @@ impl Daemon {
             }
             if fds[1].revents != 0 {
                 self.on_wake();
+            }
+            if fds[0].revents & (libc::POLLERR | libc::POLLHUP | libc::POLLNVAL) != 0 {
+                return Err("the udev monitor socket failed".into());
             }
             if fds[0].revents != 0 {
                 while let Some(ev) = self.monitor.try_next() {
@@ -317,9 +338,13 @@ fn run() -> Result<(), String> {
     wake.set_nonblocking(true)
         .map_err(|e| format!("cannot set the wake socket non-blocking: {e}"))?;
     let (sleep_tx, sleep_rx) = mpsc::channel();
-    if let Err(e) = sleep::spawn(sleep_tx, wake_tx) {
-        warn!("{e}\nResume is still handled when the mouse reconnects after waking.");
-    }
+    let wake = match sleep::spawn(sleep_tx, wake_tx) {
+        Ok(()) => Some(wake),
+        Err(e) => {
+            warn!("{e}\nResume is still handled when the mouse reconnects after waking.");
+            None
+        }
+    };
 
     let mut daemon = Daemon {
         engine: Arc::clone(&engine),
