@@ -1,0 +1,13 @@
+# hid-lab configuration. See docs/config-format.md.
+# Rewritten by hid-labd on `hid-lab set`; comments are not kept.
+
+format_version = 1
+
+[device.mx-master-3s]
+dpi = 1000
+
+[device.mx-master-3s.smartshift]
+threshold = 10
+
+[device.mx-master-3s.thumbwheel]
+invert = false

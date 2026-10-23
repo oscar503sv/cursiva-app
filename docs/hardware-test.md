@@ -515,3 +515,17 @@ disable it: `systemctl --user disable --now hid-labd.service`.
 
 The files in `~/hidlab-m4b/` and a short note per test about what you saw
 and felt.
+
+### Results, run 1 (2026-10-22)
+
+Run by the user. Captures are in `docs/protocol/evidence/m4b/`; details in
+`docs/protocol/README.md`, observation O-7.
+
+| Test | Result | Notes |
+|---|---|---|
+| H4B-01 | Pass | active (running), user's own user, status equal to `00-before.json` |
+| H4B-02 | Pass | Each setting felt as expected; DPI 1625 rejected and not saved |
+| H4B-03 | Pass | DPI 800 felt slower; the broken file kept the last valid config and `set` refused |
+| H4B-04 | Pass | `applied 4 setting(s) ... verified` at restart |
+| H4B-05 | Pass (second run) | First run without switching the mouse off; repeat: DPI and inversion `DIFFERS`, then all `ok` after `reapply` in 157 ms, felt again |
+| H4B-06 | Pass | `lab write` refused, `solaar` detected, second instance exited |

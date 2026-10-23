@@ -1,0 +1,105 @@
+{
+  "schema": "hid-lab.daemon-status/1",
+  "daemon_version": "0.1.0",
+  "config_file": "~/.config/hid-lab/config.toml",
+  "config_error": null,
+  "state_error": null,
+  "device": {
+    "profile": "mx-master-3s",
+    "name": "MX Master 3S",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0003",
+    "bus": "bluetooth",
+    "vendor_id": 1133,
+    "product_id": 45108,
+    "access": "ok"
+  },
+  "desired": [
+    {
+      "setting": "dpi",
+      "value": 1600
+    },
+    {
+      "setting": "smartshift-mode",
+      "value": 1
+    },
+    {
+      "setting": "smartshift-threshold",
+      "value": 3
+    },
+    {
+      "setting": "thumbwheel-invert",
+      "value": true
+    }
+  ],
+  "current": [
+    {
+      "setting": "dpi",
+      "value": {
+        "setting": "dpi",
+        "value": 1600
+      },
+      "error": null
+    },
+    {
+      "setting": "smartshift-mode",
+      "value": {
+        "setting": "smartshift-mode",
+        "value": 1
+      },
+      "error": null
+    },
+    {
+      "setting": "smartshift-threshold",
+      "value": {
+        "setting": "smartshift-threshold",
+        "value": 3
+      },
+      "error": null
+    },
+    {
+      "setting": "thumbwheel-invert",
+      "value": {
+        "setting": "thumbwheel-invert",
+        "value": true
+      },
+      "error": null
+    }
+  ],
+  "last_apply": {
+    "items": [
+      {
+        "setting": "smartshift-mode",
+        "target": {
+          "setting": "smartshift-mode",
+          "value": 1
+        },
+        "before": {
+          "setting": "smartshift-mode",
+          "value": 2
+        },
+        "result": "written",
+        "checks": [
+          {
+            "field": "mode",
+            "expected": "1",
+            "actual": "1",
+            "ok": true
+          },
+          {
+            "field": "threshold (unchanged)",
+            "expected": "3",
+            "actual": "3",
+            "ok": true
+          }
+        ],
+        "error": null
+      }
+    ],
+    "ok": true,
+    "elapsed_ms": 51,
+    "ignored_reports": 1
+  },
+  "last_apply_unix": 1792715601,
+  "conflicts": []
+}

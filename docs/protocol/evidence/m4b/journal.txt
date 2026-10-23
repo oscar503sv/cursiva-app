@@ -1,0 +1,68 @@
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+applied 0 setting(s) in 0 ms: verified
+applied 1 setting(s) in 75 ms: verified
+saved dpi = 1600 to ~/.config/hid-lab/config.toml
+applied 1 setting(s) in 45 ms: verified
+saved smartshift-threshold = 3 to ~/.config/hid-lab/config.toml
+applied 1 setting(s) in 44 ms: verified
+saved thumbwheel-invert = on to ~/.config/hid-lab/config.toml
+applied 1 setting(s) in 51 ms: verified
+saved smartshift-mode = free-spin to ~/.local/state/hid-lab/daemon/state.toml
+dpi = 1625: Rejected: 1625 DPI is not in the list the mouse reports; run `hid-lab lab read` to see it
+applied 1 setting(s) in 30 ms: with problems
+applied 4 setting(s) in 126 ms: verified
+~/.config/hid-lab/config.toml is not valid TOML or has an unknown key:
+    TOML parse error at line 14, column 1
+       |
+    14 | bogus = 1
+       | ^^^^^
+    unknown field `bogus`, expected `invert`
+    Keeping the last valid configuration.
+applied 4 setting(s) in 73 ms: verified
+~/.config/hid-lab/config.toml is valid again
+applied 4 setting(s) in 77 ms: verified
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+applied 4 setting(s) in 74 ms: verified
+applied 4 setting(s) in 82 ms: verified
+solaar (pid 12469) is running and may also configure the mouse; settings can fight. To stop it: quit Solaar from its tray icon, or run `pkill solaar`
+applied 1 setting(s) in 81 ms: verified
+saved dpi = 1000 to ~/.config/hid-lab/config.toml
+solaar (pid 12469) is running and may also configure the mouse; settings can fight. To stop it: quit Solaar from its tray icon, or run `pkill solaar`
+applied 1 setting(s) in 51 ms: verified
+saved smartshift-threshold = 10 to ~/.config/hid-lab/config.toml
+solaar (pid 12469) is running and may also configure the mouse; settings can fight. To stop it: quit Solaar from its tray icon, or run `pkill solaar`
+applied 1 setting(s) in 44 ms: verified
+saved thumbwheel-invert = off to ~/.config/hid-lab/config.toml
+solaar (pid 12469) is running and may also configure the mouse; settings can fight. To stop it: quit Solaar from its tray icon, or run `pkill solaar`
+applied 1 setting(s) in 53 ms: verified
+saved smartshift-mode = ratchet to ~/.local/state/hid-lab/daemon/state.toml
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+applied 4 setting(s) in 82 ms: verified
+applied 1 setting(s) in 90 ms: verified
+saved dpi = 1600 to ~/.config/hid-lab/config.toml
+applied 1 setting(s) in 45 ms: verified
+saved thumbwheel-invert = on to ~/.config/hid-lab/config.toml
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0004, access ok)
+run `hid-lab reapply` to apply the configuration after a reconnect
+applied 4 setting(s) in 157 ms: verified
+applied 1 setting(s) in 74 ms: verified
+saved dpi = 1000 to ~/.config/hid-lab/config.toml
+applied 1 setting(s) in 44 ms: verified
+saved thumbwheel-invert = off to ~/.config/hid-lab/config.toml

@@ -23,7 +23,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 0 Diagnosis | Done. Cause: missing `uaccess` udev rule |
 | 1 + 2 Discovery, HID++ core, feature enumeration | Done, framing CONFIRMED |
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
-| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done (H4, O-6). 4b implemented; wait for the user's H4B results before 4c. SmartShift-mode design for 4c approved (requirements, Milestone 4) |
+| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done (H4, O-6). 4b done (H4B, O-7). 4c in progress. SmartShift-mode design for 4c approved (requirements, Milestone 4) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
 | 5–8 | Not started; do not start without approval |
 
@@ -39,7 +39,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 - Main-wheel scroll direction is GNOME's natural-scrolling setting, not a device write.
 - Write functions CONFIRMED by H4: 0x2201 setSensorDpi, 0x2110 setRatchetControlMode (mode and threshold; `00` in the other byte means no change), 0x2150 setThumbwheelReporting.
 - A 0x2110 mode write, like the mode button, produces a 0x2121 f1 notification. Automatic switching by the threshold does not.
-- Switching the mouse off resets DPI, threshold and thumb-wheel inversion; the SmartShift mode survives. LIKELY only: one observation, P-033.
+- Switching the mouse off resets DPI and thumb-wheel inversion (CONFIRMED, P-033). The threshold reset and the SmartShift mode surviving are LIKELY (one observation each).
 
 ## Workspace
 

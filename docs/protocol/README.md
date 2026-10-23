@@ -95,7 +95,7 @@ Source: R-1, R-2. Evidence: all requests sent with `0xFF` were answered with
 |---|---|---|
 | The device echoes the request's non-zero `sw_id` (`0x0B`) | **CONFIRMED** | Every response in O-1 carries `0x?B` in byte 3; O-2 and O-3 matched on it |
 | Device notifications carry `sw_id = 0` | **CONFIRMED** | 7 notifications with `sw_id 0` in O-5 (`evidence/m3/04` and `05`); see P-029 |
-| The daemon's `sw_id` `0x0C` is echoed too | LIKELY | Claude Code's read-only smoke run of `hid-labd` on 2026-10-22 (empty config): `GetStatus` read all four settings, which needs matching answers; no file kept. The user's H4B tests will confirm |
+| The daemon's `sw_id` `0x0C` is echoed too | **CONFIRMED** | O-7: every daemon apply in `evidence/m4b/journal.txt` verified by read-back, and every `status` read the four settings |
 
 ### P-005 — The device may answer in a different report size than the request
 
@@ -623,8 +623,9 @@ device name (`0005:046D:B034.NNNN`) shows whether the mouse reconnected.
 
 | Fact | Status | Evidence |
 |---|---|---|
-| Switching the mouse off resets DPI, threshold and thumb inversion to the defaults | LIKELY | One power cycle (`06c`); the values equal the ones in `00-before.json` |
-| The SmartShift mode survives switching the mouse off | LIKELY | One power cycle and one suspend (`06c`, `06e`) |
+| Switching the mouse off resets DPI and thumb inversion to the defaults | **CONFIRMED** | Two power cycles: `06c` (O-6), and H4B-05 (O-7), where the daemon's re-apply read DPI 1000 and inversion off before writing 1600 and on (`evidence/m4b/05-status.json`, `last_apply.items[].before`) |
+| Switching the mouse off resets the threshold | LIKELY | One power cycle (`06c`, 40 to 10); in H4B-05 the threshold was already at its default |
+| The SmartShift mode survives switching the mouse off | LIKELY | One power cycle and one suspend with free spin (`06c`, `06e`); in H4B-05 the mode was the default ratchet, which does not tell |
 | Whether DPI, threshold and inversion survive a channel switch with a reconnect | UNKNOWN | `06b` had no reconnect, so it does not answer this. In H4-01 the same action did reconnect (`01-hotplug.json`) |
 | Whether they survive a suspend | UNKNOWN | They were already reset by `06c` before the suspend |
 | The mouse does not disconnect after 15 min idle | LIKELY | No `remove` in 900 s (`01b`), same HID device before and after the idle wait (`06d`) |
@@ -639,3 +640,28 @@ one `remove` and then one `add` for `0005:046D:B034`, 13 to 20 s apart. Each
 stayed `hidraw2`, while the HID device suffix grew by one on every reconnect
 (`.0004` to `.0007`). The removed device's IDs were parsed from the event's
 path.
+
+### Observation O-7 (2026-10-22) — user's hardware tests H4B
+
+The user ran section M4b of `docs/hardware-test.md` with `hid-labd` installed
+as a systemd user unit. Captures are in `evidence/m4b/`: status JSON files,
+the daemon journal, and the final `config.toml` and `state.toml`. They hold
+no home path and no Bluetooth address; the two `lab read` files mask the
+unit ID (`03 ** ** ** **`). The user ran H4B-05 twice: the first time
+without switching the mouse off; the repeat set only DPI 1600 and inversion
+on, with threshold and mode at their defaults. `05-status.json` is from the
+repeat. The daemon was disabled and enabled again between runs, which the
+journal shows as stop/start pairs.
+
+| Check | Result |
+|---|---|
+| Runs as the user, no root (H4B-01) | user's report |
+| `set` writes and verifies each of the four settings (H4B-02) | 4 × `applied 1 setting(s) ... verified` in the journal; `02-status.json` all equal to the wanted values |
+| DPI 1625 rejected before sending, not saved (H4B-02) | journal `Rejected: 1625 DPI is not in the list` |
+| Broken config: last valid kept, `set` refuses (H4B-03) | journal parse error; `03-status-broken.txt` shows DPI 800 in use |
+| Applies at start (H4B-04) | journal `applied 4 setting(s) in 74 ms: verified` after the restart |
+| Reconnect noticed (H4B-05) | journal `mouse disconnected`, then `connected` with `.0003` to `.0004` |
+| Re-apply after the reconnect (H4B-05) | `05-status.json`: DPI and inversion written, mode and threshold unchanged, verified in 157 ms |
+| `lab write` refuses, Solaar detected, second instance refused (H4B-06) | user's report; journal shows the `solaar` warning |
+| Mouse back to the start | `06-after.json` equals `00-before.json`: DPI 1000, SmartShift `02 0a 0a`, thumb wheel `00 00` |
+

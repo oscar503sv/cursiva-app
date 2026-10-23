@@ -1,0 +1,60 @@
+{
+  "schema": "hid-lab.daemon-status/1",
+  "daemon_version": "0.1.0",
+  "config_file": "~/.config/hid-lab/config.toml",
+  "config_error": null,
+  "state_error": null,
+  "device": {
+    "profile": "mx-master-3s",
+    "name": "MX Master 3S",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0003",
+    "bus": "bluetooth",
+    "vendor_id": 1133,
+    "product_id": 45108,
+    "access": "ok"
+  },
+  "desired": [],
+  "current": [
+    {
+      "setting": "dpi",
+      "value": {
+        "setting": "dpi",
+        "value": 1000
+      },
+      "error": null
+    },
+    {
+      "setting": "smartshift-mode",
+      "value": {
+        "setting": "smartshift-mode",
+        "value": 2
+      },
+      "error": null
+    },
+    {
+      "setting": "smartshift-threshold",
+      "value": {
+        "setting": "smartshift-threshold",
+        "value": 10
+      },
+      "error": null
+    },
+    {
+      "setting": "thumbwheel-invert",
+      "value": {
+        "setting": "thumbwheel-invert",
+        "value": false
+      },
+      "error": null
+    }
+  ],
+  "last_apply": {
+    "items": [],
+    "ok": true,
+    "elapsed_ms": 0,
+    "ignored_reports": 0
+  },
+  "last_apply_unix": 1792715472,
+  "conflicts": []
+}

@@ -1,0 +1,6 @@
+# hid-lab daemon state. Managed by hid-labd; do not edit.
+
+format_version = 1
+
+[device.mx-master-3s]
+smartshift_mode = "ratchet"

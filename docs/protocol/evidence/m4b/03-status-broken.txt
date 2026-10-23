@@ -1,0 +1,20 @@
+Daemon:  hid-labd 0.1.0
+Config:  ~/.config/hid-lab/config.toml
+Mouse:   MX Master 3S at /dev/hidraw2 (bluetooth 046D:B034, access ok)
+
+  setting                wanted     current   
+  dpi                    800        800        ok
+  smartshift-mode        free-spin  free-spin  ok
+  smartshift-threshold   3          3          ok
+  thumbwheel-invert      on         on         ok
+
+Last apply: 28 s ago, 4 setting(s), verified in 73 ms
+
+WARNING: config file error; the last valid configuration is in use:
+~/.config/hid-lab/config.toml is not valid TOML or has an unknown key:
+TOML parse error at line 14, column 1
+   |
+14 | bogus = 1
+   | ^^^^^
+unknown field `bogus`, expected `invert`
+
