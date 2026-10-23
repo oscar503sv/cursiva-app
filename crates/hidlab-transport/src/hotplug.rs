@@ -105,6 +105,12 @@ impl HotplugMonitor {
         Ok(Self { socket })
     }
 
+    /// The next event already received, without waiting. Use with
+    /// [`AsRawFd`] in a caller's own `poll`.
+    pub fn try_next(&mut self) -> Option<HotplugEvent> {
+        self.socket.iter().next().map(|ev| convert(&ev))
+    }
+
     /// Waits up to `timeout` for the next hidraw event.
     pub fn next_event(
         &mut self,
@@ -138,6 +144,12 @@ impl HotplugMonitor {
                 return Ok(None);
             }
         }
+    }
+}
+
+impl AsRawFd for HotplugMonitor {
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
+        self.socket.as_raw_fd()
     }
 }
 

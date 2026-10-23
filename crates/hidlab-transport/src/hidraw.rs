@@ -61,6 +61,12 @@ impl Hidraw {
     }
 }
 
+impl AsRawFd for Hidraw {
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
+        self.file.as_raw_fd()
+    }
+}
+
 impl RawChannel for Hidraw {
     fn send(&mut self, report: &[u8]) -> Result<(), TransportError> {
         loop {
