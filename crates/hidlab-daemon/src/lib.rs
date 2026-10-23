@@ -12,5 +12,7 @@ pub mod conflicts;
 pub mod engine;
 pub mod log;
 pub mod paths;
+pub mod schedule;
 pub mod service;
+pub mod sleep;
 pub mod state;
