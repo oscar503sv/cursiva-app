@@ -360,6 +360,7 @@ dependencies = [
  "hidlab-features",
  "hidlab-hidpp",
  "hidlab-transport",
+ "libc",
  "serde",
  "serde_json",
  "thiserror",

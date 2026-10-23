@@ -9,8 +9,8 @@
 //! | `Set` | setting name, value | [`SetReply`] JSON |
 //! | `Reapply` | — | [`ReapplyReply`] JSON |
 //!
-//! Signals: `DeviceChanged` ([`DeviceEvent`] JSON) and `Applied`
-//! ([`ApplyReport`] JSON).
+//! Signals: `DeviceChanged` ([`DeviceEvent`] JSON), `Applied`
+//! ([`ApplyRecord`] JSON) and `ModeChanged` ([`ModeEvent`] JSON).
 
 use hidlab_features::settings::{SettingKind, SettingValue};
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ pub const INTERFACE: &str = "dev.ozkkar.Cursiva.Daemon1";
 /// systemd user unit, for messages.
 pub const UNIT: &str = "hid-labd.service";
 
-pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/1";
+pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/2";
 pub const SET_SCHEMA: &str = "hid-lab.daemon-set/1";
 pub const REAPPLY_SCHEMA: &str = "hid-lab.daemon-reapply/1";
 pub const DEVICE_EVENT_SCHEMA: &str = "hid-lab.daemon-device/1";
@@ -50,6 +50,72 @@ pub struct CurrentValue {
     pub error: Option<String>,
 }
 
+/// What made the daemon apply.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Trigger {
+    /// The daemon started with the mouse connected.
+    Start,
+    /// The mouse (re)connected: udev `add`.
+    Connect,
+    /// The system woke up (logind `PrepareForSleep(false)`).
+    Resume,
+    /// `hid-lab reapply`.
+    Reapply,
+    /// `hid-lab set`.
+    Set,
+}
+
+/// The second verification, 1 s after the first (requirements, Milestone 4).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SecondCheck {
+    pub ok: bool,
+    /// From the event to the end of this check, including any re-apply.
+    pub since_event_ms: u64,
+    /// Settings found changed after the first verification, with the value read.
+    pub overwritten: Vec<CurrentValue>,
+    /// The re-apply sent because of `overwritten`.
+    pub reapplied: Option<ApplyReport>,
+}
+
+/// One application of settings and its checks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyRecord {
+    pub trigger: Trigger,
+    pub at_unix: u64,
+    pub report: ApplyReport,
+    /// From the event (udev `add`, wake-up, start of the call) to the end of
+    /// the first verification.
+    pub since_event_ms: u64,
+    /// For `connect`, `resume` and `start` only.
+    pub second_check: Option<SecondCheck>,
+}
+
+impl ApplyRecord {
+    /// True when the first verification passed and the second one, if it
+    /// ran, found nothing overwritten (or fixed it).
+    pub fn ok(&self) -> bool {
+        self.report.ok && self.second_check.as_ref().is_none_or(|c| c.ok)
+    }
+
+    /// Time from the event to the last check.
+    pub fn total_ms(&self) -> u64 {
+        self.second_check
+            .as_ref()
+            .map_or(self.since_event_ms, |c| c.since_event_ms)
+    }
+}
+
+/// The user changed the SmartShift mode on the mouse and the daemon
+/// remembered it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ModeEvent {
+    pub schema: String,
+    pub mode: SettingValue,
+}
+
+pub const MODE_EVENT_SCHEMA: &str = "hid-lab.daemon-mode/1";
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Status {
     pub schema: String,
@@ -63,8 +129,7 @@ pub struct Status {
     pub desired: Vec<SettingValue>,
     /// Read from the mouse for this status call; empty without a device.
     pub current: Vec<CurrentValue>,
-    pub last_apply: Option<ApplyReport>,
-    pub last_apply_unix: Option<u64>,
+    pub last_apply: Option<ApplyRecord>,
     pub conflicts: Vec<Conflict>,
 }
 

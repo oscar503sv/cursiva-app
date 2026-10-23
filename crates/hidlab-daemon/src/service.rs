@@ -39,12 +39,14 @@ impl Service {
         value: String,
         #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
     ) -> fdo::Result<String> {
-        let reply = self
-            .lock()?
-            .set(&setting, &value)
-            .map_err(fdo::Error::Failed)?;
-        if let Some(report) = &reply.applied {
-            Self::applied(&emitter, &json(report)?).await?;
+        let (reply, record) = {
+            let mut e = self.lock()?;
+            let reply = e.set(&setting, &value).map_err(fdo::Error::Failed)?;
+            let record = reply.applied.as_ref().and(e.last_apply().cloned());
+            (reply, record)
+        };
+        if let Some(rec) = &record {
+            Self::applied(&emitter, &json(rec)?).await?;
         }
         json(&reply)
     }
@@ -55,8 +57,14 @@ impl Service {
         &self,
         #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
     ) -> fdo::Result<String> {
-        let reply = self.lock()?.reapply().map_err(fdo::Error::Failed)?;
-        Self::applied(&emitter, &json(&reply.report)?).await?;
+        let (reply, record) = {
+            let mut e = self.lock()?;
+            let reply = e.reapply().map_err(fdo::Error::Failed)?;
+            (reply, e.last_apply().cloned())
+        };
+        if let Some(rec) = &record {
+            Self::applied(&emitter, &json(rec)?).await?;
+        }
         json(&reply)
     }
 
@@ -64,7 +72,13 @@ impl Service {
     #[zbus(signal)]
     pub async fn device_changed(emitter: &SignalEmitter<'_>, event: &str) -> zbus::Result<()>;
 
-    /// Settings were applied (an apply report).
+    /// Settings were applied (`ApplyRecord`). For a reconnect it is sent
+    /// again with the second check filled in.
     #[zbus(signal)]
-    pub async fn applied(emitter: &SignalEmitter<'_>, report: &str) -> zbus::Result<()>;
+    pub async fn applied(emitter: &SignalEmitter<'_>, record: &str) -> zbus::Result<()>;
+
+    /// The SmartShift mode was changed on the mouse and remembered
+    /// (`hid-lab.daemon-mode/1`).
+    #[zbus(signal)]
+    pub async fn mode_changed(emitter: &SignalEmitter<'_>, event: &str) -> zbus::Result<()>;
 }

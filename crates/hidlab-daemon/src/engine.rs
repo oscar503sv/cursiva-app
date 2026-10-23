@@ -1,17 +1,19 @@
 //! The daemon's state and operations, independent of D-Bus.
 
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use hidlab_devices::{DeviceProfile, PROFILES, profile_for};
 use hidlab_features::settings::{SettingKind, SettingValue};
 use hidlab_features::{FeatureMap, Reader};
-use hidlab_hidpp::{Session, SessionConfig};
+use hidlab_features::{hires_wheel, smartshift};
+use hidlab_hidpp::{Session, SessionConfig, get_feature, get_protocol_version};
 use hidlab_transport::{Access, Hidraw, HidrawDevice, discover};
 
 use crate::api::{
-    CurrentValue, DEVICE_EVENT_SCHEMA, DeviceEvent, DeviceInfo, REAPPLY_SCHEMA, ReapplyReply,
-    SET_SCHEMA, STATUS_SCHEMA, SetReply, Status,
+    ApplyRecord, CurrentValue, DEVICE_EVENT_SCHEMA, DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA,
+    ModeEvent, REAPPLY_SCHEMA, ReapplyReply, SET_SCHEMA, STATUS_SCHEMA, SecondCheck, SetReply,
+    Status, Trigger,
 };
 use crate::apply::{self, ApplyReport, ItemResult};
 use crate::config::{Config, SmartShiftMode};
@@ -24,6 +26,10 @@ use crate::{debug, info, warn};
 /// `hid-lab lab watch` can tell them apart. Any non-zero value is valid.
 pub const DAEMON_SW_ID: u8 = 0x0C;
 const REQUEST_TIMEOUT: Duration = Duration::from_millis(1000);
+/// Per-try timeout while waiting for a reconnected mouse to answer.
+const PROBE_TIMEOUT: Duration = Duration::from_millis(250);
+/// Ping byte for the readiness probe (any value; the device echoes it).
+const PROBE_PING: u8 = 0xC5;
 
 /// The connected device the daemon manages.
 #[derive(Debug, Clone)]
@@ -40,7 +46,21 @@ pub struct Engine {
     state: State,
     state_error: Option<String>,
     present: Option<Present>,
-    last_apply: Option<(ApplyReport, u64)>,
+    /// The last apply, and the event time it was measured from.
+    last_apply: Option<(ApplyRecord, Instant)>,
+}
+
+/// Raw bytes, at debug level only (requirements §17).
+fn log_transcript(session: &Session<Hidraw>) {
+    if crate::log::enabled(crate::log::Level::Debug) {
+        for e in &session.transcript().entries {
+            debug!("{:>7} us {:?} {:?} {}", e.t_us, e.dir, e.disposition, e.hex);
+        }
+    }
+}
+
+fn ms_since(t: Instant) -> u64 {
+    u64::try_from(t.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
 
 fn now_unix() -> u64 {
@@ -213,21 +233,20 @@ impl Engine {
         let map = FeatureMap::resolve(&mut session, &apply::features_for(p.profile))
             .map_err(|e| e.to_string())?;
         let out = f(&mut Reader::new(&mut session, map), p.profile);
-        if crate::log::enabled(crate::log::Level::Debug) {
-            for e in &session.transcript().entries {
-                debug!("{:?} {:?} {}", e.dir, e.disposition, e.hex);
-            }
-        }
+        log_transcript(&session);
         Ok(out)
     }
 
     fn warn_conflicts() {
-        for c in conflicts::scan() {
+        let t = Instant::now();
+        let found = conflicts::scan();
+        debug!("conflict scan took {} ms", ms_since(t));
+        for c in found {
             warn!("{}", c.advice());
         }
     }
 
-    fn record(&mut self, report: &ApplyReport) {
+    fn record(&mut self, trigger: Trigger, event_at: Instant, report: ApplyReport) -> ApplyRecord {
         for item in &report.items {
             match item.result {
                 ItemResult::Unchanged | ItemResult::Written => {}
@@ -243,21 +262,40 @@ impl Engine {
                 ),
             }
         }
+        let since_event_ms = ms_since(event_at);
         info!(
-            "applied {} setting(s) in {} ms: {}",
+            "{trigger:?}: applied {} setting(s) in {} ms, {} ms after the event: {}",
             report.items.len(),
             report.elapsed_ms,
+            since_event_ms,
             if report.ok {
                 "verified"
             } else {
                 "with problems"
             }
         );
-        self.last_apply = Some((report.clone(), now_unix()));
+        let rec = ApplyRecord {
+            trigger,
+            at_unix: now_unix(),
+            report,
+            since_event_ms,
+            second_check: None,
+        };
+        self.last_apply = Some((rec.clone(), event_at));
+        rec
     }
 
-    /// Applies the whole configuration to the connected device.
-    pub fn apply_all(&mut self) -> Result<ApplyReport, String> {
+    pub fn last_apply(&self) -> Option<&ApplyRecord> {
+        self.last_apply.as_ref().map(|(r, _)| r)
+    }
+
+    /// Applies the whole configuration to the connected device. `event_at`
+    /// is when the event that caused it happened, for the measured time.
+    pub fn apply_all(
+        &mut self,
+        trigger: Trigger,
+        event_at: Instant,
+    ) -> Result<ApplyRecord, String> {
         let profile = self
             .present
             .as_ref()
@@ -266,18 +304,140 @@ impl Engine {
         let desired = self.desired(profile);
         Self::warn_conflicts();
         let report = self.with_reader(|r, p| apply::apply(r, p, &desired))?;
-        self.record(&report);
-        Ok(report)
+        Ok(self.record(trigger, event_at, report))
+    }
+
+    /// One short ping. `Ok` once a reconnected mouse answers HID++.
+    pub fn probe_ready(&self) -> Result<(), String> {
+        let p = self.present.as_ref().ok_or("the mouse is not connected")?;
+        let channel = Hidraw::open(&p.device.node).map_err(|e| e.to_string())?;
+        let config = SessionConfig {
+            sw_id: DAEMON_SW_ID,
+            ..SessionConfig::for_device(&p.device, None, PROBE_TIMEOUT)
+        };
+        let mut session = Session::new(channel, config);
+        let result = get_protocol_version(&mut session, PROBE_PING);
+        log_transcript(&session);
+        result.map(|_| ()).map_err(|e| e.to_string())
+    }
+
+    /// Where the mouse placed 0x2121, whose ratchet event the daemon follows.
+    pub fn ratchet_event_index(&self) -> Result<Option<u8>, String> {
+        let p = self.present.as_ref().ok_or("the mouse is not connected")?;
+        let channel = Hidraw::open(&p.device.node).map_err(|e| e.to_string())?;
+        let config = SessionConfig {
+            sw_id: DAEMON_SW_ID,
+            ..SessionConfig::for_device(&p.device, None, REQUEST_TIMEOUT)
+        };
+        let mut session = Session::new(channel, config);
+        let result = get_feature(&mut session, hires_wheel::FEATURE);
+        log_transcript(&session);
+        result
+            .map(|f| f.map(|f| f.index))
+            .map_err(|e| e.to_string())
+    }
+
+    /// The second verification: reads every wanted setting again and
+    /// re-applies once if something overwrote it. Updates the last record
+    /// if it is the apply measured from `event_at`.
+    pub fn second_check(&mut self, event_at: Instant) -> Result<ApplyRecord, String> {
+        let profile = self
+            .present
+            .as_ref()
+            .ok_or("the mouse is not connected")?
+            .profile;
+        let desired = self.desired(profile);
+        let current = self.with_reader(apply::read_current)?;
+        let overwritten: Vec<CurrentValue> = desired
+            .iter()
+            .filter_map(|want| {
+                let i = profile.settings.iter().position(|&k| k == want.kind())?;
+                let got = &current[i];
+                (got.as_ref().ok() != Some(want)).then(|| CurrentValue {
+                    setting: want.kind(),
+                    value: got.as_ref().ok().copied(),
+                    error: got.as_ref().err().cloned(),
+                })
+            })
+            .collect();
+        let reapplied = if overwritten.is_empty() {
+            None
+        } else {
+            for o in &overwritten {
+                warn!(
+                    "{} changed after it was applied and verified (read {}); \
+                     re-applying once. Something else is configuring the mouse: \
+                     check `hid-lab status` for other configurators",
+                    o.setting.name(),
+                    o.value
+                        .map(|v| v.display())
+                        .or_else(|| o.error.clone())
+                        .unwrap_or_default()
+                );
+            }
+            Some(self.with_reader(|r, p| apply::apply(r, p, &desired))?)
+        };
+        let check = SecondCheck {
+            ok: reapplied.as_ref().is_none_or(|r| r.ok),
+            since_event_ms: ms_since(event_at),
+            overwritten,
+            reapplied,
+        };
+        info!(
+            "second check {} ms after the event: {}",
+            check.since_event_ms,
+            match (&check.reapplied, check.ok) {
+                (None, _) => "nothing overwritten",
+                (Some(_), true) => "overwritten, re-applied and verified",
+                (Some(_), false) => "overwritten, re-apply failed",
+            }
+        );
+        match &mut self.last_apply {
+            Some((rec, at)) if *at == event_at => {
+                rec.second_check = Some(check);
+                Ok(rec.clone())
+            }
+            _ => Err("a newer apply replaced this one".into()),
+        }
+    }
+
+    /// The mouse sent the ratchet event (mode button, or a mode write):
+    /// reads the SmartShift mode and remembers it if it changed.
+    pub fn on_ratchet_event(&mut self) -> Result<Option<ModeEvent>, String> {
+        let profile = self
+            .present
+            .as_ref()
+            .ok_or("the mouse is not connected")?
+            .profile;
+        let read = self.with_reader(|r, _| smartshift::read(r))?;
+        let ss = read.map_err(|e| e.to_string())?;
+        let mode = SmartShiftMode::from_code(ss.mode_code)
+            .ok_or_else(|| format!("unknown SmartShift mode code {}", ss.mode_code))?;
+        if self.state.mode(profile) == Some(mode) {
+            return Ok(None);
+        }
+        self.state.set_mode(profile, mode);
+        self.state.save(&self.state_path)?;
+        self.state_error = None;
+        let value = SettingValue::SmartshiftMode(mode.code());
+        info!(
+            "SmartShift mode changed on the mouse to {}; remembered",
+            value.display()
+        );
+        Ok(Some(ModeEvent {
+            schema: MODE_EVENT_SCHEMA.into(),
+            mode: value,
+        }))
     }
 
     /// `Reapply`: reloads the config file, then applies it.
     pub fn reapply(&mut self) -> Result<ReapplyReply, String> {
         self.reload_config();
-        let report = self.apply_all()?;
+        let rec = self.apply_all(Trigger::Reapply, Instant::now())?;
         Ok(ReapplyReply {
             schema: REAPPLY_SCHEMA.into(),
             config_error: self.config_error.clone(),
-            report,
+            report: rec.report,
         })
     }
 
@@ -311,10 +471,10 @@ impl Engine {
         }
 
         let applied = if self.present.is_some() {
+            let started = Instant::now();
             Self::warn_conflicts();
             let report = self.with_reader(|r, p| apply::apply(r, p, &[target]))?;
-            self.record(&report);
-            Some(report)
+            Some(self.record(Trigger::Set, started, report).report)
         } else {
             None
         };
@@ -405,8 +565,7 @@ impl Engine {
             device: self.present.as_ref().map(info_for),
             desired,
             current,
-            last_apply: self.last_apply.as_ref().map(|(r, _)| r.clone()),
-            last_apply_unix: self.last_apply.as_ref().map(|(_, t)| *t),
+            last_apply: self.last_apply().cloned(),
             conflicts: conflicts::scan(),
         }
     }

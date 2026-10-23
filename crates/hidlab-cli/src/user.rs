@@ -124,15 +124,45 @@ pub fn status(json: bool) -> Result<(), String> {
     if let Some(e) = s.current.iter().find_map(|c| c.error.as_deref()) {
         println!("\nCould not read the mouse: {e}");
     }
-    match (&s.last_apply, s.last_apply_unix) {
-        (Some(r), Some(t)) => println!(
-            "\nLast apply: {}, {} setting(s), {} in {} ms",
-            ago(t),
-            r.items.len(),
-            if r.ok { "verified" } else { "with problems" },
-            r.elapsed_ms
-        ),
-        _ => println!("\nLast apply: none since the daemon started"),
+    match &s.last_apply {
+        Some(r) => {
+            println!(
+                "\nLast apply: {:?}, {}: {} setting(s) {} {} ms after the event",
+                r.trigger,
+                ago(r.at_unix),
+                r.report.items.len(),
+                if r.report.ok {
+                    "verified"
+                } else {
+                    "with problems"
+                },
+                r.since_event_ms
+            );
+            if let Some(c) = &r.second_check {
+                let what = match (&c.reapplied, c.ok) {
+                    (None, _) => "nothing overwritten".to_owned(),
+                    (Some(_), ok) => format!(
+                        "{} overwritten ({}), re-applied: {}",
+                        c.overwritten.len(),
+                        c.overwritten
+                            .iter()
+                            .map(|o| o.setting.name())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                        if ok { "verified" } else { "FAILED" }
+                    ),
+                };
+                println!(
+                    "            second check {} ms after the event: {what}",
+                    c.since_event_ms
+                );
+            }
+            println!(
+                "            {} ms in total; the target is 2000 ms",
+                r.total_ms()
+            );
+        }
+        None => println!("\nLast apply: none since the daemon started"),
     }
     if let Some(e) = &s.config_error {
         println!("\nWARNING: config file error; the last valid configuration is in use:\n{e}");
