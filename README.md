@@ -21,17 +21,19 @@ Tested on Fedora 44, GNOME on Wayland, MX Master 3S over Bluetooth:
 | Setting | How |
 |---|---|
 | Pointer speed (DPI, 200 to 8000) | written to the mouse |
-| SmartShift: ratchet or free spin, and how hard a push switches it | written to the mouse |
+| SmartShift: ratchet or free spin, how hard a push switches it, or never | written to the mouse |
 | Thumb-wheel direction | written to the mouse |
-| Scroll direction | GNOME's natural-scrolling setting |
-| Battery level and charging state | shown by `hid-lab lab read` |
+| Button remapping: middle, back, forward, gesture and mode buttons can do another button's job | written to the mouse |
+| Scroll direction and pointer acceleration | GNOME's settings, changed through the service |
+| Battery level and charging state | shown by `hid-lab status` |
+| Button presses, live | shown by `hid-lab buttons` |
 
-After every reconnect, wake-up or reboot the service re-applies these
+After every reconnect, wake-up or reboot the service re-applies the mouse
 settings and checks them twice, within 2 seconds of the event. The SmartShift
 mode follows the mode button: whatever you last chose is restored.
 
-Planned, in order: the desktop app with basic button remapping (the first
-release), then button actions, gestures and thumb-wheel actions, per-app
+Planned, in order: the desktop app (the first release), then button
+actions such as key combinations, gestures and thumb-wheel actions, per-app
 profiles, Logi Bolt receiver support, and RPM packaging. The full scope is in
 [docs/requirements.md](docs/requirements.md).
 
@@ -79,6 +81,8 @@ cd cursiva-app
    cargo install --path crates/hidlab-daemon --root ~/.local
    cargo install --path crates/hidlab-cli --root ~/.local
    install -Dm644 packaging/systemd/hid-labd.service ~/.config/systemd/user/hid-labd.service
+   install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
+     ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
    systemctl --user daemon-reload
    systemctl --user enable --now hid-labd.service
    ```
@@ -91,7 +95,12 @@ cd cursiva-app
    hid-lab set smartshift-mode free-spin
    hid-lab set smartshift-threshold 30
    hid-lab set thumbwheel-invert on
+   hid-lab set remap-gesture middle
+   hid-lab set natural-scroll on
+   hid-lab reset all
    ```
+
+   `hid-lab set --help` lists every setting.
 
 Close Solaar or logiops first: two programs configuring one mouse give
 unpredictable results. `hid-lab status` warns you if one is running.

@@ -21,19 +21,21 @@ Probado en Fedora 44, GNOME en Wayland, MX Master 3S por Bluetooth:
 | Ajuste | Cómo |
 |---|---|
 | Velocidad del puntero (DPI, de 200 a 8000) | se escribe en el ratón |
-| SmartShift: con clics o libre, y con qué empujón cambia | se escribe en el ratón |
+| SmartShift: con clics o libre, con qué empujón cambia, o que nunca cambie | se escribe en el ratón |
 | Dirección de la rueda del pulgar | se escribe en el ratón |
-| Dirección del desplazamiento | ajuste de desplazamiento natural de GNOME |
-| Nivel de batería y carga | lo muestra `hid-lab lab read` |
+| Reasignación de botones: central, atrás, adelante, gestos y modo pueden hacer la tarea de otro botón | se escribe en el ratón |
+| Dirección del desplazamiento y aceleración del puntero | ajustes de GNOME, cambiados a través del servicio |
+| Nivel de batería y carga | lo muestra `hid-lab status` |
+| Pulsaciones de botones, en vivo | las muestra `hid-lab buttons` |
 
 Tras cada reconexión, despertar o reinicio, el servicio vuelve a aplicar
-estos ajustes y los verifica dos veces, en menos de 2 segundos desde el
+los ajustes del ratón y los verifica dos veces, en menos de 2 segundos desde el
 evento. El modo de SmartShift sigue al botón de modo: se restaura lo último
 que elegiste.
 
-Lo que viene, en orden: la app de escritorio con reasignación básica de
-botones (la primera versión), luego acciones de botones, gestos y acciones de
-la rueda del pulgar, perfiles por aplicación, soporte del receptor Logi Bolt
+Lo que viene, en orden: la app de escritorio (la primera versión), luego
+acciones de botones como combinaciones de teclas, gestos y acciones de la
+rueda del pulgar, perfiles por aplicación, soporte del receptor Logi Bolt
 y paquetes RPM. El alcance completo está en
 [docs/requirements.md](docs/requirements.md) (en inglés).
 
@@ -82,6 +84,8 @@ cd cursiva-app
    cargo install --path crates/hidlab-daemon --root ~/.local
    cargo install --path crates/hidlab-cli --root ~/.local
    install -Dm644 packaging/systemd/hid-labd.service ~/.config/systemd/user/hid-labd.service
+   install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
+     ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
    systemctl --user daemon-reload
    systemctl --user enable --now hid-labd.service
    ```
@@ -94,7 +98,12 @@ cd cursiva-app
    hid-lab set smartshift-mode free-spin
    hid-lab set smartshift-threshold 30
    hid-lab set thumbwheel-invert on
+   hid-lab set remap-gesture middle
+   hid-lab set natural-scroll on
+   hid-lab reset all
    ```
+
+   `hid-lab set --help` muestra todos los ajustes.
 
 Cierra Solaar o logiops antes: dos programas configurando el mismo ratón dan
 resultados impredecibles. `hid-lab status` te avisa si alguno está corriendo.
