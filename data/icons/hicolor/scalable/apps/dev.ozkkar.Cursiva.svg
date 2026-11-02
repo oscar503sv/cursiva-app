@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Cursiva app icon. Original artwork for the Cursiva project,
+       GPL-3.0-or-later: a generic mouse with an italic stroke. -->
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#deddda"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 18 C93 18 106 40 106 68 L106 88 C106 111 89 122 64 122 C39 122 22 111 22 88 L22 68 C22 40 35 18 64 18 Z" fill="#9a9996"/>
+  <path d="M64 10 C93 10 106 32 106 60 L106 82 C106 105 89 116 64 116 C39 116 22 105 22 82 L22 60 C22 32 35 10 64 10 Z" fill="url(#body)"/>
+  <path d="M24 54 C44 49 84 49 104 54" fill="none" stroke="#c0bfbc" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M64 12 V51" fill="none" stroke="#c0bfbc" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="57" y="20" width="14" height="26" rx="7" fill="#1c71d8"/>
+  <rect x="59" y="22" width="10" height="12" rx="5" fill="#62a0ea"/>
+  <path d="M42 94 C50 78 60 78 63 88 C66 98 76 98 86 80" fill="none" stroke="#3584e4" stroke-width="6" stroke-linecap="round"/>
+</svg>

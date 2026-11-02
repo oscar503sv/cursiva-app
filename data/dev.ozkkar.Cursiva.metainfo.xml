@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Cursiva contributors -->
+<component type="desktop-application">
+  <id>dev.ozkkar.Cursiva</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Cursiva</name>
+  <summary>Configure your mouse</summary>
+  <summary xml:lang="es">Configura tu ratón</summary>
+
+  <description>
+    <p>
+      Cursiva sets up a Logitech MX Master 3S on GNOME: pointer speed, the
+      scroll wheel mode, the thumb wheel direction and what each button does.
+      Your settings come back by themselves when the mouse reconnects or the
+      computer wakes up.
+    </p>
+    <p xml:lang="es">
+      Cursiva configura un Logitech MX Master 3S en GNOME: velocidad del
+      puntero, modo de la rueda, dirección de la rueda del pulgar y qué hace
+      cada botón. Tus ajustes vuelven solos cuando el ratón se reconecta o el
+      equipo despierta.
+    </p>
+    <p>
+      Cursiva is an independent project, not affiliated with Logitech. It
+      needs its background service, hid-labd, which talks to the mouse
+      without administrator rights.
+    </p>
+    <p xml:lang="es">
+      Cursiva es un proyecto independiente, sin relación con Logitech.
+      Necesita su servicio en segundo plano, hid-labd, que habla con el ratón
+      sin permisos de administrador.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">dev.ozkkar.Cursiva.desktop</launchable>
+  <provides>
+    <binary>cursiva</binary>
+  </provides>
+  <translation type="gettext">cursiva</translation>
+
+  <developer id="dev.ozkkar">
+    <name>Oscar Aragon</name>
+  </developer>
+  <update_contact>oscar@ozkkar.dev</update_contact>
+
+  <url type="homepage">https://github.com/oscar503sv/cursiva-app</url>
+  <url type="bugtracker">https://github.com/oscar503sv/cursiva-app/issues</url>
+  <url type="vcs-browser">https://github.com/oscar503sv/cursiva-app</url>
+  <url type="contribute">https://github.com/oscar503sv/cursiva-app/blob/main/CONTRIBUTING.md</url>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-11-02" type="development">
+      <description>
+        <p>First development snapshot: the window, the mouse illustration and live status.</p>
+      </description>
+    </release>
+  </releases>
+</component>

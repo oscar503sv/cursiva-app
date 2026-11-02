@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Cursiva
+Comment=Configure your mouse
+Comment[es]=Configura tu ratón
+Exec=cursiva
+Icon=dev.ozkkar.Cursiva
+Terminal=false
+Categories=GTK;GNOME;Settings;HardwareSettings;
+Keywords=mouse;Logitech;MX Master;DPI;buttons;wheel;
+Keywords[es]=ratón;mouse;Logitech;MX Master;DPI;botones;rueda;
+StartupNotify=true
