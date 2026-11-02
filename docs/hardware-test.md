@@ -1014,3 +1014,19 @@ install: `rm ~/.local/bin/cursiva ~/.local/share/applications/dev.ozkkar.Cursiva
 
 For each test: pass or fail and what you saw. Screenshots of H5D-01 (light
 and dark) help; check them for anything personal first.
+
+### M5d results (2026-11-02)
+
+Run by the user with the phase 5d app; reported as all passing, no
+captures kept.
+
+| Test | Result |
+|---|---|
+| H5D-01 | Pass |
+| H5D-02 | Pass |
+| H5D-03 | Pass |
+| H5D-04 | Pass |
+| H5D-05 | Pass |
+| H5D-06 | Pass |
+| H5D-07 | Pass |
+| H5D-08 | Pass |
