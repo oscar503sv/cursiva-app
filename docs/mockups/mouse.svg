@@ -50,9 +50,9 @@
   <g class="m-hot" id="h-mode" tabindex="0" role="button" aria-label="Wheel mode button">
     <rect class="m-part" x="161" y="132" width="16" height="22" rx="6"/>
   </g>
-  <g class="m-hot" id="h-thumb" tabindex="0" role="button" aria-label="Thumb wheel"><rect class="m-part" x="86" y="176" width="15" height="38" rx="7.5"/><path class="m-ridge" d="M90 185 H97 M90 191 H97 M90 197 H97 M90 203 H97"/></g>
-  <g class="m-hot" id="h-forward" tabindex="0" role="button" aria-label="Forward button"><rect class="m-part" x="86" y="221" width="12" height="20" rx="6"/></g>
-  <g class="m-hot" id="h-back" tabindex="0" role="button" aria-label="Back button"><rect class="m-part" x="87" y="246" width="12" height="20" rx="6"/></g>
+  <g class="m-hot" id="h-thumb" tabindex="0" role="button" aria-label="Thumb wheel"><rect class="m-part" x="86" y="202" width="15" height="38" rx="7.5"/><path class="m-ridge" d="M90 211 H97 M90 217 H97 M90 223 H97 M90 229 H97"/></g>
+  <g class="m-hot" id="h-forward" tabindex="0" role="button" aria-label="Forward button"><rect class="m-part" x="90" y="247" width="12" height="20" rx="6"/></g>
+  <g class="m-hot" id="h-back" tabindex="0" role="button" aria-label="Back button"><rect class="m-part" x="94" y="273" width="12" height="20" rx="6"/></g>
   <g class="m-hot" id="h-gesture" tabindex="0" role="button" aria-label="Gesture button">
     <ellipse class="m-part" cx="64" cy="350" rx="20" ry="11" transform="rotate(-25 64 350)"/>
   </g>
