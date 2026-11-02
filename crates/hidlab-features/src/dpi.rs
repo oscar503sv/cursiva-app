@@ -127,8 +127,9 @@ pub fn decode_current(p: &[u8]) -> Result<CurrentDpi, ReadError> {
 }
 
 pub fn read<C: RawChannel>(r: &mut Reader<'_, C>) -> Result<Dpi, ReadError> {
-    // Sensor 0, as Solaar does (all parameter bytes zero).
-    let list = decode_list(&r.call(FEATURE, 1, &[0x00])?)?;
+    // Sensor 0, as Solaar does (all parameter bytes zero). The list is a
+    // device capability: memoized for the reader's connection.
+    let list = decode_list(&r.call_static(FEATURE, 1, &[0x00])?)?;
     let current = decode_current(&r.call(FEATURE, 2, &[0x00])?)?;
     Ok(Dpi {
         current_in_list: list.contains(current.effective_dpi),
