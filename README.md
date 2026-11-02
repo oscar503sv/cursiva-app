@@ -11,8 +11,9 @@ mouse is switched off, sleeps, reconnects, changes Easy-Switch channel, or
 the computer reboots or wakes up.
 
 > **Status: early development.** The service and the command-line tool work
-> today over Bluetooth. The desktop app is being designed (see the
-> [mockups](docs/mockups/index.html)). Nothing here is packaged yet.
+> today over Bluetooth. The desktop app is being built: it shows the mouse
+> and its state; its settings pages follow the
+> [mockups](docs/mockups/index.html). Nothing here is packaged yet.
 
 ## What works today
 
@@ -57,11 +58,11 @@ hid-lab (CLI) ─┴─► D-Bus ─► hid-labd ─► devices ─► features 
 
 ## Try it from source
 
-You need Rust (stable, 1.85 or newer) and the systemd development headers.
-On Fedora:
+You need Rust (stable, 1.92 or newer), the systemd development headers and,
+for the app, GTK 4 and Libadwaita (GNOME 48 or newer). On Fedora:
 
 ```bash
-sudo dnf install cargo rust systemd-devel
+sudo dnf install cargo rust systemd-devel gtk4-devel libadwaita-devel gettext
 git clone https://github.com/oscar503sv/cursiva-app.git
 cd cursiva-app
 ```
@@ -102,6 +103,32 @@ cd cursiva-app
    ```
 
    `hid-lab set --help` lists every setting.
+
+4. Try the app (early: it shows the mouse, its battery and the active
+   settings; changing settings from the app comes next). From the source
+   folder:
+
+   ```bash
+   cargo run -p hidlab-gtk
+   ```
+
+   Or install it with its menu entry and icon:
+
+   ```bash
+   CURSIVA_LOCALEDIR=$HOME/.local/share/locale cargo install --path crates/hidlab-gtk --root ~/.local
+   for po in po/*.po; do
+     lang=$(basename "$po" .po)
+     install -d ~/.local/share/locale/$lang/LC_MESSAGES
+     msgfmt -o ~/.local/share/locale/$lang/LC_MESSAGES/cursiva.mo "$po"
+   done
+   sed "s|^Exec=cursiva|Exec=$HOME/.local/bin/cursiva|" data/dev.ozkkar.Cursiva.desktop \
+     > ~/.local/share/applications/dev.ozkkar.Cursiva.desktop
+   install -Dm644 data/dev.ozkkar.Cursiva.metainfo.xml ~/.local/share/metainfo/dev.ozkkar.Cursiva.metainfo.xml
+   install -Dm644 data/icons/hicolor/scalable/apps/dev.ozkkar.Cursiva.svg \
+     ~/.local/share/icons/hicolor/scalable/apps/dev.ozkkar.Cursiva.svg
+   install -Dm644 data/icons/hicolor/symbolic/apps/dev.ozkkar.Cursiva-symbolic.svg \
+     ~/.local/share/icons/hicolor/symbolic/apps/dev.ozkkar.Cursiva-symbolic.svg
+   ```
 
 Close Solaar or logiops first: two programs configuring one mouse give
 unpredictable results. `hid-lab status` warns you if one is running.

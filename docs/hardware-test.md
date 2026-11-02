@@ -902,3 +902,115 @@ Run by the user with the phase 5c daemon. Captures in
 | H5C-06 | Pass | Values put back |
 | H5C-07 | Pass | |
 | H5C-08 | Fail, fixed | The bus had not read the activation file (installed after login); the install steps now run `ReloadConfig`. Repeated: the call started the daemon, but `status` said "not connected" because the daemon owned its name before looking for the mouse; fixed (it now looks first). Third run: pass, the first answer showed the mouse with every setting `ok` |
+
+## M5d — app skeleton (MX Master 3S over Bluetooth)
+
+Tests H5D check the first version of the app, `cursiva`: it shows the
+mouse and its state, follows the daemon live, speaks English and Spanish,
+and works in light and dark styles and in a narrow window. The app only
+reads (`GetStatus`); it changes nothing on the mouse or in the config.
+Do not run Solaar, logid or any other mouse tool.
+
+### Preparation
+
+The daemon's JSON did not change in 5d, but install this build of the
+daemon and CLI so all three match:
+
+```bash
+sudo dnf install gtk4-devel libadwaita-devel gettext
+cargo install --path crates/hidlab-daemon --root ~/.local
+cargo install --path crates/hidlab-cli --root ~/.local
+systemctl --user restart hid-labd.service
+cargo build -p hidlab-gtk
+hid-lab status
+```
+
+Keep the `hid-lab status` output to compare with the app.
+
+### H5D-01 — Home page
+
+1. `cargo run -p hidlab-gtk`
+2. Expect a window "Cursiva" with a sidebar (Home, Pointer and scrolling,
+   Buttons) and, on Home, the mouse drawing, then:
+   - a line "Your settings are active" with a green check (or "The mouse
+     uses its own settings" if your config is empty);
+   - the mouse name, Connection "Bluetooth", Battery with the same percent
+     as `hid-lab status` and "Not charging" or "Charging", Profile
+     "General";
+   - Active settings: Pointer speed with your DPI, and Wheel in words
+     ("Clicks", "Free spin" or "Automatic, switches with a … push").
+3. The other two pages say "Coming soon".
+
+### H5D-02 — Language
+
+1. Close the app. `LANGUAGE=es cargo run -p hidlab-gtk`
+   Expect every text in Spanish ("Inicio", "Batería", "Tus ajustes están
+   activos", …). Hover a part of the mouse: the tooltip is Spanish too.
+2. Close it. `LANGUAGE=en cargo run -p hidlab-gtk`
+   Expect English.
+
+### H5D-03 — Live: power-off, mode button, battery
+
+Leave the app open on Home for all three.
+
+1. Switch the mouse off. Expect "Connect your mouse" within a few
+   seconds. Switch it on and move it: the Home page comes back with the
+   same values.
+2. Press the mode button behind the wheel. Expect the Wheel row to change
+   ("Free spin" ↔ your ratchet setting) right away. Press it again to go
+   back.
+3. Plug the charging cable in. Expect Battery to say "Charging" within
+   about a minute (the kernel decides when it reports). Unplug it: "Not
+   charging".
+
+### H5D-04 — Dark style and accent color
+
+1. Settings → Appearance → Dark. Expect the window and the mouse drawing
+   to turn dark at once, with readable outlines.
+2. Change the accent color in the same page. Expect the highlights on
+   the drawing to take the new color.
+3. Put your style and accent back.
+
+### H5D-05 — Mouse drawing: pointer and keyboard
+
+1. Move the pointer over each part (left, right, wheel, mode button,
+   thumb wheel, forward, back, gesture). Expect each one to light up,
+   the pointer to become a hand, and a tooltip with its name.
+2. Click a part. Expect it to fill with the accent color (selected).
+   Nothing else happens yet: choosing an action is phase 5f.
+3. Press Tab until the drawing has the focus. Expect a ring around one
+   part; the arrow keys move the ring, Enter selects that part.
+
+### H5D-06 — Narrow window
+
+1. Make the window narrow (drag its edge to under about 600 px). Expect
+   the sidebar to disappear and the page to fill the window, with a back
+   button in the header that shows the sidebar.
+2. Make it wide again: sidebar and page side by side.
+
+### H5D-07 — Daemon stopped and started from the app
+
+1. With the app open: `systemctl --user stop hid-labd.service`
+   Expect "Cannot reach the Cursiva service" with "The Cursiva service
+   stopped. Start it with `systemctl --user start hid-labd.service`".
+2. Click "Try Again". Expect the spinner, then the Home page with the
+   mouse: the click started the daemon through D-Bus activation.
+3. `systemctl --user is-active hid-labd.service` → `active`.
+
+### H5D-08 — Installed app (optional)
+
+1. Run the install commands of step 4 in the README ("Or install it with
+   its menu entry and icon").
+2. Open Activities and search "Cursiva". Expect the icon (a white mouse
+   with a blue wheel and a blue stroke) and the app opening in your
+   language.
+
+### End
+
+Nothing to put back: the app changed nothing. To remove the optional
+install: `rm ~/.local/bin/cursiva ~/.local/share/applications/dev.ozkkar.Cursiva.desktop`.
+
+### What to send back
+
+For each test: pass or fail and what you saw. Screenshots of H5D-01 (light
+and dark) help; check them for anything personal first.

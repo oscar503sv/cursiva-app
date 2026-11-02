@@ -11,8 +11,9 @@ ratón se apaga, se duerme, se reconecta o cambia de canal Easy-Switch, y
 cuando la computadora se reinicia o sale de la suspensión.
 
 > **Estado: desarrollo temprano.** El servicio y la herramienta de línea de
-> comandos ya funcionan por Bluetooth. La app de escritorio está en diseño
-> (mira las [maquetas](docs/mockups/index.html)). Todavía no hay paquetes.
+> comandos ya funcionan por Bluetooth. La app de escritorio está en
+> construcción: muestra el ratón y su estado; sus páginas de ajustes siguen
+> las [maquetas](docs/mockups/index.html). Todavía no hay paquetes.
 
 ## Qué funciona hoy
 
@@ -60,11 +61,11 @@ hid-lab (CLI) ─┴─► D-Bus ─► hid-labd ─► devices ─► features 
 
 ## Pruébalo desde el código
 
-Necesitas Rust (estable, 1.85 o más nuevo) y las cabeceras de desarrollo de
-systemd. En Fedora:
+Necesitas Rust (estable, 1.92 o más nuevo), las cabeceras de desarrollo de
+systemd y, para la app, GTK 4 y Libadwaita (GNOME 48 o más nuevo). En Fedora:
 
 ```bash
-sudo dnf install cargo rust systemd-devel
+sudo dnf install cargo rust systemd-devel gtk4-devel libadwaita-devel gettext
 git clone https://github.com/oscar503sv/cursiva-app.git
 cd cursiva-app
 ```
@@ -105,6 +106,32 @@ cd cursiva-app
    ```
 
    `hid-lab set --help` muestra todos los ajustes.
+
+4. Prueba la app (temprana: muestra el ratón, su batería y los ajustes
+   activos; cambiar ajustes desde la app llega después). Desde la carpeta
+   del código:
+
+   ```bash
+   cargo run -p hidlab-gtk
+   ```
+
+   O instálala con su entrada en el menú y su ícono:
+
+   ```bash
+   CURSIVA_LOCALEDIR=$HOME/.local/share/locale cargo install --path crates/hidlab-gtk --root ~/.local
+   for po in po/*.po; do
+     lang=$(basename "$po" .po)
+     install -d ~/.local/share/locale/$lang/LC_MESSAGES
+     msgfmt -o ~/.local/share/locale/$lang/LC_MESSAGES/cursiva.mo "$po"
+   done
+   sed "s|^Exec=cursiva|Exec=$HOME/.local/bin/cursiva|" data/dev.ozkkar.Cursiva.desktop \
+     > ~/.local/share/applications/dev.ozkkar.Cursiva.desktop
+   install -Dm644 data/dev.ozkkar.Cursiva.metainfo.xml ~/.local/share/metainfo/dev.ozkkar.Cursiva.metainfo.xml
+   install -Dm644 data/icons/hicolor/scalable/apps/dev.ozkkar.Cursiva.svg \
+     ~/.local/share/icons/hicolor/scalable/apps/dev.ozkkar.Cursiva.svg
+   install -Dm644 data/icons/hicolor/symbolic/apps/dev.ozkkar.Cursiva-symbolic.svg \
+     ~/.local/share/icons/hicolor/symbolic/apps/dev.ozkkar.Cursiva-symbolic.svg
+   ```
 
 Cierra Solaar o logiops antes: dos programas configurando el mismo ratón dan
 resultados impredecibles. `hid-lab status` te avisa si alguno está corriendo.

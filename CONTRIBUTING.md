@@ -17,13 +17,21 @@ so that no change can ever put an unknown byte on someone's mouse.
 - **Share captures from other devices.** `hid-lab lab features --json` and
   `hid-lab lab read --json` are read-only and redact identifiers by default.
 - **Translate.** The desktop app uses gettext; English and Spanish come
-  first. Translation files will live in `po/` when the app lands.
+  first. See [Translations](#translations).
 - **Write code.** Open an issue first for anything larger than a fix, so we
   can agree on the approach.
 
 ## Building and checking
 
-You need Rust stable (1.85 or newer) and `systemd-devel` (for libudev).
+You need Rust stable (1.92 or newer; the daemon and CLI alone build with
+1.85) and, on Fedora:
+
+```bash
+sudo dnf install systemd-devel gtk4-devel libadwaita-devel gettext
+```
+
+`systemd-devel` is for libudev; the other three are for the app
+(`hidlab-gtk`, GNOME 48 or newer).
 
 Before every commit:
 
@@ -34,7 +42,10 @@ cargo test
 ```
 
 The test suite needs no hardware: it uses a simulated HID++ device. Test
-fixtures that are not real captures are labeled SYNTHETIC.
+fixtures that are not real captures are labeled SYNTHETIC. The app's tests
+need no display either; one renders the mouse illustration offscreen when
+a display is available, and saves it with
+`CURSIVA_RENDER_DIR=<dir> cargo test -p hidlab-gtk render`.
 
 ## Architecture rules
 
@@ -78,6 +89,39 @@ with a status, a source and evidence:
   GPL-2.0-only) and Solaar (GPL-2.0-or-later). Read them and describe the
   behavior in your own words; never copy their code.
 - Never fabricate device data.
+
+## Translations
+
+The app's text is in English in the code, marked with `gettext("...")`,
+and translated with gettext (domain `cursiva`). The files are in `po/`:
+`POTFILES` lists the source files, `cursiva.pot` is the template, and
+`<lang>.po` is each translation. `cargo build` compiles them, so
+`cargo run -p hidlab-gtk` shows your translation; try another language with
+`LANGUAGE=<lang> cargo run -p hidlab-gtk`.
+
+After changing text in the code, refresh the template and the translations:
+
+```bash
+xgettext --language=Rust --from-code=UTF-8 --keyword=gettext \
+  --add-comments=TRANSLATORS --package-name=Cursiva \
+  --msgid-bugs-address=https://github.com/oscar503sv/cursiva-app/issues \
+  --files-from=po/POTFILES -o po/cursiva.pot
+for po in po/*.po; do msgmerge --update --backup=none "$po" po/cursiva.pot; done
+```
+
+To add a language, for example French:
+
+```bash
+msginit --input=po/cursiva.pot --locale=fr --output-file=po/fr.po --no-translator
+echo fr >> po/LINGUAS
+```
+
+Then translate the entries (Gtranslator or Poedit work well) and check
+with `msgfmt --check --statistics -o /dev/null po/fr.po`. Keep `{name}`
+placeholders and commands between backticks exactly as they are; the
+`TRANSLATORS:` notes in the template say what each one means. The
+`.desktop` file and the AppStream metainfo in `data/` carry their
+translations inline (`Name[fr]=`, `xml:lang="fr"`).
 
 ## Privacy
 
