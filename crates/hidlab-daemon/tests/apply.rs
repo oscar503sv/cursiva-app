@@ -110,7 +110,8 @@ fn invalid_dpi_is_not_sent() {
 }
 
 #[test]
-fn unconfirmed_values_are_not_sent() {
+fn threshold_off_is_written() {
+    // 255 keeps the wheel ratcheted (P-035, CONFIRMED by H5).
     let mut s = stateful(true).session();
     let map = map_for(&mut s, &FEATURES);
     let mut r = Reader::new(&mut s, map);
@@ -119,8 +120,8 @@ fn unconfirmed_values_are_not_sent() {
         &MX_MASTER_3S,
         &[SettingValue::SmartshiftThreshold(255)],
     );
-    assert_eq!(report.items[0].result, ItemResult::Rejected);
-    assert!(!s.into_parts().0.seen.contains(&(0x2110, 1)));
+    assert!(report.ok, "{report:?}");
+    assert_eq!(report.items[0].result, ItemResult::Written);
 }
 
 #[test]

@@ -14,10 +14,11 @@
 //! - Thumb wheel: `ThumbInvert` writes function 0x20 with byte 1 bit 0 =
 //!   invert, keeping the other bits of the current value.
 //!
-//! Values the daemon may not send yet (see [`SettingValue::confirmed`]):
 //! - SmartShift threshold `off` (255): Solaar's `SmartShift` writes 255 for
-//!   "always ratcheted" (its setting caps at 50 and maps 50 to 255).
-//! - Button remapping with 0x1B04 setCidReporting (see `reprog_controls`).
+//!   "always ratcheted" (its setting caps at 50 and maps 50 to 255);
+//!   CONFIRMED by H5 (P-035).
+//! - Button remapping with 0x1B04 setCidReporting (see `reprog_controls`);
+//!   CONFIRMED by H5 (P-036).
 
 use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
@@ -38,7 +39,7 @@ pub enum SettingKind {
     SmartshiftMode,
     SmartshiftThreshold,
     ThumbwheelInvert,
-    /// What one control does (0x1B04 remap). `hid-lab lab write` only.
+    /// What one control does (0x1B04 remap).
     ButtonRemap(RemapControl),
 }
 
@@ -57,16 +58,11 @@ impl<'de> Deserialize<'de> for SettingKind {
 }
 
 impl SettingKind {
-    pub const ALL: [SettingKind; 4] = [
+    pub const ALL: [SettingKind; 9] = [
         SettingKind::Dpi,
         SettingKind::SmartshiftMode,
         SettingKind::SmartshiftThreshold,
         SettingKind::ThumbwheelInvert,
-    ];
-
-    /// Settings only `hid-lab lab write` accepts, until their writes are
-    /// confirmed on the mouse.
-    pub const EXPERIMENTAL: [SettingKind; 5] = [
         SettingKind::ButtonRemap(RemapControl::Middle),
         SettingKind::ButtonRemap(RemapControl::Back),
         SettingKind::ButtonRemap(RemapControl::Forward),
@@ -91,10 +87,7 @@ impl SettingKind {
     }
 
     pub fn from_name(name: &str) -> Option<Self> {
-        Self::ALL
-            .into_iter()
-            .chain(Self::EXPERIMENTAL)
-            .find(|k| k.name() == name)
+        Self::ALL.into_iter().find(|k| k.name() == name)
     }
 
     pub fn feature(self) -> FeatureId {
@@ -187,13 +180,10 @@ impl SettingValue {
 
     /// True when the daemon may send this value: its write function and
     /// this kind of value were confirmed on the mouse (requirements §13).
-    /// Everything else is for `hid-lab lab write` only.
+    /// A value added by a new write experiment returns false here until its
+    /// hardware test passes; today every value is confirmed (H4, H5).
     pub fn confirmed(self) -> bool {
-        match self {
-            SettingValue::SmartshiftThreshold(t) => t != THRESHOLD_OFF,
-            SettingValue::ButtonRemap(..) => false,
-            _ => true,
-        }
+        true
     }
 
     pub fn display(self) -> String {
@@ -469,9 +459,6 @@ mod tests {
             SettingKind::SmartshiftThreshold.parse_value("off"),
             Ok(SettingValue::SmartshiftThreshold(THRESHOLD_OFF))
         );
-        for k in SettingKind::EXPERIMENTAL {
-            assert_eq!(SettingKind::from_name(k.name()), Some(k));
-        }
         let back = SettingKind::ButtonRemap(RemapControl::Back);
         assert_eq!(back.name(), "remap-back");
         assert_eq!(
@@ -491,11 +478,9 @@ mod tests {
     }
 
     #[test]
-    fn only_confirmed_values_reach_the_daemon() {
-        assert!(SettingValue::SmartshiftThreshold(50).confirmed());
-        assert!(!SettingValue::SmartshiftThreshold(THRESHOLD_OFF).confirmed());
-        assert!(!SettingValue::ButtonRemap(RemapControl::Back, 0x52).confirmed());
-        assert!(SettingValue::Dpi(1000).confirmed());
+    fn values_confirmed_by_h5_reach_the_daemon() {
+        assert!(SettingValue::SmartshiftThreshold(THRESHOLD_OFF).confirmed());
+        assert!(SettingValue::ButtonRemap(RemapControl::Back, 0x52).confirmed());
     }
 
     #[test]
