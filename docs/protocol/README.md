@@ -16,6 +16,7 @@ UNKNOWN
 |---|---|---|---|---|
 | R-1 | Linux kernel | `drivers/hid/hid-logitech-hidpp.c` | GPL-2.0-only | Behavior described, no code copied |
 | R-2 | Solaar | `lib/logitech_receiver/` (`hidpp20.py`, `settings_templates.py`, `special_keys.py`, `hidpp20_constants.py`, `common.py`) | GPL-2.0-or-later | Behavior described, no code copied |
+| R-3 | GNOME Settings Daemon | `plugins/power/gsd-power-manager.c`, tag `50.1` (the version in Fedora 44) | GPL-2.0-or-later | Behavior described, no code copied |
 
 Milestone 3 entries were checked against R-1 at commit `4403278e4ea2` and R-2
 at commit `e7304c4c451c` (both `master`, read 2026-10-21). Function numbers
@@ -400,7 +401,7 @@ be observed from this computer.
 
 ### P-024 — 0x1B04 ReprogControlsV4
 
-Sources: R-1 (GET_COUNT, GET_CID_INFO, flag bit0 mouse, bit5 divertable), R-2 (`KeysArrayV4._query_key`, `_getCidReporting`, `KeyFlag`, `MappingFlag`, `special_keys.CONTROL`, `Task`). f3 (setCidReporting) is never called.
+Sources: R-1 (GET_COUNT, GET_CID_INFO, flag bit0 mouse, bit5 divertable), R-2 (`KeysArrayV4._query_key`, `_getCidReporting`, `KeyFlag`, `MappingFlag`, `special_keys.CONTROL`, `Task`). f3 (setCidReporting) is sent only by `lab write` to remap, never to divert (P-036).
 
 ```text
 f0 getCount()             -> [count]
@@ -734,3 +735,85 @@ Other findings:
 - The slowest event took 1788 ms from the event to the end of the second
   check, 212 ms under the 2 s target. Most of it is the fixed 1 s wait.
 - Back to normal: each `set` verified 70 to 247 ms after the call.
+
+## Milestone 5b — SmartShift off, button remapping, battery warnings
+
+Sources read 2026-11-02: R-1 and R-2 at the pinned commits above, R-3 at
+tag `50.1`.
+
+### P-035 — 0x2110 threshold 255 keeps the wheel ratcheted
+
+Source: R-2 `SmartShift` (setting "Scroll Wheel Ratchet Speed": "The mouse
+wheel is always ratcheted at 50"; its write maps 50 and above to 255 and
+sends `[00, 255]` through f1). R-1 does not use 0x2110.
+
+```text
+f1 setRatchetControlMode(00, ff)   mode unchanged, threshold 255 = no automatic switch
+```
+
+| Fact | Status | Evidence |
+|---|---|---|
+| `[00, ff]` stores threshold 255 and keeps the mode | HYPOTHESIS | Source only; test H5-01 |
+| At 255 a hard push never switches the ratcheted wheel to free spin | HYPOTHESIS | Source only; test H5-01 |
+
+The daemon does not send 255 until this is CONFIRMED
+(`SettingValue::confirmed`), although f1 itself is CONFIRMED (P-031).
+
+### P-036 — 0x1B04 setCidReporting (f3), remap only
+
+Sources: R-2 `ReprogrammableKeyV4._setCidReporting`, `remap`,
+`remappable_to`; R-1 `hidpp20_reprog_controls_set_control_reporting` (same
+function and CID/flags layout; R-1 sends it only to divert buttons of the
+Signature M650, not to this mouse).
+
+```text
+f3 setCidReporting(cid u16 BE, flags, remap u16 BE)
+   flags 0      = change no reporting flag (nothing diverted)
+   remap 0      = keep the current mapping
+   remap = cid  = back to the control's own task
+   remap = X    = the control performs X's native task (not recursive)
+```
+
+R-2 sends these 5 bytes; the rest of the long report is zero (R-2 notes
+that a sixth byte exists in version 4 and leaves it out). R-2 calls the
+remap temporary. A control may be remapped only when its group mask is not
+0, to itself or to a control whose group is in its mask (bit `n` = group
+`n + 1`).
+
+Groups and masks read from this mouse (`mx-master-3s-state.json`, the same
+in every 0x1B04 read since O-4, and in the M5b dry runs):
+
+| CID | Reference name | Group | Mask | Allowed targets |
+|---|---|---|---|---|
+| 0x0050 | Left_Button | 1 | 0x01 | left, right |
+| 0x0051 | Right_Button | 1 | 0x01 | left, right |
+| 0x0052, 0x0053, 0x0056, 0x00C3, 0x00C4 | Middle, Back, Forward, Mouse_Gesture, Smart_Shift | 2 | 0x03 | the 7 physical controls |
+| 0x00D7 | Virtual_Gesture_Button | 3 | 0x00 | none |
+
+| Fact | Status | Evidence |
+|---|---|---|
+| Group and mask values above | **CONFIRMED** | Seven identical reads (O-4, O-5, M5b dry runs) |
+| The f3 layout and that flags 0 diverts nothing | HYPOTHESIS | Sources only; tests H5-02 to H5-05 |
+| A remap is read back by f2 as `mapped_to` | HYPOTHESIS | R-2; tests H5-02 to H5-05 |
+| A remap is lost when the mouse is switched off | HYPOTHESIS | R-2 calls it temporary; test H5-06 |
+
+`lab write` refuses targets outside the mask and always sends flags `00`.
+The tests also confirm which physical button each CID is (P-024, LIKELY).
+
+### S-1 — GNOME already warns when the mouse battery is low
+
+Source: R-3. `engine_device_warning_changed_cb` reacts to UPower's
+`warning-level` for every device and, at `low` and `critical`, shows a
+notification; the mouse kind has its own text ("Mouse battery low"). On the
+user's machine UPower lists the MX Master 3S (`upower -i`, 2026-11-02: kind
+mouse, 40 %, warning-level none; serial and path not recorded), fed by the
+kernel's `hidpp_battery`.
+
+| Fact | Status | Evidence |
+|---|---|---|
+| UPower reports this mouse's battery | **CONFIRMED** | `upower -e` and `upower -i`, user's machine |
+| GNOME shows a low-battery notification for it | LIKELY | R-3 and the UPower entry; not seen, the battery was at 40 % |
+
+Decision: Cursiva does not send its own low-battery notification
+(requirements decision log, 2026-11-02).
+

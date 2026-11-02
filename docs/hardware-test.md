@@ -631,3 +631,108 @@ back without doing anything, and `status` was all `ok` after every event.
 | M1 | Pass | Mode change remembered in `state.toml` |
 | M2 | Pass | Ratchet kept across the power cycle, 1706 ms |
 | M3 | Pass | `start` restored ratchet, 1788 ms |
+
+## M5b — SmartShift off and button remapping (MX Master 3S over Bluetooth)
+
+Tests H5 confirm the two new write experiments of phase 5b (P-035, P-036)
+with `hid-lab lab write`. Every step that writes ends by restoring the
+original. The daemon must be stopped during the tests (`lab write --write`
+refuses otherwise) and is started again at the end. Do not run Solaar,
+logid or any other mouse tool.
+
+For the button tests, use a web browser (Firefox): a **middle click** on a
+link opens it in a new tab; **back** and **forward** move through the
+pages you visited. On the mouse, *forward* is the side button nearer the
+front, *back* the one nearer you, *mode* the small button behind the wheel,
+and *gesture* the button under your thumb.
+
+### Preparation
+
+```bash
+mkdir -p ~/hidlab-m5b
+cargo install --path crates/hidlab-cli --root ~/.local
+systemctl --user stop hid-labd.service
+hid-lab lab devices
+hid-lab lab read --json > ~/hidlab-m5b/00-before.json
+```
+
+`lab devices` shows the mouse's node, for example `/dev/hidraw2`. Below,
+replace `hidrawN` with it. Before H5-01, check that the wheel clicks
+(ratchet); if it spins freely, press the mode button once.
+
+### H5-01 — SmartShift off
+
+1. With the wheel clicking, flick it hard: it switches to free spin (the
+   current threshold, 10). Stop it with your finger.
+2. `hid-lab lab write smartshift-threshold off hidrawN --write --json > ~/hidlab-m5b/01-off.json`
+   Expect `PASS`, threshold read back `off` (255), mode unchanged.
+3. Flick the wheel as hard as you can, several times: it must **keep
+   clicking**, never switch to free spin.
+4. Press the mode button: the wheel spins freely. Press it again: it clicks.
+5. `hid-lab lab write smartshift-threshold --restore hidrawN --write --json > ~/hidlab-m5b/01-restore.json`
+   Flick hard again: it switches to free spin as in step 1.
+
+### H5-02 — Back button acts as middle click
+
+1. `hid-lab lab write remap-back middle hidrawN --write --json > ~/hidlab-m5b/02-back-middle.json`
+   Expect `PASS`, `mapped_to` `0x0052`, reporting flags unchanged.
+2. Point at a link and press **back**: the link opens in a new tab, and
+   the page does not go back.
+3. Left click, right click, forward and the wheel button work as usual.
+4. `hid-lab lab write remap-back --restore hidrawN --write --json > ~/hidlab-m5b/02-restore.json`
+   On a page you reached from another, press **back**: it goes back.
+
+### H5-03 — Forward button acts as back
+
+1. Open a page, then a link on it.
+2. `hid-lab lab write remap-forward back hidrawN --write --json > ~/hidlab-m5b/03-forward-back.json`
+3. Press **forward**: the browser goes **back** to the first page.
+4. `hid-lab lab write remap-forward --restore hidrawN --write --json > ~/hidlab-m5b/03-restore.json`
+   Press **forward**: it goes forward again.
+
+### H5-04 — Mode button acts as middle click
+
+1. `hid-lab lab write remap-mode middle hidrawN --write --json > ~/hidlab-m5b/04-mode-middle.json`
+2. Point at a link and press the **mode** button: the link opens in a new
+   tab, and the wheel does **not** change between clicking and free spin.
+3. `hid-lab lab write remap-mode --restore hidrawN --write --json > ~/hidlab-m5b/04-restore.json`
+   Press the mode button: the wheel changes mode again. Leave it clicking.
+
+### H5-05 — Gesture button acts as forward
+
+1. First, press the **gesture** button on a web page and note what it does
+   by itself (perhaps nothing).
+2. Open a page, a link on it, and go back.
+3. `hid-lab lab write remap-gesture forward hidrawN --write --json > ~/hidlab-m5b/05-gesture-forward.json`
+4. Press **gesture**: the browser goes forward.
+5. `hid-lab lab write remap-gesture --restore hidrawN --write --json > ~/hidlab-m5b/05-restore.json`
+
+### H5-06 — Does a remap survive switching the mouse off?
+
+1. `hid-lab lab write remap-back middle hidrawN --write --json > ~/hidlab-m5b/06a-set.json`
+2. Switch the mouse off, wait 10 s, switch it on and move it.
+3. `hid-lab lab devices` (the node may have changed), then
+   `hid-lab lab read hidrawN --json > ~/hidlab-m5b/06b-after-power.json`
+4. Point at a link and press **back**: note whether it opens the link
+   (remap kept) or does nothing to the link (remap lost).
+5. `hid-lab lab write remap-back --restore hidrawN --write --json > ~/hidlab-m5b/06c-restore.json`
+   If the remap was lost this says `NO CHANGE`, which is fine.
+
+### Back to normal
+
+```bash
+hid-lab lab read --json > ~/hidlab-m5b/07-after.json
+cp ~/.local/state/hid-lab/lab-write/log.jsonl ~/hidlab-m5b/
+ls ~/.local/state/hid-lab/lab-write/
+systemctl --user start hid-labd.service
+hid-lab status
+```
+
+`ls` should list only `log.jsonl`: every saved original was restored.
+`status` should show your four settings `ok`.
+
+### What to send back
+
+The folder `~/hidlab-m5b/` and, for each test, what you felt or saw:
+whether the wheel kept clicking, what each button did, what the gesture
+button did by itself, and whether the remap survived switching off.
