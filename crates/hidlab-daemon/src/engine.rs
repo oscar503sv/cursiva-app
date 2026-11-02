@@ -19,7 +19,7 @@ use crate::api::{
     WATCH_BUTTONS_MAX_S,
 };
 use crate::apply::{self, ApplyReport, ItemResult};
-use crate::config::{Config, SmartShiftMode};
+use crate::config::{Config, DeviceConfig, SmartShiftMode};
 use crate::conflicts;
 use crate::gnome;
 use crate::paths::tilde;
@@ -629,6 +629,9 @@ impl Engine {
             dev.remove(k);
         }
         if *dev != before {
+            if *dev == DeviceConfig::default() {
+                self.config.devices.remove(profile.key);
+            }
             self.config.save(&self.config_path)?;
             saved_to.push(tilde(&self.config_path));
         }
@@ -934,6 +937,12 @@ mod tests {
         let r = c.reset("all").unwrap();
         assert_eq!(r.values.len(), MX_MASTER_3S.settings.len());
         assert_eq!(r.saved_to.len(), 2);
+        // No empty `[device."mx-master-3s"]` table is left behind.
+        assert!(
+            !fs::read_to_string(d.0.join("config.toml"))
+                .unwrap()
+                .contains("mx-master-3s")
+        );
         assert_eq!(
             d.engine().desired(&MX_MASTER_3S),
             [SettingValue::SmartshiftMode(2)]
