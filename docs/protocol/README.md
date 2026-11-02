@@ -609,7 +609,8 @@ Test: H4-05.
 
 ### P-033 — What the mouse keeps across events
 
-Source: O-6, H4-06 (one run of each event). DPI 1600, threshold 40, thumb
+Source: O-6, H4-06 (one run of each event), updated with O-9 (M4c, where
+the daemon read every value before re-applying; see that table). DPI 1600, threshold 40, thumb
 wheel inverted and free spin were set before the events. The kernel's HID
 device name (`0005:046D:B034.NNNN`) shows whether the mouse reconnected.
 
@@ -624,11 +625,13 @@ device name (`0005:046D:B034.NNNN`) shows whether the mouse reconnected.
 | Fact | Status | Evidence |
 |---|---|---|
 | Switching the mouse off resets DPI and thumb inversion to the defaults | **CONFIRMED** | Two power cycles: `06c` (O-6), and H4B-05 (O-7), where the daemon's re-apply read DPI 1000 and inversion off before writing 1600 and on (`evidence/m4b/05-status.json`, `last_apply.items[].before`) |
-| Switching the mouse off resets the threshold | LIKELY | One power cycle (`06c`, 40 to 10); in H4B-05 the threshold was already at its default |
-| The SmartShift mode survives switching the mouse off | LIKELY | One power cycle and one suspend with free spin (`06c`, `06e`); in H4B-05 the mode was the default ratchet, which does not tell |
-| Whether DPI, threshold and inversion survive a channel switch with a reconnect | UNKNOWN | `06b` had no reconnect, so it does not answer this. In H4-01 the same action did reconnect (`01-hotplug.json`) |
-| Whether they survive a suspend | UNKNOWN | They were already reset by `06c` before the suspend |
-| The mouse does not disconnect after 15 min idle | LIKELY | No `remove` in 900 s (`01b`), same HID device before and after the idle wait (`06d`) |
+| Switching the mouse off resets the threshold to 10 | **CONFIRMED** | Three power cycles, two values: `06c` (40 to 10), M4c A1 and M2 (30 to 10; `evidence/m4c/01-power.json`, `m2-after-power.json`, `items[].before`) |
+| The SmartShift mode survives switching the mouse off | **CONFIRMED** | Both values: free spin in `06c` and M4c A1 (`01-power.json`), ratchet in M4c M2 (`m2-after-power.json`); `before` equals the wanted mode and nothing was written |
+| A channel switch with a reconnect resets DPI, threshold and inversion; the mode stays | LIKELY | One run, M4c A3 (`03-channel.json`: before 1000, 10, off; mode free spin kept). `06b` had no reconnect and kept everything |
+| A suspend that drops the link resets them; the mode stays | LIKELY | One run, M4c A4 (`04-suspend.json`, same values) |
+| GNOME Bluetooth off and on resets them; the mode stays | LIKELY | One run, M4c A5 (`05-bluetooth.json`, same values) |
+| A disconnect of about a second keeps them | HYPOTHESIS | After the reboot in M4c the mouse connected, disconnected and connected again with no second check between (under 1.1 s); the second apply read 1600, 30, on and wrote nothing (`06-reboot.json`). One observation; the gap is not timed |
+| The mouse does not disconnect after 15 min idle | **CONFIRMED** | Two runs: `06d` (O-6) and M4c A2 (`02-before-idle.json` and `02-idle.json` show the same apply record; no disconnect in the journal) |
 | The kernel's 0x2121 mode is `0x02` after every reconnect | LIKELY | `06c`, `06e`, consistent with R-1 |
 
 ### P-034 — Hotplug events over Bluetooth
@@ -677,3 +680,57 @@ be a late answer to the first one. No file was kept. Status: UNKNOWN whether
 the mouse is slow to answer after idle or the first request was lost; the
 4c acceptance tests time every re-apply and will show whether this matters.
 
+Update after O-9: in every M4c `connect` the first verification ended 211 to
+258 ms later than the apply itself took (journal: `applied ... in N ms, M ms
+after the event`), close to the 250 ms ping timeout; after the reboot the gap
+was 119 and 121 ms. Without debug logs this does not tell whether the first
+ping timed out. It stays UNKNOWN; every event still met the 2 s target.
+
+### Observation O-9 (2026-11-02) — user's §7 acceptance tests M4c
+
+The user ran section M4c of `docs/hardware-test.md` with the 4c `hid-labd`
+installed as a systemd user unit. Captures are in `evidence/m4c/`: status
+JSON files, the daemon journal (`--since today`, so it begins with stop/start
+pairs and `run hid-lab reapply` lines from the 4b build that ran earlier that
+day), and the final `config.toml` and `state.toml`. They hold no home path,
+no Bluetooth address and no unit ID; nothing was sanitized. The user reported
+that every setting came back by itself, felt correct, and `status` was all
+`ok`. Kernel: `uname -r` was 7.2.13 when the session started and 7.2.14 after
+the reboot in A6.
+
+Wanted values during the events: DPI 1600, threshold 30, thumb wheel
+inverted, free spin (ratchet from M1 on). "Read before" is DPI, mode,
+threshold, inversion from `last_apply.report.items[].before`.
+
+| Event | File | Trigger | Read before | First verification | Second check |
+|---|---|---|---|---|---|
+| Preparation (mouse asleep during the `set`s) | `00-configured.json` | `connect` | 1000, ratchet, 10, off | 631 ms | 1787 ms, nothing overwritten |
+| A1 switch off and on | `01-power.json` | `connect` | 1000, **free spin**, 10, off | 580 ms | 1719 ms, nothing overwritten |
+| A2 15 min idle | `02-idle.json` | none (no disconnect) | — | — | — |
+| A3 Easy-Switch away, pointer stopped, back | `03-channel.json` | `connect` | 1000, free spin, 10, off | 602 ms | 1736 ms, nothing overwritten |
+| A4 `systemctl suspend` | `04-suspend.json` | `connect` | 1000, free spin, 10, off | 586 ms | 1704 ms, nothing overwritten |
+| A5 GNOME Bluetooth off and on | `05-bluetooth.json` | `connect` | 1000, free spin, 10, off | 550 ms | 1722 ms, nothing overwritten |
+| A6 reboot | `06-reboot.json` | `connect` | 1600, free spin, 30, on | 239 ms | 1372 ms, nothing overwritten |
+| M2 switch off and on | `m2-after-power.json` | `connect` | 1000, **ratchet**, 10, off | 573 ms | 1706 ms, nothing overwritten |
+| M3 daemon stopped, button pressed, daemon started | `m3-restored.json` | `start` | 1600, free spin, 30, on | 663 ms | 1788 ms, nothing overwritten |
+
+Other findings:
+
+- A1: the journal shows one extra connect (`.0005`) applied and verified in
+  527 ms, then a disconnect before its second check. The second check was
+  dropped as designed, and the next connect (`.0006`) is the one in
+  `01-power.json`. The cause of the short connection is not known.
+- A4: the journal shows `system going to sleep`, `mouse disconnected`,
+  `system resumed`, then the reconnect. The mouse was gone at wake-up, so the
+  `resume` trigger itself was not exercised on hardware.
+- A6: the daemon started before the mouse connected, so the trigger was
+  `connect`. The first connect (383 ms, no second check) was followed by a
+  quick disconnect and reconnect; `06-reboot.json` holds the second one,
+  which found everything already set. The HID device suffix was `.0003` both
+  times.
+- M1: journal `SmartShift mode changed on the mouse to ratchet; remembered`;
+  `state.toml` changed to `ratchet` (mode 2 in M2's `desired`).
+- M3: only the mode was written; the other three were `unchanged`.
+- The slowest event took 1788 ms from the event to the end of the second
+  check, 212 ms under the 2 s target. Most of it is the fixed 1 s wait.
+- Back to normal: each `set` verified 70 to 247 ms after the call.

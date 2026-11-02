@@ -613,3 +613,21 @@ The files in `~/hidlab-m4c/` and, for each event, a short note: whether you
 felt the settings come back without doing anything, and anything odd. If an
 event fails, write down what `hid-lab status` showed and send the files
 anyway.
+
+### Results, run 1 (2026-11-02)
+
+Run by the user. Captures are in `docs/protocol/evidence/m4c/`; details in
+`docs/protocol/README.md`, observation O-9. The user felt every setting come
+back without doing anything, and `status` was all `ok` after every event.
+
+| Test | Result | Notes |
+|---|---|---|
+| A1 | Pass | `connect`, 1719 ms in total |
+| A2 | Pass | No disconnect in 15 min; values kept |
+| A3 | Pass | `connect`, 1736 ms; the pointer stopped before switching back |
+| A4 | Pass | `connect` (the mouse was gone at wake-up), 1704 ms |
+| A5 | Pass | `connect`, 1722 ms |
+| A6 | Pass | `connect` (the daemon started first), 1372 ms |
+| M1 | Pass | Mode change remembered in `state.toml` |
+| M2 | Pass | Ratchet kept across the power cycle, 1706 ms |
+| M3 | Pass | `start` restored ratchet, 1788 ms |

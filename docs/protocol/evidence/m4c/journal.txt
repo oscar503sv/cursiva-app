@@ -1,0 +1,98 @@
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+mouse disconnected
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+mouse disconnected
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+mouse disconnected
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+run `hid-lab reapply` to apply the configuration after a reconnect
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+run `hid-lab reapply` to apply the configuration after a reconnect
+mouse disconnected
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+mouse disconnected
+saved dpi = 1600 to ~/.config/hid-lab/config.toml
+saved smartshift-threshold = 30 to ~/.config/hid-lab/config.toml
+saved thumbwheel-invert = on to ~/.config/hid-lab/config.toml
+saved smartshift-mode = free-spin to ~/.local/state/hid-lab/daemon/state.toml
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0004, access ok)
+Connect: applied 4 setting(s) in 389 ms, 631 ms after the event: verified
+second check 1787 ms after the event: nothing overwritten
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0005, access ok)
+Connect: applied 4 setting(s) in 270 ms, 527 ms after the event: verified
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0006, access ok)
+Connect: applied 4 setting(s) in 337 ms, 580 ms after the event: verified
+second check 1719 ms after the event: nothing overwritten
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0007, access ok)
+Connect: applied 4 setting(s) in 344 ms, 602 ms after the event: verified
+second check 1736 ms after the event: nothing overwritten
+system going to sleep
+mouse disconnected
+system resumed
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0008, access ok)
+Connect: applied 4 setting(s) in 336 ms, 586 ms after the event: verified
+second check 1704 ms after the event: nothing overwritten
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0009, access ok)
+Connect: applied 4 setting(s) in 339 ms, 550 ms after the event: verified
+second check 1722 ms after the event: nothing overwritten
+mouse disconnected
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+mouse disconnected
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+Connect: applied 4 setting(s) in 262 ms, 383 ms after the event: verified
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0003, access ok)
+Connect: applied 4 setting(s) in 120 ms, 239 ms after the event: verified
+second check 1372 ms after the event: nothing overwritten
+SmartShift mode changed on the mouse to ratchet; remembered
+mouse disconnected
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0004, access ok)
+Connect: applied 4 setting(s) in 330 ms, 573 ms after the event: verified
+second check 1706 ms after the event: nothing overwritten
+Stopping hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+Stopped hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+Starting hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva)...
+hid-labd 0.1.0 starting; config ~/.config/hid-lab/config.toml
+serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+Started hid-labd.service - hid-lab daemon for Logitech HID++ mice (Cursiva).
+MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0004, access ok)
+Start: applied 4 setting(s) in 112 ms, 663 ms after the event: verified
+second check 1788 ms after the event: nothing overwritten
+Set: applied 1 setting(s) in 82 ms, 237 ms after the event: verified
+saved dpi = 1000 to ~/.config/hid-lab/config.toml
+Set: applied 1 setting(s) in 52 ms, 128 ms after the event: verified
+saved smartshift-threshold = 10 to ~/.config/hid-lab/config.toml
+Set: applied 1 setting(s) in 58 ms, 247 ms after the event: verified
+saved thumbwheel-invert = off to ~/.config/hid-lab/config.toml
+Set: applied 1 setting(s) in 13 ms, 70 ms after the event: verified
+saved smartshift-mode = ratchet to ~/.local/state/hid-lab/daemon/state.toml
