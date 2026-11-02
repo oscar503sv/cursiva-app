@@ -751,3 +751,137 @@ Run by the user. Captures are in `docs/protocol/evidence/m5b/`; details in
 | H5-05 | Pass, not conclusive | The gesture button already goes forward by itself |
 | H5-06 | Remap lost | Back mapped to itself after the power cycle |
 
+
+## M5c — daemon API v2 (MX Master 3S over Bluetooth)
+
+Tests H5C check phase 5c through the daemon, the way the app will use it:
+SmartShift off and remaps applied and re-applied after power-off, the
+time budget with remaps, `reset`, the battery and its change signal,
+button presses, the GNOME settings and D-Bus activation. The daemon runs
+normally; nothing uses `lab write`. Do not run Solaar, logid or any other
+mouse tool. Button tests use a web browser as in M5b.
+
+### Preparation
+
+The tests change your config, so save it and the state first; the last
+step puts both back.
+
+```bash
+mkdir -p ~/hidlab-m5c
+cp ~/.config/hid-lab/config.toml ~/hidlab-m5c/config.toml.bak 2>/dev/null
+cp ~/.local/state/hid-lab/daemon/state.toml ~/hidlab-m5c/state.toml.bak 2>/dev/null
+cargo install --path crates/hidlab-daemon --root ~/.local
+cargo install --path crates/hidlab-cli --root ~/.local
+install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
+  ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
+systemctl --user restart hid-labd.service
+gsettings get org.gnome.desktop.peripherals.mouse natural-scroll
+gsettings get org.gnome.desktop.peripherals.mouse accel-profile
+```
+
+Note the two `gsettings` values; H5C-06 puts them back.
+
+### H5C-01 — Status 3
+
+1. `hid-lab status`
+   Expect: a `Battery:` line, nine settings (the five `remap-` rows show
+   `(default)`), a `GNOME:` line with your two values.
+2. `hid-lab status --json > ~/hidlab-m5c/01-status.json`
+   Expect `"schema": "hid-lab.daemon-status/3"` and a `capabilities`
+   section with the DPI range and the targets of each button.
+
+### H5C-02 — SmartShift off through the daemon, kept after power-off
+
+1. With the wheel clicking: `hid-lab set smartshift-threshold 20`, then
+   `hid-lab set smartshift-threshold off`.
+2. Flick the wheel hard several times: it keeps clicking.
+3. Switch the mouse off, wait 10 s, switch it on and move it. Wait 3 s.
+4. Flick hard again: it still keeps clicking.
+   `hid-lab status > ~/hidlab-m5c/02-after-power.txt`
+   Expect `smartshift-threshold` wanted `off`, current `off`, `ok`, and the
+   line `SmartShift switching is off; ... restores 20`.
+5. `hid-lab set smartshift-threshold on`: a hard flick frees the wheel
+   again; `status` shows 20.
+
+### H5C-03 — Remaps through the daemon, kept after power-off, within 2 s
+
+1. `hid-lab set remap-back middle`
+   `hid-lab set remap-forward back`
+   `hid-lab set remap-gesture middle`
+2. In the browser: **back** opens a link in a new tab, **forward** goes
+   back, **gesture** opens a link in a new tab.
+3. Switch the mouse off, wait 10 s, switch it on and move it. Wait 3 s.
+4. Try the three buttons again: same as step 2.
+5. `hid-lab status > ~/hidlab-m5c/03-after-power.txt`
+   Expect every row `ok`, `Last apply: Connect`, and the total time. Note
+   the time: the target is 2000 ms or less.
+6. Repeat steps 3 to 5 once more, saving to `03-after-power-2.txt`.
+
+Keep these remaps for H5C-05.
+
+### H5C-04 — Battery and its signal
+
+1. In a second terminal, start both monitors:
+   `busctl --user monitor dev.ozkkar.Cursiva.Daemon1 | tee ~/hidlab-m5c/04-dbus.txt`
+   and, in a third one,
+   `udevadm monitor --udev --subsystem-match=power_supply | tee ~/hidlab-m5c/04-udev.txt`
+2. Plug the mouse's charging cable in. Wait up to a minute. Unplug it.
+3. Stop both monitors with Ctrl+C.
+   Expect: in `04-udev.txt`, `change` lines for a `hidpp_battery` path; in
+   `04-dbus.txt`, `BatteryChanged` signals with `Charging` and then
+   `Discharging` (or the level). If nothing shows, say so: that answers
+   P-037.
+4. Compare `hid-lab status` with the percentage GNOME shows (Settings →
+   Power).
+
+### H5C-05 — Button presses
+
+1. `hid-lab buttons --duration 90 | tee ~/hidlab-m5c/05-buttons.txt`
+2. Slowly, one at a time, press and release: left, right, the wheel
+   (middle click), back, forward, gesture, the mode button. Then scroll the
+   main wheel and the thumb wheel a little.
+3. Write down which line each button printed (or that it printed nothing).
+   With the remaps of H5C-03 still on, back and gesture should show as
+   `middle` and forward as `back`.
+4. `hid-lab reset remap-back`, `hid-lab reset remap-forward`,
+   `hid-lab reset remap-gesture`, then repeat steps 1 and 2 saving to
+   `05-buttons-default.txt`.
+
+### H5C-06 — GNOME settings through the daemon
+
+1. `hid-lab set natural-scroll on`: scrolling a page reverses at once, and
+   Settings → Mouse & Touchpad shows natural scrolling on.
+2. `hid-lab set acceleration flat`, then look at the pointer acceleration
+   option in Settings.
+3. Put back the two values you noted in the preparation, for example
+   `hid-lab set natural-scroll off` and `hid-lab set acceleration default`.
+4. `hid-lab status`: the `GNOME:` line matches.
+
+### H5C-07 — Reset
+
+1. `hid-lab set dpi 1600`: the pointer moves faster.
+2. `hid-lab reset dpi`: it moves slower (1000). `hid-lab status` shows
+   `dpi` wanted `-`, current `1000`.
+3. `hid-lab reset all > ~/hidlab-m5c/07-reset-all.txt`
+   Expect `Updated` lines for the config and the state; `status` shows
+   every wanted value `-` except `smartshift-mode` `ratchet`.
+
+### H5C-08 — D-Bus activation
+
+1. `systemctl --user stop hid-labd.service`
+2. `hid-lab status`: it answers (the bus started the daemon).
+3. `systemctl --user is-active hid-labd.service` prints `active`.
+
+### End
+
+Put your settings back and check:
+
+```bash
+cp ~/hidlab-m5c/config.toml.bak ~/.config/hid-lab/config.toml 2>/dev/null
+cp ~/hidlab-m5c/state.toml.bak ~/.local/state/hid-lab/daemon/state.toml 2>/dev/null
+systemctl --user restart hid-labd.service
+hid-lab status
+```
+
+If there was no backup (no config before), run `hid-lab reset all`
+instead of the two `cp` lines.
