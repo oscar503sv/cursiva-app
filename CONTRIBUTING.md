@@ -47,6 +47,23 @@ need no display either; one renders the mouse illustration offscreen when
 a display is available, and saves it with
 `CURSIVA_RENDER_DIR=<dir> cargo test -p hidlab-gtk render`.
 
+To look at a whole page without a desktop session, debug builds of the
+app save a screenshot and quit when `CURSIVA_DEV_SCREENSHOT` is set. With
+GTK's Broadway backend and a private session bus (start `hid-labd` on
+that bus too, with `XDG_CONFIG_HOME` and `XDG_STATE_HOME` pointing at an
+empty test directory, to see the connected pages):
+
+```bash
+gtk4-broadwayd :5 &
+GDK_BACKEND=broadway BROADWAY_DISPLAY=:5 CURSIVA_DEV_SCREENSHOT=/tmp/pointer.png \
+  CURSIVA_DEV_PAGE=pointer CURSIVA_DEV_SIZE=1000x1400 cargo run -p hidlab-gtk
+```
+
+`CURSIVA_DEV_PAGE` is `home`, `pointer`, `pointer:wheel`, `pointer:thumb`
+or `buttons`; `CURSIVA_DEV_DELAY_MS` (default 3000) is the wait before the
+capture. Broadway's socket lives in `$XDG_RUNTIME_DIR`; a path longer than
+about 100 characters makes it fail with "address already in use".
+
 ## Architecture rules
 
 The dependency direction is fixed:

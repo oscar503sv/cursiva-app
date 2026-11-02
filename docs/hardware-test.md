@@ -1030,3 +1030,119 @@ captures kept.
 | H5D-06 | Pass |
 | H5D-07 | Pass |
 | H5D-08 | Pass |
+
+## M5e — Pointer and scrolling page (MX Master 3S over Bluetooth)
+
+Tests H5E check that the app changes the mouse and GNOME through the
+daemon, shows a toast with Undo, follows changes made elsewhere, and that
+the daemon keeps what the app set after power-off. Do not run Solaar,
+logid or any other mouse tool. The daemon did not change in 5e.
+
+### Preparation
+
+The tests change your config and two GNOME settings; save them first, the
+last step puts them back.
+
+```bash
+mkdir -p ~/hidlab-m5e
+cp ~/.config/hid-lab/config.toml ~/hidlab-m5e/config.toml.bak 2>/dev/null
+cp ~/.local/state/hid-lab/daemon/state.toml ~/hidlab-m5e/state.toml.bak 2>/dev/null
+gsettings get org.gnome.desktop.peripherals.mouse natural-scroll
+gsettings get org.gnome.desktop.peripherals.mouse accel-profile
+cargo build -p hidlab-gtk
+```
+
+Note the two `gsettings` values. Start the app with
+`cargo run -p hidlab-gtk` and open "Pointer and scrolling".
+
+### H5E-01 — Pointer speed
+
+1. Drag the Speed slider to about 1600 and let go. Expect the value on the
+   right to follow while dragging, and, about a third of a second after
+   you stop, a toast "Pointer speed: 1600 DPI" with Undo. The pointer
+   moves faster.
+2. `hid-lab status`: `dpi` shows the new value, `ok`.
+3. Click Undo in a new change's toast (repeat step 1, then Undo). Expect
+   the slider and the pointer back to the value before; `hid-lab status`
+   agrees.
+
+### H5E-02 — Exact values
+
+1. Advanced → Exact values → Resolution: type 2400 and press Enter.
+   Expect a toast "Pointer speed: 2400 DPI" and the slider at 2400.
+2. Type 1625 and press Enter. Expect it to become 1650 (the mouse takes
+   steps of 50) and a toast for 1650.
+
+### H5E-03 — Wheel modes
+
+1. Scroll mode → Clicks. Flick the wheel hard: it keeps clicking.
+2. Free spin: the wheel spins freely.
+3. Automatic: it clicks when turned slowly and spins free with a push.
+   Move "Switches to free spin with" toward "A hard push": a harder flick
+   is needed. `hid-lab status` shows the threshold.
+4. In Clicks, `hid-lab status` shows `smartshift-threshold off`; back in
+   Automatic it shows your number again.
+5. Undo after one of the changes puts the previous mode back.
+
+### H5E-04 — Mode button
+
+With the page open, press the mode button behind the wheel. Expect Scroll
+mode to switch to Free spin (and back on the next press) within about a
+second, with no toast.
+
+### H5E-05 — Thumb wheel
+
+Turn on "Reverse direction". Expect the thumb wheel to scroll sideways the
+other way (try it in a wide page or a spreadsheet). Undo reverses it.
+
+### H5E-06 — GNOME settings
+
+1. Turn on Natural scrolling: the main wheel scrolls pages the other way.
+   Turn it off again.
+2. Acceleration → Flat. Open GNOME Settings → Mouse & Touchpad: it shows
+   the same profile. Change it there, come back to Cursiva: the page shows
+   the value from Settings.
+
+### H5E-07 — Restore Default
+
+Set 1600 DPI, Clicks and Reverse direction on. Click "Restore Default" in
+each of the three sections. Expect 1000 DPI, Automatic (threshold 10) and
+Reverse direction off, each with a toast; Undo on the last toast puts that
+section back. Natural scrolling and acceleration do not change.
+
+### H5E-08 — Kept after power-off
+
+Set 1600 DPI, Clicks and Reverse direction on. Switch the mouse off; the
+page says "Connect your mouse". Wait 10 s, switch it on and move it.
+Expect the page back with the same three values, and the wheel still
+clicking when flicked.
+
+### H5E-09 — From Home
+
+1. On Home, click the main wheel in the drawing. Expect the Pointer and
+   scrolling page, scrolled to "Main wheel".
+2. Home → click the thumb wheel: scrolled to "Thumb wheel".
+3. Home → click the back button: the Buttons page ("Coming soon").
+4. Home → click the "Pointer speed" and "Wheel" rows: Pointer and
+   scrolling.
+
+### End
+
+Put your settings back and check:
+
+```bash
+cp ~/hidlab-m5e/config.toml.bak ~/.config/hid-lab/config.toml 2>/dev/null
+cp ~/hidlab-m5e/state.toml.bak ~/.local/state/hid-lab/daemon/state.toml 2>/dev/null
+gsettings set org.gnome.desktop.peripherals.mouse natural-scroll <value noted>
+gsettings set org.gnome.desktop.peripherals.mouse accel-profile <value noted>
+systemctl --user restart hid-labd.service
+hid-lab status
+```
+
+If there was no backup (no config before), run `hid-lab reset all`
+instead of the two `cp` lines.
+
+### What to send back
+
+For each test: pass or fail and what you saw. A screenshot of the page in
+light and dark helps; check it for anything personal first.
