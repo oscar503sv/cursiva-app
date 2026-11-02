@@ -9,13 +9,14 @@ use hidlab_features::settings::{SettingKind, SettingValue};
 use hidlab_features::{FeatureMap, Memo, Reader};
 use hidlab_features::{hires_wheel, smartshift};
 use hidlab_hidpp::{Session, SessionConfig, get_feature, get_protocol_version};
-use hidlab_transport::{Access, Hidraw, HidrawDevice, discover, power_supplies_for};
+use hidlab_transport::{Access, ButtonField, Hidraw, HidrawDevice, discover, power_supplies_for};
 
 use crate::api::{
-    ApplyRecord, BATTERY_EVENT_SCHEMA, Battery, BatteryEvent, CurrentValue, DESKTOP_SCHEMA,
-    DEVICE_EVENT_SCHEMA, DesktopReply, DesktopSetting, DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA,
-    ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA, ReapplyReply, ResetReply, SET_SCHEMA, STATUS_SCHEMA,
-    SecondCheck, SetReply, Status, Trigger,
+    ApplyRecord, BATTERY_EVENT_SCHEMA, BUTTON_EVENT_SCHEMA, Battery, BatteryEvent, ButtonEvent,
+    CurrentValue, DESKTOP_SCHEMA, DEVICE_EVENT_SCHEMA, DesktopReply, DesktopSetting, DeviceEvent,
+    DeviceInfo, MODE_EVENT_SCHEMA, ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA, ReapplyReply,
+    ResetReply, SET_SCHEMA, STATUS_SCHEMA, SecondCheck, SetReply, Status, Trigger,
+    WATCH_BUTTONS_MAX_S,
 };
 use crate::apply::{self, ApplyReport, ItemResult};
 use crate::config::{Config, SmartShiftMode};
@@ -70,6 +71,8 @@ pub struct Engine {
     cache: RefCell<ConnCache>,
     /// The battery last sent in `BatteryChanged`.
     last_battery: Option<Battery>,
+    /// End of the `WatchButtons` lease.
+    watch_until: Option<Instant>,
 }
 
 /// Raw bytes, at debug level only (requirements §17).
@@ -152,6 +155,7 @@ impl Engine {
             last_apply: None,
             cache: RefCell::default(),
             last_battery: None,
+            watch_until: None,
         }
     }
 
@@ -686,6 +690,51 @@ impl Engine {
         })
     }
 
+    /// `WatchButtons`: sends `ButtonPressed` for `seconds` (at most
+    /// [`WATCH_BUTTONS_MAX_S`]; 0 stops). Returns the seconds granted.
+    pub fn watch_buttons(&mut self, seconds: u32) -> u32 {
+        let granted = seconds.min(WATCH_BUTTONS_MAX_S);
+        self.watch_until =
+            (granted > 0).then(|| Instant::now() + Duration::from_secs(granted.into()));
+        granted
+    }
+
+    pub fn watching_buttons(&self) -> bool {
+        self.watch_until.is_some_and(|t| Instant::now() < t)
+    }
+
+    /// One event per button that changed between the bit sets `before` and
+    /// `after` of `field`.
+    pub fn button_events(&self, field: &ButtonField, before: u32, after: u32) -> Vec<ButtonEvent> {
+        let profile = self.present.as_ref().map(|p| p.profile);
+        (0..field.count.min(32))
+            .filter(|i| (before ^ after) & (1 << i) != 0)
+            .map(|i| {
+                let number = field
+                    .first_button
+                    .saturating_add(u16::try_from(i).unwrap_or(u16::MAX));
+                ButtonEvent {
+                    schema: BUTTON_EVENT_SCHEMA.into(),
+                    number: Some(number),
+                    control: profile
+                        .and_then(|p| p.input_button(number))
+                        .map(str::to_owned),
+                    pressed: after & (1 << i) != 0,
+                }
+            })
+            .collect()
+    }
+
+    /// The mode button, seen through the ratchet event.
+    pub fn mode_button_event() -> ButtonEvent {
+        ButtonEvent {
+            schema: BUTTON_EVENT_SCHEMA.into(),
+            number: None,
+            control: Some("mode".into()),
+            pressed: true,
+        }
+    }
+
     /// `SetDesktop`: writes one GNOME pointer setting.
     pub fn set_desktop(&self, setting: &str, value: &str) -> Result<DesktopReply, String> {
         let s = DesktopSetting::from_name(setting).ok_or_else(|| {
@@ -890,6 +939,33 @@ mod tests {
             [SettingValue::SmartshiftMode(2)]
         );
         assert!(c.reset("wheel-mode").is_err());
+    }
+
+    #[test]
+    fn button_changes_become_events_while_watched() {
+        let d = Dir::new("buttons");
+        let mut c = d.engine();
+        assert!(!c.watching_buttons());
+        assert_eq!(c.watch_buttons(600), WATCH_BUTTONS_MAX_S);
+        assert!(c.watching_buttons());
+        assert_eq!(c.watch_buttons(0), 0);
+        assert!(!c.watching_buttons());
+        let f = ButtonField {
+            report_id: Some(2),
+            bit_offset: 0,
+            count: 16,
+            first_button: 1,
+        };
+        // Button 4 down, then button 4 up and 7 down. No device is present,
+        // so no control names.
+        let ev = c.button_events(&f, 0, 0b1000);
+        assert_eq!((ev[0].number, ev[0].pressed), (Some(4), true));
+        let ev = c.button_events(&f, 0b1000, 0b100_0000);
+        assert_eq!(ev.len(), 2);
+        assert_eq!((ev[0].number, ev[0].pressed), (Some(4), false));
+        assert_eq!((ev[1].number, ev[1].pressed), (Some(7), true));
+        assert!(ev.iter().all(|e| e.control.is_none()));
+        assert_eq!(MX_MASTER_3S.input_button(4), Some("back"));
     }
 
     #[test]

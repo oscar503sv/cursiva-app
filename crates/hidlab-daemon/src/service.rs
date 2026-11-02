@@ -80,6 +80,12 @@ impl Service {
         json(&reply)
     }
 
+    /// Sends `ButtonPressed` for `seconds` (at most 60; 0 stops). Clients
+    /// call it again before the lease ends while they show presses.
+    fn watch_buttons(&self, seconds: u32) -> fdo::Result<u32> {
+        Ok(self.lock()?.watch_buttons(seconds))
+    }
+
     /// Reloads the config file and applies it; returns
     /// `hid-lab.daemon-reapply/1` JSON.
     async fn reapply(
@@ -110,6 +116,11 @@ impl Service {
     /// (`hid-lab.daemon-mode/1`).
     #[zbus(signal)]
     pub async fn mode_changed(emitter: &SignalEmitter<'_>, event: &str) -> zbus::Result<()>;
+
+    /// A button went down or up (`hid-lab.daemon-button/1`), while a
+    /// `WatchButtons` lease lasts.
+    #[zbus(signal)]
+    pub async fn button_pressed(emitter: &SignalEmitter<'_>, event: &str) -> zbus::Result<()>;
 
     /// The mouse battery changed (`hid-lab.daemon-battery/1`).
     #[zbus(signal)]

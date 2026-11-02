@@ -22,7 +22,8 @@ use hidlab_daemon::{debug, error, info, log, paths, warn};
 use hidlab_devices::profile_for;
 use hidlab_features::hires_wheel;
 use hidlab_transport::{
-    Hidraw, HotplugAction, HotplugEvent, HotplugMonitor, PowerSupplyMonitor, RawChannel,
+    ButtonField, Hidraw, HotplugAction, HotplugEvent, HotplugMonitor, PowerSupplyMonitor,
+    RawChannel,
 };
 use serde::Serialize;
 use zbus::blocking::Connection;
@@ -92,6 +93,9 @@ struct Daemon {
     sched: Scheduler,
     /// The mouse opened for listening only, with the 0x2121 feature index.
     listener: Option<(Hidraw, u8)>,
+    /// Where the listener's input reports carry buttons, and which are held.
+    buttons: Option<ButtonField>,
+    held: u32,
 }
 
 fn readable(fd: RawFd) -> libc::pollfd {
@@ -183,18 +187,26 @@ impl Daemon {
         }
     }
 
-    /// Drains the listener. Only the 0x2121 ratchet event is acted on; mouse
-    /// movement and answers to other requests are skipped.
+    /// Drains the listener. Acted on: the 0x2121 ratchet event, and button
+    /// changes while a `WatchButtons` lease lasts. Movement and answers to
+    /// other requests are skipped.
     fn on_listener(&mut self) {
         let mut buf = [0u8; 64];
         let mut events = 0;
+        let mut changes = Vec::new();
         loop {
             let Some((dev, index)) = self.listener.as_mut() else {
                 return;
             };
             match dev.recv(&mut buf, Duration::ZERO) {
                 Ok(Some(n)) => {
-                    if let Ok(frame) = hidlab_hidpp::decode(&buf[..n]) {
+                    let held = self.buttons.as_ref().and_then(|f| f.pressed(&buf[..n]));
+                    if let Some(mask) = held {
+                        if mask != self.held {
+                            changes.push((self.held, mask));
+                            self.held = mask;
+                        }
+                    } else if let Ok(frame) = hidlab_hidpp::decode(&buf[..n]) {
                         if hires_wheel::ratchet_event(&frame, *index).is_some() {
                             events += 1;
                         }
@@ -205,6 +217,24 @@ impl Daemon {
                     debug!("listener closed: {e}");
                     self.listener = None;
                     return;
+                }
+            }
+        }
+        if !changes.is_empty() || events > 0 {
+            let e = lock(&self.engine);
+            if e.watching_buttons() {
+                let mut out = Vec::new();
+                if let Some(f) = &self.buttons {
+                    for (before, after) in changes {
+                        out.extend(e.button_events(f, before, after));
+                    }
+                }
+                if events > 0 {
+                    out.push(Engine::mode_button_event());
+                }
+                drop(e);
+                for ev in &out {
+                    emit(&self.conn, "ButtonPressed", ev);
                 }
             }
         }
@@ -226,6 +256,12 @@ impl Daemon {
             Ok(None) => return,
             Err(err) => return warn!("cannot find 0x2121 to follow the mode button: {err}"),
         };
+        self.buttons = p
+            .device
+            .descriptor
+            .as_ref()
+            .and_then(|d| d.button_fields.first().copied());
+        self.held = 0;
         match Hidraw::open(&p.device.node) {
             Ok(h) => self.listener = Some((h, index)),
             Err(err) => warn!("cannot listen to the mouse: {err}"),
@@ -390,6 +426,8 @@ fn run() -> Result<(), String> {
         sleep_rx,
         sched: Scheduler::default(),
         listener: None,
+        buttons: None,
+        held: 0,
     };
     {
         let mut e = lock(&engine);

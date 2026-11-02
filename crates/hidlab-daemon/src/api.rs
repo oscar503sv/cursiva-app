@@ -10,10 +10,12 @@
 //! | `Reapply` | — | [`ReapplyReply`] JSON |
 //! | `Reset` | setting name or `all` | [`ResetReply`] JSON |
 //! | `SetDesktop` | [`DesktopSetting`] name, value | [`DesktopReply`] JSON |
+//! | `WatchButtons` | seconds (0 stops) | seconds granted |
 //!
 //! Signals: `DeviceChanged` ([`DeviceEvent`] JSON), `Applied`
-//! ([`ApplyRecord`] JSON), `ModeChanged` ([`ModeEvent`] JSON) and
-//! `BatteryChanged` ([`BatteryEvent`] JSON).
+//! ([`ApplyRecord`] JSON), `ModeChanged` ([`ModeEvent`] JSON),
+//! `BatteryChanged` ([`BatteryEvent`] JSON) and, while a `WatchButtons`
+//! lease lasts, `ButtonPressed` ([`ButtonEvent`] JSON).
 
 use hidlab_features::reprog_controls::RemapControl;
 use hidlab_features::settings::{SettingKind, SettingValue};
@@ -181,6 +183,22 @@ pub struct Battery {
 }
 
 pub const BATTERY_EVENT_SCHEMA: &str = "hid-lab.daemon-battery/1";
+pub const BUTTON_EVENT_SCHEMA: &str = "hid-lab.daemon-button/1";
+/// Longest `WatchButtons` lease; clients renew it while they show presses.
+pub const WATCH_BUTTONS_MAX_S: u32 = 60;
+
+/// A button went down or up on the mouse.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ButtonEvent {
+    pub schema: String,
+    /// Button number in the input report; `None` for the mode button, which
+    /// is seen through the SmartShift ratchet event (press only).
+    pub number: Option<u16>,
+    /// Control name (`left`, `back`, `mode`, ...), if known. A remapped
+    /// button reports the control whose task it performs.
+    pub control: Option<String>,
+    pub pressed: bool,
+}
 
 /// The battery of the managed mouse changed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
