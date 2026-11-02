@@ -938,7 +938,7 @@ D-Bus monitor capture is not committed (1.8 MB of other programs' traffic);
 | H5C-05 button presses | Pass | Buttons 1–5 named as expected, gesture = button 6, mode as ratchet event; remapped buttons showed their target (user report) |
 | H5C-06 GNOME settings | Pass | User report; values put back |
 | H5C-07 reset | Pass | `07-reset-all.txt`: threshold 20 written back to 10, the rest already at defaults; config and state updated |
-| H5C-08 D-Bus activation | **Fail**, cause found | `hid-lab status` answered "not running". The file was installed after login and dbus-broker had not read it: `ListActivatableNames` did not list the name until `ReloadConfig`. The install steps now reload the bus |
+| H5C-08 D-Bus activation | **Fail**, cause found | `hid-lab status` answered "not running". The file was installed after login and dbus-broker had not read it: `ListActivatableNames` did not list the name until `ReloadConfig`. The install steps now reload the bus. On the repeat, activation worked, but the first answer said "not connected": the daemon owned its name before looking for the mouse (fixed) |
 
 The HID device went from `.0005` to `.0008` during the tests (power
 cycles); the battery entry was `hidpp_battery_5`.
