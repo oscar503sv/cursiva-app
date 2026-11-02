@@ -21,7 +21,9 @@ use hidlab_daemon::sleep::{self, SleepEvent};
 use hidlab_daemon::{debug, error, info, log, paths, warn};
 use hidlab_devices::profile_for;
 use hidlab_features::hires_wheel;
-use hidlab_transport::{Hidraw, HotplugAction, HotplugEvent, HotplugMonitor, RawChannel};
+use hidlab_transport::{
+    Hidraw, HotplugAction, HotplugEvent, HotplugMonitor, PowerSupplyMonitor, RawChannel,
+};
 use serde::Serialize;
 use zbus::blocking::Connection;
 use zbus::fdo::{RequestNameFlags, RequestNameReply};
@@ -82,6 +84,8 @@ struct Daemon {
     engine: Arc<Mutex<Engine>>,
     conn: Connection,
     monitor: HotplugMonitor,
+    /// Battery changes; `None` if udev refused a second monitor.
+    batteries: Option<PowerSupplyMonitor>,
     /// `None` once the logind thread is gone (or never started).
     wake: Option<UnixStream>,
     sleep_rx: Receiver<SleepEvent>,
@@ -123,6 +127,28 @@ impl Daemon {
             self.sched.removed();
         }
         emit(&self.conn, "DeviceChanged", &event);
+    }
+
+    fn on_power_supply(&mut self) {
+        let Some(m) = &mut self.batteries else { return };
+        let mut hid_devices = Vec::new();
+        while let Some(ev) = m.try_next() {
+            hid_devices.push(ev.hid_device);
+        }
+        hid_devices.dedup();
+        for h in hid_devices {
+            let event = lock(&self.engine).on_power_supply(h.as_deref());
+            if let Some(ev) = event {
+                if let Some(b) = &ev.battery {
+                    debug!(
+                        "battery {}% {}",
+                        b.percent.map_or("?".into(), |p| p.to_string()),
+                        b.status.as_deref().unwrap_or("?")
+                    );
+                }
+                emit(&self.conn, "BatteryChanged", &ev);
+            }
+        }
     }
 
     fn on_wake(&mut self) {
@@ -260,14 +286,13 @@ impl Daemon {
                     .div_ceil(1000);
                 i32::try_from(ms).unwrap_or(i32::MAX)
             });
+            // poll skips negative fds.
             let mut fds = vec![
                 readable(self.monitor.as_raw_fd()),
-                // poll skips negative fds.
                 readable(self.wake.as_ref().map_or(-1, |w| w.as_raw_fd())),
+                readable(self.batteries.as_ref().map_or(-1, |b| b.as_raw_fd())),
+                readable(self.listener.as_ref().map_or(-1, |(h, _)| h.as_raw_fd())),
             ];
-            if let Some((h, _)) = &self.listener {
-                fds.push(readable(h.as_raw_fd()));
-            }
             // SAFETY: `fds` holds valid pollfds for fds owned by `self`, which
             // outlive the call; the length matches the vector.
             let rc = unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as libc::nfds_t, timeout) };
@@ -289,7 +314,10 @@ impl Daemon {
                     self.on_hotplug(&ev);
                 }
             }
-            if fds.get(2).is_some_and(|f| f.revents != 0) {
+            if fds[2].revents != 0 {
+                self.on_power_supply();
+            }
+            if fds[3].revents != 0 {
                 self.on_listener();
             }
             self.run_due();
@@ -308,6 +336,13 @@ fn run() -> Result<(), String> {
 
     // Listen before looking, so no connection is missed in between.
     let monitor = HotplugMonitor::new().map_err(|e| e.to_string())?;
+    let batteries = match PowerSupplyMonitor::new() {
+        Ok(m) => Some(m),
+        Err(e) => {
+            warn!("{e}\nBattery changes will show only on the next `hid-lab status`.");
+            None
+        }
+    };
     let engine = Arc::new(Mutex::new(Engine::new(config_path, state_path)));
 
     let conn = zbus::blocking::connection::Builder::session()
@@ -350,6 +385,7 @@ fn run() -> Result<(), String> {
         engine: Arc::clone(&engine),
         conn,
         monitor,
+        batteries,
         wake,
         sleep_rx,
         sched: Scheduler::default(),

@@ -7,11 +7,16 @@
 use std::time::Instant;
 
 use hidlab_devices::DeviceProfile;
-use hidlab_features::settings::{self, FieldCheck, SettingKind, SettingValue};
+use hidlab_features::dpi::DpiEntry;
+use hidlab_features::reprog_controls;
+use hidlab_features::settings::{self, FieldCheck, SettingKind, SettingValue, Snapshot};
 use hidlab_features::{ReadError, Reader, WriteAuth};
 use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
 use serde::{Deserialize, Serialize};
+
+use crate::api::{ButtonTargets, Capabilities, DpiRange};
+use crate::config::THRESHOLD_RANGE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -189,18 +194,93 @@ pub fn apply<C: RawChannel>(
     }
 }
 
+/// Reads the feature of every setting the profile lists (reads only), in
+/// the profile's order.
+pub fn read_snapshots<C: RawChannel>(
+    r: &mut Reader<'_, C>,
+    profile: &DeviceProfile,
+) -> Vec<Result<Snapshot, String>> {
+    profile
+        .settings
+        .iter()
+        .map(|&k| settings::snapshot(r, k).map_err(|e| e.to_string()))
+        .collect()
+}
+
+/// The current value of each setting in `snaps` (from [`read_snapshots`]).
+pub fn values_of(
+    profile: &DeviceProfile,
+    snaps: &[Result<Snapshot, String>],
+) -> Vec<Result<SettingValue, String>> {
+    profile
+        .settings
+        .iter()
+        .zip(snaps)
+        .map(|(&k, snap)| {
+            snap.as_ref().map_err(Clone::clone).and_then(|s| {
+                s.value(k)
+                    .ok_or_else(|| format!("{} not in the read answer", k.name()))
+            })
+        })
+        .collect()
+}
+
 /// Reads the current value of every setting the profile lists (reads only).
 pub fn read_current<C: RawChannel>(
     r: &mut Reader<'_, C>,
     profile: &DeviceProfile,
 ) -> Vec<Result<SettingValue, String>> {
-    profile
-        .settings
-        .iter()
-        .map(|&k| {
-            let snap = settings::snapshot(r, k).map_err(|e| e.to_string())?;
-            snap.value(k)
-                .ok_or_else(|| format!("{} not in the read answer", k.name()))
-        })
-        .collect()
+    values_of(profile, &read_snapshots(r, profile))
+}
+
+/// What the mouse accepts, from the snapshots of [`read_snapshots`]. `None`
+/// if the DPI list could not be read.
+pub fn capabilities(
+    profile: &DeviceProfile,
+    snaps: &[Result<Snapshot, String>],
+) -> Option<Capabilities> {
+    let mut dpi = None;
+    let mut buttons = Vec::new();
+    for (&k, snap) in profile.settings.iter().zip(snaps) {
+        match (k, snap) {
+            (SettingKind::Dpi, Ok(Snapshot::Dpi(d))) => {
+                dpi = Some(
+                    d.list
+                        .entries
+                        .iter()
+                        .map(|e| match *e {
+                            DpiEntry::Value { dpi } => DpiRange {
+                                from: dpi,
+                                to: dpi,
+                                step: 1,
+                            },
+                            DpiEntry::Range { from, to, step } => DpiRange { from, to, step },
+                        })
+                        .collect(),
+                );
+            }
+            (SettingKind::ButtonRemap(c), snap) => buttons.push(ButtonTargets {
+                button: c,
+                targets: match snap {
+                    Ok(Snapshot::Remap(s)) => s
+                        .targets
+                        .iter()
+                        .map(|&t| {
+                            reprog_controls::target_name(t)
+                                .map_or_else(|| format!("0x{t:04X}"), str::to_owned)
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                },
+            }),
+            _ => {}
+        }
+    }
+    Some(Capabilities {
+        dpi: dpi?,
+        threshold_min: *THRESHOLD_RANGE.start(),
+        threshold_max: *THRESHOLD_RANGE.end(),
+        buttons,
+        defaults: profile.defaults.to_vec(),
+    })
 }

@@ -9,12 +9,12 @@ use hidlab_features::settings::{SettingKind, SettingValue};
 use hidlab_features::{FeatureMap, Memo, Reader};
 use hidlab_features::{hires_wheel, smartshift};
 use hidlab_hidpp::{Session, SessionConfig, get_feature, get_protocol_version};
-use hidlab_transport::{Access, Hidraw, HidrawDevice, discover};
+use hidlab_transport::{Access, Hidraw, HidrawDevice, discover, power_supplies_for};
 
 use crate::api::{
-    ApplyRecord, CurrentValue, DEVICE_EVENT_SCHEMA, DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA,
-    ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA, ReapplyReply, ResetReply, SET_SCHEMA, STATUS_SCHEMA,
-    SecondCheck, SetReply, Status, Trigger,
+    ApplyRecord, BATTERY_EVENT_SCHEMA, Battery, BatteryEvent, CurrentValue, DEVICE_EVENT_SCHEMA,
+    DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA, ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA,
+    ReapplyReply, ResetReply, SET_SCHEMA, STATUS_SCHEMA, SecondCheck, SetReply, Status, Trigger,
 };
 use crate::apply::{self, ApplyReport, ItemResult};
 use crate::config::{Config, SmartShiftMode};
@@ -51,6 +51,8 @@ pub struct Engine {
     last_apply: Option<(ApplyRecord, Instant)>,
     /// Capability reads of the connected device; emptied when it goes away.
     memo: RefCell<Memo>,
+    /// The battery last sent in `BatteryChanged`.
+    last_battery: Option<Battery>,
 }
 
 /// Raw bytes, at debug level only (requirements §17).
@@ -132,6 +134,7 @@ impl Engine {
             present: None,
             last_apply: None,
             memo: RefCell::default(),
+            last_battery: None,
         }
     }
 
@@ -197,6 +200,7 @@ impl Engine {
         self.present = found;
         if changed {
             self.memo.take();
+            self.last_battery = self.battery();
         }
         changed.then(|| self.device_event())
     }
@@ -212,6 +216,7 @@ impl Engine {
         }
         self.present = None;
         self.memo.take();
+        self.last_battery = None;
         Some(self.device_event())
     }
 
@@ -611,23 +616,61 @@ impl Engine {
         })
     }
 
+    /// The battery of the connected mouse, from the kernel's power_supply.
+    pub fn battery(&self) -> Option<Battery> {
+        let hid = self.present.as_ref()?.device.hid_device.as_deref()?;
+        let supplies = match power_supplies_for(hid) {
+            Ok(s) => s,
+            Err(e) => {
+                debug!("cannot read the battery: {e}");
+                return None;
+            }
+        };
+        supplies.into_iter().next().map(|p| Battery {
+            percent: p.capacity,
+            level: p.capacity_level,
+            status: p.status,
+        })
+    }
+
+    /// A power_supply entry of `hid_device` changed. Returns an event if the
+    /// managed mouse's battery reads differently from the last time.
+    pub fn on_power_supply(&mut self, hid_device: Option<&str>) -> Option<BatteryEvent> {
+        let ours = self.present.as_ref()?.device.hid_device.as_deref();
+        if hid_device.is_none() || hid_device != ours {
+            return None;
+        }
+        let battery = self.battery();
+        if battery == self.last_battery {
+            return None;
+        }
+        self.last_battery.clone_from(&battery);
+        Some(BatteryEvent {
+            schema: BATTERY_EVENT_SCHEMA.into(),
+            battery,
+        })
+    }
+
     /// `GetStatus`. Reads the current values from the mouse (reads only).
     pub fn status(&self) -> Status {
+        let mut capabilities = None;
         let (desired, current) = match &self.present {
             Some(p) => {
                 let desired = self.desired(p.profile);
-                let current = match self.with_reader(apply::read_current) {
-                    Ok(values) => p
-                        .profile
-                        .settings
-                        .iter()
-                        .zip(values)
-                        .map(|(&setting, v)| CurrentValue {
-                            setting,
-                            error: v.as_ref().err().cloned(),
-                            value: v.ok(),
-                        })
-                        .collect(),
+                let current = match self.with_reader(apply::read_snapshots) {
+                    Ok(snaps) => {
+                        capabilities = apply::capabilities(p.profile, &snaps);
+                        p.profile
+                            .settings
+                            .iter()
+                            .zip(apply::values_of(p.profile, &snaps))
+                            .map(|(&setting, v)| CurrentValue {
+                                setting,
+                                error: v.as_ref().err().cloned(),
+                                value: v.ok(),
+                            })
+                            .collect()
+                    }
                     Err(e) => p
                         .profile
                         .settings
@@ -648,6 +691,11 @@ impl Engine {
                 Vec::new(),
             ),
         };
+        let saved_threshold = self
+            .target_profile()
+            .ok()
+            .and_then(|p| self.config.device(p))
+            .and_then(|d| d.saved_threshold());
         Status {
             schema: STATUS_SCHEMA.into(),
             daemon_version: env!("CARGO_PKG_VERSION").into(),
@@ -657,6 +705,9 @@ impl Engine {
             device: self.present.as_ref().map(info_for),
             desired,
             current,
+            saved_threshold,
+            battery: self.battery(),
+            capabilities,
             last_apply: self.last_apply().cloned(),
             conflicts: conflicts::scan(),
         }

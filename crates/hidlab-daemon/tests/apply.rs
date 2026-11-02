@@ -4,7 +4,8 @@
 mod common;
 
 use common::{FakeDevice, map_for};
-use hidlab_daemon::apply::{ItemResult, apply};
+use hidlab_daemon::api::DpiRange;
+use hidlab_daemon::apply::{ItemResult, apply, capabilities, read_snapshots, values_of};
 use hidlab_devices::MX_MASTER_3S;
 use hidlab_features::Reader;
 use hidlab_features::reprog_controls::RemapControl;
@@ -209,4 +210,49 @@ fn remaps_are_written_with_one_control_list_read() {
     // The control list is read once for the three buttons.
     assert_eq!((n(0), n(1)), (1, 4));
     assert!(seen.contains(&(0x1B04, 3)));
+}
+
+#[test]
+fn capabilities_come_from_the_same_reads() {
+    let (mut settings, mut keys) = (stateful(true).handler, buttons().handler);
+    let dev = FakeDevice::new(
+        &[0x2201, 0x2110, 0x2150, 0x1B04],
+        Box::new(move |id, f, p| {
+            if id == 0x1B04 {
+                keys(id, f, p)
+            } else {
+                settings(id, f, p)
+            }
+        }),
+    );
+    let mut s = dev.session();
+    let map = map_for(&mut s, &[0x2201, 0x2110, 0x2150, 0x1B04]);
+    let mut r = Reader::new(&mut s, map);
+    let snaps = read_snapshots(&mut r, &MX_MASTER_3S);
+    let caps = capabilities(&MX_MASTER_3S, &snaps).unwrap();
+    // SYNTHETIC list: 200 to 8000 in steps of 50.
+    assert_eq!(
+        caps.dpi,
+        [DpiRange {
+            from: 200,
+            to: 8000,
+            step: 50
+        }]
+    );
+    let back = caps
+        .buttons
+        .iter()
+        .find(|b| b.button == RemapControl::Back)
+        .unwrap();
+    assert_eq!(back.targets, ["back", "left", "middle", "forward"]);
+    // The fake has no gesture or mode control.
+    let mode = caps
+        .buttons
+        .iter()
+        .find(|b| b.button == RemapControl::ModeButton)
+        .unwrap();
+    assert!(mode.targets.is_empty());
+    assert_eq!(caps.defaults, MX_MASTER_3S.defaults);
+    let values = values_of(&MX_MASTER_3S, &snaps);
+    assert_eq!(values[0], Ok(SettingValue::Dpi(1000)));
 }

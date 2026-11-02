@@ -27,7 +27,7 @@ impl Service {
 
 #[interface(name = "dev.ozkkar.Cursiva.Daemon1")]
 impl Service {
-    /// Status JSON (`hid-lab.daemon-status/1`).
+    /// Status JSON (`hid-lab.daemon-status/3`).
     fn get_status(&self) -> fdo::Result<String> {
         json(&self.lock()?.status())
     }
@@ -100,4 +100,8 @@ impl Service {
     /// (`hid-lab.daemon-mode/1`).
     #[zbus(signal)]
     pub async fn mode_changed(emitter: &SignalEmitter<'_>, event: &str) -> zbus::Result<()>;
+
+    /// The mouse battery changed (`hid-lab.daemon-battery/1`).
+    #[zbus(signal)]
+    pub async fn battery_changed(emitter: &SignalEmitter<'_>, event: &str) -> zbus::Result<()>;
 }

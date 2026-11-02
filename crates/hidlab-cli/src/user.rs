@@ -95,8 +95,21 @@ pub fn status(json: bool) -> Result<(), String> {
         ),
         None => println!("Mouse:   not connected"),
     }
+    if let Some(b) = &s.battery {
+        println!(
+            "Battery: {}{}",
+            b.percent.map_or_else(
+                || b.level.clone().unwrap_or_else(|| "?".into()),
+                |p| format!("{p}%")
+            ),
+            b.status
+                .as_deref()
+                .map(|st| format!(", {}", st.to_lowercase()))
+                .unwrap_or_default()
+        );
+    }
     println!();
-    println!("  {:<22} {:<10} {:<10}", "setting", "wanted", "current");
+    println!("  {:<22} {:<18} {:<18}", "setting", "wanted", "current");
     let wanted = |k: SettingKind| s.desired.iter().find(|v| v.kind() == k).copied();
     for k in SettingKind::ALL {
         let current = s.current.iter().find(|c| c.setting == k);
@@ -115,10 +128,21 @@ pub fn status(json: bool) -> Result<(), String> {
             _ => "",
         };
         println!(
-            "  {:<22} {:<10} {:<10} {mark}",
+            "  {:<22} {:<18} {:<18} {mark}",
             k.name(),
             want.as_deref().unwrap_or("-"),
             cur
+        );
+    }
+    let off = wanted(SettingKind::SmartshiftThreshold)
+        == Some(
+            hidlab_features::settings::SettingValue::SmartshiftThreshold(
+                hidlab_features::settings::THRESHOLD_OFF,
+            ),
+        );
+    if let (true, Some(t)) = (off, s.saved_threshold) {
+        println!(
+            "\nSmartShift switching is off; `hid-lab set smartshift-threshold on` restores {t}."
         );
     }
     if let Some(e) = s.current.iter().find_map(|c| c.error.as_deref()) {

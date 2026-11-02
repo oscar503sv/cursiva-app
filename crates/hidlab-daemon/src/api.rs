@@ -11,8 +11,10 @@
 //! | `Reset` | setting name or `all` | [`ResetReply`] JSON |
 //!
 //! Signals: `DeviceChanged` ([`DeviceEvent`] JSON), `Applied`
-//! ([`ApplyRecord`] JSON) and `ModeChanged` ([`ModeEvent`] JSON).
+//! ([`ApplyRecord`] JSON), `ModeChanged` ([`ModeEvent`] JSON) and
+//! `BatteryChanged` ([`BatteryEvent`] JSON).
 
+use hidlab_features::reprog_controls::RemapControl;
 use hidlab_features::settings::{SettingKind, SettingValue};
 use serde::{Deserialize, Serialize};
 
@@ -25,7 +27,7 @@ pub const INTERFACE: &str = "dev.ozkkar.Cursiva.Daemon1";
 /// systemd user unit, for messages.
 pub const UNIT: &str = "hid-labd.service";
 
-pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/2";
+pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/3";
 pub const SET_SCHEMA: &str = "hid-lab.daemon-set/1";
 pub const REAPPLY_SCHEMA: &str = "hid-lab.daemon-reapply/1";
 pub const RESET_SCHEMA: &str = "hid-lab.daemon-reset/1";
@@ -120,6 +122,55 @@ pub struct ModeEvent {
 
 pub const MODE_EVENT_SCHEMA: &str = "hid-lab.daemon-mode/1";
 
+/// The mouse battery as the kernel reports it (`/sys/class/power_supply`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Battery {
+    /// `capacity`, percent.
+    pub percent: Option<u8>,
+    /// `capacity_level`, e.g. `Normal`, `Low`, `Critical`.
+    pub level: Option<String>,
+    /// `status`, e.g. `Discharging`, `Charging`, `Full`.
+    pub status: Option<String>,
+}
+
+pub const BATTERY_EVENT_SCHEMA: &str = "hid-lab.daemon-battery/1";
+
+/// The battery of the managed mouse changed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatteryEvent {
+    pub schema: String,
+    pub battery: Option<Battery>,
+}
+
+/// DPI values the mouse accepts: `from` to `to` in steps of `step`; a single
+/// value has `from == to`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DpiRange {
+    pub from: u16,
+    pub to: u16,
+    pub step: u16,
+}
+
+/// What one button may be remapped to, as reported by the mouse.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ButtonTargets {
+    pub button: RemapControl,
+    /// Target names for `remap-<button>`, itself first. Empty if the mouse
+    /// does not allow remapping it.
+    pub targets: Vec<String>,
+}
+
+/// What the connected mouse accepts, for the app to build its controls.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Capabilities {
+    pub dpi: Vec<DpiRange>,
+    pub threshold_min: u8,
+    pub threshold_max: u8,
+    pub buttons: Vec<ButtonTargets>,
+    /// What `hid-lab reset` writes.
+    pub defaults: Vec<SettingValue>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Status {
     pub schema: String,
@@ -133,6 +184,13 @@ pub struct Status {
     pub desired: Vec<SettingValue>,
     /// Read from the mouse for this status call; empty without a device.
     pub current: Vec<CurrentValue>,
+    /// The threshold kept in the config file, also while SmartShift is off
+    /// (`desired` then holds 255).
+    pub saved_threshold: Option<u8>,
+    /// `None` without a device or when the kernel lists no battery.
+    pub battery: Option<Battery>,
+    /// `None` without a device or when it could not be read.
+    pub capabilities: Option<Capabilities>,
     pub last_apply: Option<ApplyRecord>,
     pub conflicts: Vec<Conflict>,
 }
