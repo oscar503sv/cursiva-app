@@ -14,7 +14,7 @@ Instructions for Claude Code working in this repository. Read this file fully be
 
 Names: the desktop app is **Cursiva** (app ID `dev.ozkkar.Cursiva`); the daemon's D-Bus name is `dev.ozkkar.Cursiva.Daemon1`. The CLI (`hid-lab`) and the crates (`hidlab-*`) keep the hid-lab names.
 
-Repository: `git@github.com:oscar503sv/cursiva-app.git` (https://github.com/oscar503sv/cursiva-app). The project is meant to be public and open to contributors; packaging targets are RPM and, for the GUI, possibly Flathub. Project contact email (metadata, AppStream, User-Agent): `oscar@ozkkar.dev`. Never put any other email in the repository or in requests.
+Repository: `git@github.com:oscar503sv/cursiva-app.git` (https://github.com/oscar503sv/cursiva-app). The project is meant to be public and open to contributors; packaging targets are RPM and, for the GUI, possibly Flathub. Project contact email (metadata, AppStream, User-Agent): `oscar@ozkkar.dev`. Git commit author email: `ozkar@outlook.com` (the address GitHub links to the user's account). Never put any other email in the repository or in requests.
 
 The user communicates in **Spanish**. Reply in Spanish; code, comments, commit messages and docs in English.
 
