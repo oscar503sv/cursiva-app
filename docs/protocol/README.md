@@ -851,3 +851,65 @@ Other findings:
 - At the end `lab-write/` held only `log.jsonl` (every original restored),
   the daemon started and `hid-lab status` showed the four settings `ok`.
 
+
+
+## Milestone 5c — daemon API v2
+
+### Observation O-11 (2026-11-02) — daemon reads during phase 5c
+
+Claude Code ran a test instance of `hid-labd` on a private D-Bus session
+with an empty config and state in a temporary directory, so it wanted
+nothing and sent reads only, while the user's own daemon kept running.
+Evidence: `evidence/m5c/daemon-start-debug.log` (one start, debug level;
+the temporary path is replaced with `<test-dir>`) and
+`evidence/m5c/report-descriptor.txt` (read from sysfs).
+
+- 29 matched request/answer pairs took 11.9 to 23.7 ms each, median
+  15.0 ms (P-015 had about 15 ms in O-1).
+- 0x1B04 getCount answered 8 and the eight getCidInfo answers matched
+  P-024. Reading every remap control cold took 14 requests (count, eight
+  infos, five reportings), about 230 ms.
+- `hid-lab status` answered in 475 ms the first time after a start (it
+  reads the capabilities) and in 180 ms afterwards (wall time of the
+  command).
+- `hid-lab status` showed the kernel's battery entry at 40 %,
+  `Discharging`.
+
+### T-2 — Input report 0x02 over Bluetooth
+
+Source: the report descriptor (`evidence/m5c/report-descriptor.txt`),
+decoded with the HID 1.11 item rules.
+
+```text
+report 0x02 (Generic Desktop, Mouse)
+  bits  0..15  16 buttons, usage Button 1..16, 1 bit each
+  bits 16..39  X, Y: 12 bits each, relative, -2047..2047
+  bits 40..47  Wheel, 8 bits, relative
+  bits 48..55  AC Pan (consumer 0x0238), 8 bits, relative
+report 0x11 (vendor 0xFF43): 19 bytes in, 19 bytes out (HID++ long)
+```
+
+| Fact | Status | Evidence |
+|---|---|---|
+| The descriptor declares the layout above | **CONFIRMED** | Read from sysfs on the user's machine; `crates/hidlab-transport/src/descriptor.rs` test |
+| Buttons 1 to 5 are left, right, middle, back and forward | HYPOTHESIS | Usual HID mouse order; to be checked with `hid-lab buttons` (H5C-05) |
+| Which button bit the gesture button sets, and whether the mode button sets one | UNKNOWN | H5C-05 |
+| A remapped control sets the bit of its target | HYPOTHESIS | Follows from P-036 (the target's task); H5C-05 |
+
+The daemon already receives these reports on its read-only listener
+(P-014) and skips them; during a `WatchButtons` lease it reports changes
+of the button bits.
+
+### P-037 — Battery changes reach udev
+
+Source: R-1 `hid-logitech-hidpp.c` calls `power_supply_changed()` for the
+battery each time the device reports a new battery state (eight call sites,
+including the unified battery 0x1004 path). The Linux power_supply core,
+not read for this entry, sends a `change` uevent for it.
+
+| Fact | Status | Evidence |
+|---|---|---|
+| The driver calls `power_supply_changed()` on battery events | **CONFIRMED** (source) | R-1 at the pinned commit |
+| A udev `change` event for `power_supply` follows, with the HID device in its path | LIKELY | Not observed yet; H5C-04 |
+
+The daemon follows these events (no polling) and emits `BatteryChanged`.

@@ -1,0 +1,70 @@
+# hid-labd debug log, test instance on a private D-Bus session (dbus-run-session),
+# empty config and state in a temporary directory, 2026-11-02, phase 5c.
+# The daemon wanted nothing, so it sent reads only. Sanitized: the temporary
+# directory path is replaced with <test-dir>. No unit ID or Bluetooth address
+# appears (the daemon reads neither).
+hid-labd info: hid-labd 0.1.0 starting; config <test-dir>/cfg/hid-lab/config.toml
+hid-labd info: serving dev.ozkkar.Cursiva.Daemon1 at /dev/ozkkar/Cursiva/Daemon1
+hid-labd info: MX Master 3S connected at /dev/hidraw2 (0005:046D:B034.0005, access ok)
+hid-labd debug:       4 us Tx Sent 11 ff 00 1c 00 00 c5 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:       8 us Tx Sent 11 ff 00 1c 00 00 c5 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   11923 us Rx Matched 11 ff 00 1c 04 05 c5 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:       6 us Tx Sent 11 ff 00 0c 21 21 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   22869 us Rx Matched 11 ff 00 0c 0f 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug: conflict scan took 16 ms
+hid-labd debug:      27 us Tx Sent 11 ff 00 0c 1b 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   21544 us Rx Matched 11 ff 00 0c 09 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   21598 us Tx Sent 11 ff 00 0c 21 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   35277 us Rx Matched 11 ff 00 0c 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   35329 us Tx Sent 11 ff 00 0c 21 50 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   50352 us Rx Matched 11 ff 00 0c 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   50399 us Tx Sent 11 ff 00 0c 22 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   66342 us Rx Matched 11 ff 00 0c 0d 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd info: Start: applied 0 setting(s) in 0 ms, 568 ms after the event: verified
+hid-labd debug:      24 us Tx Sent 11 ff 00 0c 1b 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   17179 us Rx Matched 11 ff 00 0c 09 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   17215 us Tx Sent 11 ff 00 0c 21 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   40891 us Rx Matched 11 ff 00 0c 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   40945 us Tx Sent 11 ff 00 0c 21 50 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   55155 us Rx Matched 11 ff 00 0c 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   55190 us Tx Sent 11 ff 00 0c 22 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   70284 us Rx Matched 11 ff 00 0c 0d 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   70336 us Tx Sent 11 ff 0d 1c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:   85256 us Rx Matched 11 ff 0d 1c 00 00 c8 e0 32 1f 40 00 00 00 00 00 00 00 00 00
+hid-labd debug:   85303 us Tx Sent 11 ff 0d 2c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  107210 us Rx Matched 11 ff 0d 2c 00 03 e8 03 e8 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  107254 us Tx Sent 11 ff 0e 0c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  123396 us Rx Matched 11 ff 0e 0c 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  123438 us Tx Sent 11 ff 0e 0c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  145210 us Rx Matched 11 ff 0e 0c 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  145269 us Tx Sent 11 ff 10 1c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  160285 us Rx Matched 11 ff 10 1c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  160333 us Tx Sent 11 ff 09 0c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  175339 us Rx Matched 11 ff 09 0c 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  175388 us Tx Sent 11 ff 09 1c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  190239 us Rx Matched 11 ff 09 1c 00 50 00 38 01 00 01 01 04 00 00 00 00 00 00 00
+hid-labd debug:  190305 us Tx Sent 11 ff 09 1c 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  205298 us Rx Matched 11 ff 09 1c 00 51 00 39 01 00 01 01 04 00 00 00 00 00 00 00
+hid-labd debug:  205365 us Tx Sent 11 ff 09 1c 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  220316 us Rx Matched 11 ff 09 1c 00 52 00 3a 31 00 02 03 05 00 00 00 00 00 00 00
+hid-labd debug:  220385 us Tx Sent 11 ff 09 1c 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  242324 us Rx Matched 11 ff 09 1c 00 53 00 3c 31 00 02 03 05 00 00 00 00 00 00 00
+hid-labd debug:  242395 us Tx Sent 11 ff 09 1c 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  257277 us Rx Matched 11 ff 09 1c 00 56 00 3e 31 00 02 03 05 00 00 00 00 00 00 00
+hid-labd debug:  257352 us Tx Sent 11 ff 09 1c 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  272261 us Rx Matched 11 ff 09 1c 00 c3 00 a9 31 00 02 03 05 00 00 00 00 00 00 00
+hid-labd debug:  272332 us Tx Sent 11 ff 09 1c 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  287140 us Rx Matched 11 ff 09 1c 00 c4 00 9d 31 00 02 03 05 00 00 00 00 00 00 00
+hid-labd debug:  287207 us Tx Sent 11 ff 09 1c 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  310208 us Rx Matched 11 ff 09 1c 00 d7 00 b4 a0 00 03 00 03 00 00 00 00 00 00 00
+hid-labd debug:  310280 us Tx Sent 11 ff 09 2c 00 52 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  325282 us Rx Matched 11 ff 09 2c 00 52 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  325408 us Tx Sent 11 ff 09 2c 00 53 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  340254 us Rx Matched 11 ff 09 2c 00 53 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  340392 us Tx Sent 11 ff 09 2c 00 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  355246 us Rx Matched 11 ff 09 2c 00 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  355379 us Tx Sent 11 ff 09 2c 00 c3 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  370241 us Rx Matched 11 ff 09 2c 00 c3 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  370382 us Tx Sent 11 ff 09 2c 00 c4 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd debug:  393397 us Rx Matched 11 ff 09 2c 00 c4 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+hid-labd info: second check 1964 ms after the event: nothing overwritten
