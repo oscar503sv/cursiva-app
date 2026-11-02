@@ -23,13 +23,13 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 0 Diagnosis | Done. Cause: missing `uaccess` udev rule |
 | 1 + 2 Discovery, HID++ core, feature enumeration | Done, framing CONFIRMED |
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
-| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Approved. 4a done (H4, O-6). 4b done (H4B, O-7). 4c implemented; wait for the user's §7 acceptance results (M4c) before closing milestone 4 |
+| 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
 | 5–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
 
-- Fedora 44, kernel `7.2.11-200.fc44.x86_64`, BlueZ 5.87, GNOME on Wayland.
+- Fedora 44, kernel `7.2.11-200.fc44.x86_64` at Milestone 0 and `7.2.14-200.fc44.x86_64` at M4c, BlueZ 5.87, GNOME on Wayland.
 - The mouse is used over **Bluetooth**. Bluetooth HID ID `0005:046D:B034`, via `uhid`.
 - The hidraw number is **not stable**. Locate the device by bus/vendor/product from sysfs, never by `/dev/hidrawN`.
 - Kernel driver `logitech-hidpp-device` stays bound; hid-lab coexists with it (CONFIRMED, P-014). The kernel **writes** the 0x2121 wheel mode (high resolution on) when the mouse connects; hid-lab must not write 0x2121.
@@ -39,7 +39,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 - Main-wheel scroll direction is GNOME's natural-scrolling setting, not a device write.
 - Write functions CONFIRMED by H4: 0x2201 setSensorDpi, 0x2110 setRatchetControlMode (mode and threshold; `00` in the other byte means no change), 0x2150 setThumbwheelReporting.
 - A 0x2110 mode write, like the mode button, produces a 0x2121 f1 notification. Automatic switching by the threshold does not.
-- Switching the mouse off resets DPI and thumb-wheel inversion (CONFIRMED, P-033). The threshold reset and the SmartShift mode surviving are LIKELY (one observation each).
+- Switching the mouse off resets DPI, threshold and thumb-wheel inversion to 1000, 10 and off, and keeps the SmartShift mode (CONFIRMED, P-033). A channel switch, a suspend or GNOME Bluetooth off/on that reconnects does the same (LIKELY, one run each).
 
 ## Workspace
 
