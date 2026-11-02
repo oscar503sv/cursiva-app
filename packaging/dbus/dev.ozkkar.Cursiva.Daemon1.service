@@ -1,0 +1,12 @@
+# D-Bus activation of hid-labd: a call to dev.ozkkar.Cursiva.Daemon1 (from
+# the Cursiva app or `hid-lab`) starts hid-labd.service if it is not
+# running. The bus asks systemd to start the unit; Exec is never run.
+# Install, as your normal user (no root):
+#   install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
+#     ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
+# See docs/daemon.md.
+
+[D-BUS Service]
+Name=dev.ozkkar.Cursiva.Daemon1
+Exec=/bin/false
+SystemdService=hid-labd.service
