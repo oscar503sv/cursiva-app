@@ -5,11 +5,21 @@
 //! and Solaar `hidpp20.py` (`KeysArrayV4._query_key`: CID, TID, flags1,
 //! pos, group, gmask, flags2; `_getCidReporting` 0x20: CID, mapping flags 1,
 //! mapped-to CID, mapping flags 2; flag names from `KeyFlag` and
-//! `MappingFlag`). Status: LIKELY. setCidReporting (0x30) is never called.
+//! `MappingFlag`). Status: LIKELY.
+//!
+//! setCidReporting (function 3) is sent only by `hid-lab lab write` to remap
+//! a control (see [`RemapControl`]), never to divert one. Source: Solaar
+//! `ReprogrammableKeyV4._setCidReporting` and `remappable_to`: the
+//! parameters are the CID (2 bytes, big-endian), a flags byte (0 changes no
+//! reporting flag) and the target CID (2 bytes; 0 keeps the mapping). A
+//! control may be remapped to itself or to any control whose group is in its
+//! group mask (bit `n` of the mask = group `n + 1`). The kernel sends the
+//! same function, with the CID and flags layout, only to divert buttons of
+//! the Signature M650.
 
 use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::reader::{ReadError, Reader};
 use crate::util::{bit_names, need, soft, tail_hex, unknown_bits};
@@ -68,6 +78,77 @@ const TID_NAMES: &[(u16, &str)] = &[
     (0x00A9, "GESTURE_BUTTON_NAVIGATION"),
     (0x00B4, "VIRTUAL_GESTURE_BUTTON"),
 ];
+
+/// A control `hid-lab lab write` may remap, by its control ID (Solaar
+/// `special_keys.CONTROL`; which physical button each one is, is LIKELY,
+/// P-024).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RemapControl {
+    Middle,
+    Back,
+    Forward,
+    Gesture,
+    #[serde(rename = "mode")]
+    ModeButton,
+}
+
+impl RemapControl {
+    pub const ALL: [RemapControl; 5] = [
+        RemapControl::Middle,
+        RemapControl::Back,
+        RemapControl::Forward,
+        RemapControl::Gesture,
+        RemapControl::ModeButton,
+    ];
+
+    pub fn cid(self) -> u16 {
+        match self {
+            RemapControl::Middle => 0x0052,
+            RemapControl::Back => 0x0053,
+            RemapControl::Forward => 0x0056,
+            RemapControl::Gesture => 0x00C3,
+            RemapControl::ModeButton => 0x00C4,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            RemapControl::Middle => "middle",
+            RemapControl::Back => "back",
+            RemapControl::Forward => "forward",
+            RemapControl::Gesture => "gesture",
+            RemapControl::ModeButton => "mode",
+        }
+    }
+}
+
+/// Names accepted as remap targets, by control ID (same source as
+/// [`RemapControl`]). Whether a target is allowed for a control is decided
+/// by the device's groups, not by this list.
+pub const TARGET_NAMES: &[(&str, u16)] = &[
+    ("left", 0x0050),
+    ("right", 0x0051),
+    ("middle", 0x0052),
+    ("back", 0x0053),
+    ("forward", 0x0056),
+    ("gesture", 0x00C3),
+    ("mode", 0x00C4),
+];
+
+pub fn target_cid(name: &str) -> Option<u16> {
+    TARGET_NAMES
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, c)| *c)
+}
+
+pub fn target_name(cid: u16) -> Option<&'static str> {
+    TARGET_NAMES
+        .iter()
+        .find(|(_, c)| *c == cid)
+        .map(|(n, _)| *n)
+}
 
 fn lookup(table: &[(u16, &'static str)], id: u16) -> Option<&'static str> {
     table.iter().find(|(k, _)| *k == id).map(|(_, n)| *n)
@@ -167,6 +248,64 @@ pub fn decode_reporting(p: &[u8]) -> Result<(u16, Reporting), ReadError> {
     ))
 }
 
+/// What a remap of one control needs: its groups, the targets the device
+/// allows, and its current reporting.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RemapState {
+    pub control: u16,
+    pub group_mask: u8,
+    /// Control IDs it may be mapped to, itself first.
+    pub targets: Vec<u16>,
+    pub reporting: Reporting,
+}
+
+/// Targets allowed for `control` among `all` (Solaar `remappable_to`): none
+/// when its group mask is 0, otherwise itself and every control whose group
+/// is in the mask.
+pub fn remap_targets(all: &[Control], control: &Control) -> Vec<u16> {
+    if control.group_mask == 0 {
+        return Vec::new();
+    }
+    let mut out = vec![control.cid_value];
+    for c in all {
+        let in_mask = (1..=8).contains(&c.group) && control.group_mask & (1 << (c.group - 1)) != 0;
+        if in_mask && c.cid_value != control.cid_value {
+            out.push(c.cid_value);
+        }
+    }
+    out
+}
+
+/// Reads every control's info and the reporting of `cid` (reads only).
+pub fn read_remap<C: RawChannel>(r: &mut Reader<'_, C>, cid: u16) -> Result<RemapState, ReadError> {
+    let p = r.call(FEATURE, 0, &[])?;
+    need(&p, 1, "getCount")?;
+    let mut controls = Vec::new();
+    for index in 0..p[0] {
+        controls.push(decode_info(index, &r.call(FEATURE, 1, &[index])?)?);
+    }
+    let control = controls
+        .iter()
+        .find(|c| c.cid_value == cid)
+        .ok_or_else(|| ReadError::Decode {
+            what: "getCidInfo",
+            reason: format!("the device has no control 0x{cid:04X}"),
+        })?;
+    let (echoed, reporting) = decode_reporting(&r.call(FEATURE, 2, &cid.to_be_bytes())?)?;
+    if echoed != cid {
+        return Err(ReadError::Decode {
+            what: "getCidReporting",
+            reason: format!("asked for 0x{cid:04X}, answered with CID 0x{echoed:04X}"),
+        });
+    }
+    Ok(RemapState {
+        control: cid,
+        group_mask: control.group_mask,
+        targets: remap_targets(&controls, control),
+        reporting,
+    })
+}
+
 pub fn read<C: RawChannel>(r: &mut Reader<'_, C>) -> Result<ReprogControls, ReadError> {
     let p = r.call(FEATURE, 0, &[])?;
     need(&p, 1, "getCount")?;
@@ -222,6 +361,27 @@ mod tests {
         );
         assert_eq!(c.unknown_flag_bits, None);
         assert!(decode_info(0, &[0; 8]).is_err());
+    }
+
+    #[test]
+    fn remap_targets_follow_groups() {
+        // SYNTHETIC controls with the group layout of P-024: left/right in
+        // group 1 (mask 1), five buttons in group 2 (mask 3), virtual in 3.
+        let info = |i: u8, cid: u8, group: u8, gmask: u8| {
+            decode_info(i, &[0, cid, 0, 0, 0x31, 0, group, gmask, 0]).unwrap()
+        };
+        let all = [
+            info(0, 0x50, 1, 1),
+            info(1, 0x51, 1, 1),
+            info(2, 0x52, 2, 3),
+            info(3, 0x53, 2, 3),
+            info(4, 0xD7, 3, 0),
+        ];
+        assert_eq!(remap_targets(&all, &all[3]), [0x53, 0x50, 0x51, 0x52]);
+        assert_eq!(remap_targets(&all, &all[0]), [0x50, 0x51]);
+        assert!(remap_targets(&all, &all[4]).is_empty());
+        assert_eq!(target_cid("back"), Some(RemapControl::Back.cid()));
+        assert_eq!(target_name(0x00C4), Some("mode"));
     }
 
     #[test]

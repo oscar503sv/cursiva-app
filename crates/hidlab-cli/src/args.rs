@@ -182,8 +182,12 @@ Usage:
 Settings and values:
   dpi <n>                         a value from the list `hid-lab lab read` shows
   smartshift-mode <ratchet|free-spin>
-  smartshift-threshold <1..50>
+  smartshift-threshold <1..50|off>
   thumbwheel-invert <on|off>
+  remap-<button> <target|default>
+      <button>: middle, back, forward, gesture, mode (the button behind the wheel)
+      <target>: left, right, middle, back, forward, gesture, mode; the mouse
+                decides which targets each button allows
 
 What it does:
   1. Shows the target device and reads the current value.
@@ -201,8 +205,10 @@ Originals and a log of every write are kept in
 $XDG_STATE_HOME/hid-lab/lab-write/ (default ~/.local/state/hid-lab/lab-write/).
 
 This command exists to confirm write functions on the real device, one at a
-time (requirements §13). The four settings above were confirmed by the
-hardware tests H4; the JSON output shows each function's status.
+time (requirements §13). dpi, smartshift-mode, smartshift-threshold 1..50
+and thumbwheel-invert were confirmed by the hardware tests H4. Threshold
+`off` and remap-* are being tested (H5); the daemon does not send them. The
+output shows each function's status.
 ";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -108,6 +108,18 @@ fn apply_one<C: RawChannel>(
             error: None,
         });
     }
+    if !target.confirmed() {
+        return Ok(not_applied(
+            ItemResult::Rejected,
+            target,
+            before,
+            format!(
+                "{} {} has not been confirmed on the mouse; not sent",
+                target.kind().name(),
+                target.display()
+            ),
+        ));
+    }
     let plan = match settings::plan(&before_snap, target) {
         Ok(p) => p,
         Err(e) => return Ok(not_applied(ItemResult::Rejected, target, before, e)),

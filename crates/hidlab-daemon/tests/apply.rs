@@ -110,6 +110,20 @@ fn invalid_dpi_is_not_sent() {
 }
 
 #[test]
+fn unconfirmed_values_are_not_sent() {
+    let mut s = stateful(true).session();
+    let map = map_for(&mut s, &FEATURES);
+    let mut r = Reader::new(&mut s, map);
+    let report = apply(
+        &mut r,
+        &MX_MASTER_3S,
+        &[SettingValue::SmartshiftThreshold(255)],
+    );
+    assert_eq!(report.items[0].result, ItemResult::Rejected);
+    assert!(!s.into_parts().0.seen.contains(&(0x2110, 1)));
+}
+
+#[test]
 fn a_silent_device_stops_the_run() {
     let mut dev = stateful(true);
     dev.silent = vec![0x2201];

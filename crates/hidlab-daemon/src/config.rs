@@ -120,7 +120,8 @@ impl DeviceConfig {
         self.smartshift.as_ref().and_then(|s| s.mode)
     }
 
-    /// Stores `v` (any setting except the mode, which belongs to the state).
+    /// Stores `v` (any setting except the mode, which belongs to the state,
+    /// and values the daemon may not send, which callers refuse first).
     pub fn set(&mut self, v: SettingValue) {
         match v {
             SettingValue::Dpi(d) => self.dpi = Some(d),
@@ -132,7 +133,7 @@ impl DeviceConfig {
             SettingValue::ThumbwheelInvert(i) => {
                 self.thumbwheel.get_or_insert_with(Default::default).invert = Some(i);
             }
-            SettingValue::SmartshiftMode(_) => {}
+            SettingValue::SmartshiftMode(_) | SettingValue::ButtonRemap(..) => {}
         }
     }
 }

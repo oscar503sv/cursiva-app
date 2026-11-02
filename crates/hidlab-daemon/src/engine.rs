@@ -459,6 +459,13 @@ impl Engine {
             format!("unknown setting `{setting}`; known: {}", names.join(", "))
         })?;
         let target = kind.parse_value(value)?;
+        if !target.confirmed() {
+            return Err(format!(
+                "{setting} {} has not been confirmed on the mouse yet, so the daemon does not \
+                 send it; it can only be tried with `hid-lab lab write`",
+                target.display()
+            ));
+        }
         let profile = self.target_profile()?;
         if !profile.supports(kind) {
             return Err(format!("{} does not support {setting}", profile.name));

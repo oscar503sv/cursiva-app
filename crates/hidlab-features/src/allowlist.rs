@@ -69,6 +69,8 @@ pub const WRITE_EXPERIMENT_ALLOWLIST: &[ReadFn] = &[
     r(0x2201, 3, "setSensorDpi", "solaar"),
     r(0x2110, 1, "setRatchetControlMode", "solaar"),
     r(0x2150, 2, "setThumbwheelReporting", "solaar"),
+    // Remap only: `settings::plan` always sends flags byte 0 (no diversion).
+    r(0x1B04, 3, "setCidReporting", "kernel, solaar"),
 ];
 
 /// Writes hid-lab must never send: the kernel owns the
@@ -158,7 +160,7 @@ mod tests {
             .iter()
             .map(|w| (w.feature.0, w.function))
             .collect();
-        assert_eq!(got, [(0x2201, 3), (0x2110, 1), (0x2150, 2)]);
+        assert_eq!(got, [(0x2201, 3), (0x2110, 1), (0x2150, 2), (0x1B04, 3)]);
         for &(f, func) in NEVER_WRITE {
             assert!(write_allowed(FeatureId(f), func).is_none());
             assert!(allowed(FeatureId(f), func).is_none());

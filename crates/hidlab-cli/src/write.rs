@@ -151,7 +151,9 @@ pub fn run(args: &WriteArgs) -> Result<(), String> {
                 function: w.function,
                 name: w.name,
                 source: w.source,
-                status: if confirmed_write(w.feature, w.function).is_some() {
+                status: if confirmed_write(w.feature, w.function).is_some()
+                    && args.value.is_none_or(SettingValue::confirmed)
+                {
                     "CONFIRMED"
                 } else {
                     "LIKELY"

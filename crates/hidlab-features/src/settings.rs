@@ -13,22 +13,47 @@
 //!   "no change" (CONFIRMED, P-031).
 //! - Thumb wheel: `ThumbInvert` writes function 0x20 with byte 1 bit 0 =
 //!   invert, keeping the other bits of the current value.
+//!
+//! Values the daemon may not send yet (see [`SettingValue::confirmed`]):
+//! - SmartShift threshold `off` (255): Solaar's `SmartShift` writes 255 for
+//!   "always ratcheted" (its setting caps at 50 and maps 50 to 255).
+//! - Button remapping with 0x1B04 setCidReporting (see `reprog_controls`).
 
 use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::reader::{ReadError, Reader, WriteAuth};
+use crate::reprog_controls::{self, RemapControl};
 use crate::{dpi, smartshift, thumbwheel};
 
-/// A setting hid-lab can change.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+/// SmartShift threshold that keeps the wheel ratcheted (Solaar `SmartShift`).
+pub const THRESHOLD_OFF: u8 = 255;
+
+/// A setting hid-lab can change. Serialized as its name, e.g. `dpi` or
+/// `remap-back`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingKind {
     Dpi,
     SmartshiftMode,
     SmartshiftThreshold,
     ThumbwheelInvert,
+    /// What one control does (0x1B04 remap). `hid-lab lab write` only.
+    ButtonRemap(RemapControl),
+}
+
+impl Serialize for SettingKind {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(self.name())
+    }
+}
+
+impl<'de> Deserialize<'de> for SettingKind {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let name = String::deserialize(d)?;
+        SettingKind::from_name(&name)
+            .ok_or_else(|| serde::de::Error::custom(format!("unknown setting `{name}`")))
+    }
 }
 
 impl SettingKind {
@@ -39,17 +64,37 @@ impl SettingKind {
         SettingKind::ThumbwheelInvert,
     ];
 
+    /// Settings only `hid-lab lab write` accepts, until their writes are
+    /// confirmed on the mouse.
+    pub const EXPERIMENTAL: [SettingKind; 5] = [
+        SettingKind::ButtonRemap(RemapControl::Middle),
+        SettingKind::ButtonRemap(RemapControl::Back),
+        SettingKind::ButtonRemap(RemapControl::Forward),
+        SettingKind::ButtonRemap(RemapControl::Gesture),
+        SettingKind::ButtonRemap(RemapControl::ModeButton),
+    ];
+
     pub fn name(self) -> &'static str {
         match self {
             SettingKind::Dpi => "dpi",
             SettingKind::SmartshiftMode => "smartshift-mode",
             SettingKind::SmartshiftThreshold => "smartshift-threshold",
             SettingKind::ThumbwheelInvert => "thumbwheel-invert",
+            SettingKind::ButtonRemap(c) => match c {
+                RemapControl::Middle => "remap-middle",
+                RemapControl::Back => "remap-back",
+                RemapControl::Forward => "remap-forward",
+                RemapControl::Gesture => "remap-gesture",
+                RemapControl::ModeButton => "remap-mode",
+            },
         }
     }
 
     pub fn from_name(name: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|k| k.name() == name)
+        Self::ALL
+            .into_iter()
+            .chain(Self::EXPERIMENTAL)
+            .find(|k| k.name() == name)
     }
 
     pub fn feature(self) -> FeatureId {
@@ -57,6 +102,7 @@ impl SettingKind {
             SettingKind::Dpi => dpi::FEATURE,
             SettingKind::SmartshiftMode | SettingKind::SmartshiftThreshold => smartshift::FEATURE,
             SettingKind::ThumbwheelInvert => thumbwheel::FEATURE,
+            SettingKind::ButtonRemap(_) => reprog_controls::FEATURE,
         }
     }
 
@@ -65,6 +111,7 @@ impl SettingKind {
             SettingKind::Dpi => 3,
             SettingKind::SmartshiftMode | SettingKind::SmartshiftThreshold => 1,
             SettingKind::ThumbwheelInvert => 2,
+            SettingKind::ButtonRemap(_) => 3,
         }
     }
 
@@ -82,17 +129,35 @@ impl SettingKind {
                 "free-spin" => Ok(SettingValue::SmartshiftMode(1)),
                 _ => Err(format!("mode must be `ratchet` or `free-spin`, got `{v}`")),
             },
+            SettingKind::SmartshiftThreshold if v == "off" => {
+                Ok(SettingValue::SmartshiftThreshold(THRESHOLD_OFF))
+            }
             SettingKind::SmartshiftThreshold => v
                 .parse::<u8>()
                 .ok()
                 .filter(|t| (1..=50).contains(t))
                 .map(SettingValue::SmartshiftThreshold)
-                .ok_or_else(|| format!("threshold must be 1..=50, got `{v}`")),
+                .ok_or_else(|| format!("threshold must be 1..=50 or `off`, got `{v}`")),
             SettingKind::ThumbwheelInvert => match v {
                 "on" => Ok(SettingValue::ThumbwheelInvert(true)),
                 "off" => Ok(SettingValue::ThumbwheelInvert(false)),
                 _ => Err(format!("value must be `on` or `off`, got `{v}`")),
             },
+            SettingKind::ButtonRemap(c) if v == "default" => {
+                Ok(SettingValue::ButtonRemap(c, c.cid()))
+            }
+            SettingKind::ButtonRemap(c) => reprog_controls::target_cid(v)
+                .map(|t| SettingValue::ButtonRemap(c, t))
+                .ok_or_else(|| {
+                    let names: Vec<&str> = reprog_controls::TARGET_NAMES
+                        .iter()
+                        .map(|(n, _)| *n)
+                        .collect();
+                    format!(
+                        "target must be `default` or one of {}, got `{v}`",
+                        names.join(", ")
+                    )
+                }),
         }
     }
 }
@@ -105,6 +170,8 @@ pub enum SettingValue {
     SmartshiftMode(u8),
     SmartshiftThreshold(u8),
     ThumbwheelInvert(bool),
+    /// Control and the control ID whose native task it performs.
+    ButtonRemap(RemapControl, u16),
 }
 
 impl SettingValue {
@@ -114,6 +181,18 @@ impl SettingValue {
             SettingValue::SmartshiftMode(_) => SettingKind::SmartshiftMode,
             SettingValue::SmartshiftThreshold(_) => SettingKind::SmartshiftThreshold,
             SettingValue::ThumbwheelInvert(_) => SettingKind::ThumbwheelInvert,
+            SettingValue::ButtonRemap(c, _) => SettingKind::ButtonRemap(c),
+        }
+    }
+
+    /// True when the daemon may send this value: its write function and
+    /// this kind of value were confirmed on the mouse (requirements §13).
+    /// Everything else is for `hid-lab lab write` only.
+    pub fn confirmed(self) -> bool {
+        match self {
+            SettingValue::SmartshiftThreshold(t) => t != THRESHOLD_OFF,
+            SettingValue::ButtonRemap(..) => false,
+            _ => true,
         }
     }
 
@@ -123,9 +202,14 @@ impl SettingValue {
             SettingValue::SmartshiftMode(1) => "free-spin".into(),
             SettingValue::SmartshiftMode(2) => "ratchet".into(),
             SettingValue::SmartshiftMode(m) => format!("mode {m}"),
+            SettingValue::SmartshiftThreshold(THRESHOLD_OFF) => "off".into(),
             SettingValue::SmartshiftThreshold(t) => t.to_string(),
             SettingValue::ThumbwheelInvert(true) => "on".into(),
             SettingValue::ThumbwheelInvert(false) => "off".into(),
+            SettingValue::ButtonRemap(c, t) if t == c.cid() => format!("{} (default)", c.name()),
+            SettingValue::ButtonRemap(_, t) => {
+                reprog_controls::target_name(t).map_or_else(|| format!("0x{t:04X}"), str::to_owned)
+            }
         }
     }
 }
@@ -137,6 +221,7 @@ pub enum Snapshot {
     Dpi(dpi::Dpi),
     Smartshift(smartshift::SmartShift),
     Thumbwheel(thumbwheel::Thumbwheel),
+    Remap(reprog_controls::RemapState),
 }
 
 impl Snapshot {
@@ -155,6 +240,9 @@ impl Snapshot {
             (Snapshot::Thumbwheel(t), SettingKind::ThumbwheelInvert) => {
                 Some(SettingValue::ThumbwheelInvert(t.inverted))
             }
+            (Snapshot::Remap(s), SettingKind::ButtonRemap(c)) if s.control == c.cid() => {
+                Some(SettingValue::ButtonRemap(c, s.reporting.mapped_to))
+            }
             _ => None,
         }
     }
@@ -171,6 +259,7 @@ pub fn snapshot<C: RawChannel>(
             Snapshot::Smartshift(smartshift::read(r)?)
         }
         SettingKind::ThumbwheelInvert => Snapshot::Thumbwheel(thumbwheel::read(r)?),
+        SettingKind::ButtonRemap(c) => Snapshot::Remap(reprog_controls::read_remap(r, c.cid())?),
     })
 }
 
@@ -202,6 +291,30 @@ pub fn plan(before: &Snapshot, target: SettingValue) -> Result<WritePlan, String
         (Snapshot::Thumbwheel(t), SettingValue::ThumbwheelInvert(inv)) => {
             let raw = raw_thumb(t);
             vec![raw[0], (raw[1] & !0x01) | u8::from(inv)]
+        }
+        (Snapshot::Remap(s), SettingValue::ButtonRemap(c, to)) if s.control == c.cid() => {
+            if s.targets.is_empty() {
+                return Err(format!("the mouse does not allow remapping {}", c.name()));
+            }
+            if !s.targets.contains(&to) {
+                let allowed: Vec<String> = s
+                    .targets
+                    .iter()
+                    .map(|&t| {
+                        reprog_controls::target_name(t)
+                            .map_or_else(|| format!("0x{t:04X}"), str::to_owned)
+                    })
+                    .collect();
+                return Err(format!(
+                    "the mouse does not allow {} -> 0x{to:04X}; allowed: {}",
+                    c.name(),
+                    allowed.join(", ")
+                ));
+            }
+            // Flags byte 0: no reporting flag changes, so nothing is diverted.
+            let [ch, cl] = c.cid().to_be_bytes();
+            let [th, tl] = to.to_be_bytes();
+            vec![ch, cl, 0x00, th, tl]
         }
         _ => return Err(format!("snapshot does not hold {}", kind.name())),
     };
@@ -279,6 +392,18 @@ pub fn verify(before: &Snapshot, after: &Snapshot, target: SettingValue) -> Vec<
                 ),
             ]
         }
+        (Snapshot::Remap(b), Snapshot::Remap(a), SettingValue::ButtonRemap(_, to)) => vec![
+            field(
+                "mapped_to",
+                format!("0x{to:04X}"),
+                format!("0x{:04X}", a.reporting.mapped_to),
+            ),
+            field(
+                "reporting flags (unchanged)",
+                format!("0x{:04X}", b.reporting.flags),
+                format!("0x{:04X}", a.reporting.flags),
+            ),
+        ],
         _ => vec![FieldCheck {
             field: "snapshot",
             expected: "same feature".into(),
@@ -340,6 +465,62 @@ mod tests {
         assert!(SettingKind::SmartshiftThreshold.parse_value("0").is_err());
         assert!(SettingKind::Dpi.parse_value("0").is_err());
         assert!(SettingKind::ThumbwheelInvert.parse_value("yes").is_err());
+        assert_eq!(
+            SettingKind::SmartshiftThreshold.parse_value("off"),
+            Ok(SettingValue::SmartshiftThreshold(THRESHOLD_OFF))
+        );
+        for k in SettingKind::EXPERIMENTAL {
+            assert_eq!(SettingKind::from_name(k.name()), Some(k));
+        }
+        let back = SettingKind::ButtonRemap(RemapControl::Back);
+        assert_eq!(back.name(), "remap-back");
+        assert_eq!(
+            back.parse_value("middle"),
+            Ok(SettingValue::ButtonRemap(RemapControl::Back, 0x52))
+        );
+        assert_eq!(
+            back.parse_value("default"),
+            Ok(SettingValue::ButtonRemap(RemapControl::Back, 0x53))
+        );
+        assert!(back.parse_value("bogus").is_err());
+        assert_eq!(serde_json::to_string(&back).unwrap(), "\"remap-back\"");
+        assert_eq!(
+            serde_json::from_str::<SettingKind>("\"dpi\"").unwrap(),
+            SettingKind::Dpi
+        );
+    }
+
+    #[test]
+    fn only_confirmed_values_reach_the_daemon() {
+        assert!(SettingValue::SmartshiftThreshold(50).confirmed());
+        assert!(!SettingValue::SmartshiftThreshold(THRESHOLD_OFF).confirmed());
+        assert!(!SettingValue::ButtonRemap(RemapControl::Back, 0x52).confirmed());
+        assert!(SettingValue::Dpi(1000).confirmed());
+    }
+
+    #[test]
+    fn plans_remaps_within_the_groups() {
+        // SYNTHETIC state: back may become left, right, middle or itself.
+        let s = Snapshot::Remap(reprog_controls::RemapState {
+            control: 0x53,
+            group_mask: 3,
+            targets: vec![0x53, 0x50, 0x51, 0x52],
+            reporting: reprog_controls::decode_reporting(&[0, 0x53, 0, 0, 0, 0])
+                .unwrap()
+                .1,
+        });
+        let p = plan(&s, SettingValue::ButtonRemap(RemapControl::Back, 0x52)).unwrap();
+        assert_eq!(p.params, [0x00, 0x53, 0x00, 0x00, 0x52]);
+        assert_eq!((p.feature, p.function), (FeatureId(0x1B04), 3));
+        assert!(plan(&s, SettingValue::ButtonRemap(RemapControl::Back, 0xC3)).is_err());
+        assert_eq!(
+            s.value(SettingKind::ButtonRemap(RemapControl::Back)),
+            Some(SettingValue::ButtonRemap(RemapControl::Back, 0x53))
+        );
+        assert_eq!(
+            s.value(SettingKind::ButtonRemap(RemapControl::Forward)),
+            None
+        );
     }
 
     #[test]
