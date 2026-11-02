@@ -1,0 +1,171 @@
+{
+  "schema": "hid-lab.write/1",
+  "tool_version": "0.1.0",
+  "mode": "write",
+  "restore": false,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0004",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "setting": "smartshift-threshold",
+  "feature": "0x2110",
+  "feature_index": 14,
+  "write_function": {
+    "function": 1,
+    "name": "setRatchetControlMode",
+    "source": "solaar",
+    "status": "LIKELY"
+  },
+  "before": {
+    "setting": "smartshift-threshold",
+    "value": 10
+  },
+  "target": {
+    "setting": "smartshift-threshold",
+    "value": 255
+  },
+  "plan": {
+    "target": {
+      "setting": "smartshift-threshold",
+      "value": 255
+    },
+    "feature": 8464,
+    "function": 1,
+    "params": [
+      0,
+      255
+    ],
+    "params_hex": "00 ff"
+  },
+  "sent": true,
+  "outcome": {
+    "plan": {
+      "target": {
+        "setting": "smartshift-threshold",
+        "value": 255
+      },
+      "feature": 8464,
+      "function": 1,
+      "params": [
+        0,
+        255
+      ],
+      "params_hex": "00 ff"
+    },
+    "response_hex": "00 ff",
+    "after": {
+      "feature": "smartshift",
+      "mode_code": 2,
+      "mode": "ratchet",
+      "threshold": 255,
+      "byte2": 10,
+      "raw_hex": "02 ff 0a"
+    },
+    "checks": [
+      {
+        "field": "threshold",
+        "expected": "255",
+        "actual": "255",
+        "ok": true
+      },
+      {
+        "field": "mode (unchanged)",
+        "expected": "2",
+        "actual": "2",
+        "ok": true
+      }
+    ],
+    "pass": true
+  },
+  "result": "pass",
+  "original_saved_to": "~/.local/state/hid-lab/lab-write/smartshift-threshold.json",
+  "original_removed": false,
+  "notes": [],
+  "error": null,
+  "ignored_reports": 0,
+  "transcript": [
+    {
+      "request": 1,
+      "t_us": 15,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 0b 21 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 1,
+      "t_us": 22948,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 0b 0e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 22965,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0e 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 37933,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0e 0b 02 0a 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 38203,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0e 1b 00 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 53078,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0e 1b 00 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 53088,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 0e 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 67966,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 0e 0b 02 ff 0a 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}

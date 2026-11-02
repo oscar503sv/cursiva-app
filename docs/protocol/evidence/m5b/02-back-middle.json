@@ -1,0 +1,455 @@
+{
+  "schema": "hid-lab.write/1",
+  "tool_version": "0.1.0",
+  "mode": "write",
+  "restore": false,
+  "device": {
+    "number": 1,
+    "hidraw": "hidraw2",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0004",
+    "bus": "bluetooth",
+    "bus_code": "0x0005",
+    "vendor_id": "0x046d",
+    "product_id": "0xb034",
+    "name": "Logitech MX Master 3S",
+    "unique": "<redacted>",
+    "driver": "logitech-hidpp-device",
+    "logitech": true,
+    "hidpp": true,
+    "hidpp_short_report": false,
+    "hidpp_long_report": true,
+    "report_ids": [
+      "0x02",
+      "0x11"
+    ],
+    "usage_pages": [
+      "0x0001",
+      "0x0009",
+      "0x000c",
+      "0xff43"
+    ],
+    "descriptor_truncated": false,
+    "descriptor_error": null,
+    "access": "ok",
+    "access_detail": null
+  },
+  "setting": "remap-back",
+  "feature": "0x1B04",
+  "feature_index": 9,
+  "write_function": {
+    "function": 3,
+    "name": "setCidReporting",
+    "source": "kernel, solaar",
+    "status": "LIKELY"
+  },
+  "before": {
+    "setting": "button-remap",
+    "value": [
+      "back",
+      83
+    ]
+  },
+  "target": {
+    "setting": "button-remap",
+    "value": [
+      "back",
+      82
+    ]
+  },
+  "plan": {
+    "target": {
+      "setting": "button-remap",
+      "value": [
+        "back",
+        82
+      ]
+    },
+    "feature": 6916,
+    "function": 3,
+    "params": [
+      0,
+      83,
+      0,
+      0,
+      82
+    ],
+    "params_hex": "00 53 00 00 52"
+  },
+  "sent": true,
+  "outcome": {
+    "plan": {
+      "target": {
+        "setting": "button-remap",
+        "value": [
+          "back",
+          82
+        ]
+      },
+      "feature": 6916,
+      "function": 3,
+      "params": [
+        0,
+        83,
+        0,
+        0,
+        82
+      ],
+      "params_hex": "00 53 00 00 52"
+    },
+    "response_hex": "00 53 00 00 52",
+    "after": {
+      "feature": "remap",
+      "control": 83,
+      "group_mask": 3,
+      "targets": [
+        83,
+        80,
+        81,
+        82,
+        86,
+        195,
+        196
+      ],
+      "reporting": {
+        "flags": 0,
+        "flag_names": [],
+        "unknown_flag_bits": null,
+        "mapped_to": 82,
+        "remapped": true,
+        "raw_hex": "00 53 00 00 52"
+      }
+    },
+    "checks": [
+      {
+        "field": "mapped_to",
+        "expected": "0x0052",
+        "actual": "0x0052",
+        "ok": true
+      },
+      {
+        "field": "reporting flags (unchanged)",
+        "expected": "0x0000",
+        "actual": "0x0000",
+        "ok": true
+      }
+    ],
+    "pass": true
+  },
+  "result": "pass",
+  "original_saved_to": "~/.local/state/hid-lab/lab-write/remap-back.json",
+  "original_removed": false,
+  "notes": [],
+  "error": null,
+  "ignored_reports": 0,
+  "transcript": [
+    {
+      "request": 1,
+      "t_us": 14,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 00 0b 1b 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 1,
+      "t_us": 141271,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 00 0b 09 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 141282,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 2,
+      "t_us": 156349,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 0b 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 156359,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 3,
+      "t_us": 171304,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 50 00 38 01 00 01 01 04 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 171320,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 4,
+      "t_us": 194153,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 51 00 39 01 00 01 01 04 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 5,
+      "t_us": 194174,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 5,
+      "t_us": 208143,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 52 00 3a 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 6,
+      "t_us": 208149,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 6,
+      "t_us": 223315,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 53 00 3c 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 7,
+      "t_us": 223331,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 7,
+      "t_us": 239442,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 56 00 3e 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 8,
+      "t_us": 239461,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 8,
+      "t_us": 261450,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 c3 00 a9 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 9,
+      "t_us": 261467,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 9,
+      "t_us": 276326,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 c4 00 9d 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 10,
+      "t_us": 276343,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 10,
+      "t_us": 291352,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 d7 00 b4 a0 00 03 00 03 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 11,
+      "t_us": 291369,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 2b 00 53 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 11,
+      "t_us": 306315,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 2b 00 53 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 12,
+      "t_us": 306644,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 3b 00 53 00 00 52 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 12,
+      "t_us": 329441,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 3b 00 53 00 00 52 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 13,
+      "t_us": 329451,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 13,
+      "t_us": 344453,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 0b 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 14,
+      "t_us": 344464,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 14,
+      "t_us": 359360,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 50 00 38 01 00 01 01 04 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 15,
+      "t_us": 359377,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 15,
+      "t_us": 374420,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 51 00 39 01 00 01 01 04 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 16,
+      "t_us": 374445,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 16,
+      "t_us": 396341,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 52 00 3a 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 17,
+      "t_us": 396360,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 17,
+      "t_us": 411228,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 53 00 3c 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 18,
+      "t_us": 411244,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 18,
+      "t_us": 426319,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 56 00 3e 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 19,
+      "t_us": 426346,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 19,
+      "t_us": 441369,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 c3 00 a9 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 20,
+      "t_us": 441387,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 20,
+      "t_us": 464292,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 c4 00 9d 31 00 02 03 05 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 21,
+      "t_us": 464308,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 1b 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 21,
+      "t_us": 479380,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 1b 00 d7 00 b4 a0 00 03 00 03 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 22,
+      "t_us": 479395,
+      "dir": "tx",
+      "disposition": "sent",
+      "hex": "11 ff 09 2b 00 53 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+    },
+    {
+      "request": 22,
+      "t_us": 494253,
+      "dir": "rx",
+      "disposition": "matched",
+      "hex": "11 ff 09 2b 00 53 00 00 52 00 00 00 00 00 00 00 00 00 00 00"
+    }
+  ]
+}

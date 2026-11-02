@@ -736,3 +736,18 @@ hid-lab status
 The folder `~/hidlab-m5b/` and, for each test, what you felt or saw:
 whether the wheel kept clicking, what each button did, what the gesture
 button did by itself, and whether the remap survived switching off.
+
+### Results, run 1 (2026-11-02)
+
+Run by the user. Captures are in `docs/protocol/evidence/m5b/`; details in
+`docs/protocol/README.md`, observation O-10.
+
+| Test | Result | Notes |
+|---|---|---|
+| H5-01 | Pass | Kept clicking at `off`; freed again after restore |
+| H5-02 | Pass | Back opened links in a new tab |
+| H5-03 | Pass | Forward went back |
+| H5-04 | Pass | Mode button opened links; wheel mode unchanged |
+| H5-05 | Pass, not conclusive | The gesture button already goes forward by itself |
+| H5-06 | Remap lost | Back mapped to itself after the power cycle |
+

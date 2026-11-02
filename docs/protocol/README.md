@@ -429,7 +429,7 @@ Controls (identical in O-4 and all five O-5 reads; reference names from R-2):
 |---|---|---|
 | f0 count = 8; f1 CID and TID positions | **CONFIRMED** | Six identical reads (O-4 and O-5); the 7 non-virtual controls match the 7 physical buttons (user, O-5) |
 | f1 bit0 `mouse`, bit7 `virtual` | **CONFIRMED** | Set on exactly the 7 physical controls and the 1 virtual control |
-| Which physical button each CID is | LIKELY | Names come from R-2. Proving it needs a diverted press, which is a write |
+| Which physical button each CID is | **CONFIRMED** for 0x0053 back, 0x0056 forward, 0x00C4 mode button; LIKELY for the rest | O-10: remapping each changed what that physical button did. 0x00C3 was remapped to forward, which it already does by itself (O-10), so the test could not tell; 0x0052 was not remapped |
 | Other capability bits (divertable, raw_xy, ...) | LIKELY | Not testable without writes |
 | f2 echoes the CID; mapped_to = itself | **CONFIRMED** | All 8 controls, six reads (O-4 and O-5) |
 | f2 reporting flag bits | LIKELY | Only the value 0 (nothing diverted) observed |
@@ -753,11 +753,12 @@ f1 setRatchetControlMode(00, ff)   mode unchanged, threshold 255 = no automatic 
 
 | Fact | Status | Evidence |
 |---|---|---|
-| `[00, ff]` stores threshold 255 and keeps the mode | HYPOTHESIS | Source only; test H5-01 |
-| At 255 a hard push never switches the ratcheted wheel to free spin | HYPOTHESIS | Source only; test H5-01 |
+| `[00, ff]` stores threshold 255 and keeps the mode | **CONFIRMED** | O-10: `01-off.json` read back 255 with mode 2 unchanged; `01-restore.json` wrote 10 back the same way |
+| At 255 a hard push never switches the ratcheted wheel to free spin | **CONFIRMED** | O-10, user: the wheel kept clicking at 255 and freed again at 10 |
+| The mode button still switches modes at 255 | **CONFIRMED** | O-10, user (H5-01 step 4) |
 
-The daemon does not send 255 until this is CONFIRMED
-(`SettingValue::confirmed`), although f1 itself is CONFIRMED (P-031).
+The daemon starts sending 255 in phase 5c, when the config can hold it
+(`SettingValue::confirmed` gates it until then).
 
 ### P-036 — 0x1B04 setCidReporting (f3), remap only
 
@@ -793,9 +794,10 @@ in every 0x1B04 read since O-4, and in the M5b dry runs):
 | Fact | Status | Evidence |
 |---|---|---|
 | Group and mask values above | **CONFIRMED** | Seven identical reads (O-4, O-5, M5b dry runs) |
-| The f3 layout and that flags 0 diverts nothing | HYPOTHESIS | Sources only; tests H5-02 to H5-05 |
-| A remap is read back by f2 as `mapped_to` | HYPOTHESIS | R-2; tests H5-02 to H5-05 |
-| A remap is lost when the mouse is switched off | HYPOTHESIS | R-2 calls it temporary; test H5-06 |
+| The f3 layout remaps a control; flags 0 changes no reporting flag | **CONFIRMED** | O-10: four controls (back, forward, mode, gesture) and three targets (middle, back, forward), each read back with reporting flags `0x0000`; the user felt back, forward and mode do the target's task |
+| The answer echoes the 5 parameters | **CONFIRMED** | All 11 writes in O-10 |
+| A remap is read back by f2 as `mapped_to`; `remap = cid` restores it | **CONFIRMED** | All 11 writes and restores in O-10 |
+| A remap is lost when the mouse is switched off | LIKELY | One power cycle (O-10, `06b-after-power.json`: back mapped to itself after `.0004` to `.0005`); the user thinks it was lost |
 
 `lab write` refuses targets outside the mask and always sends flags `00`.
 The tests also confirm which physical button each CID is (P-024, LIKELY).
@@ -816,4 +818,36 @@ kernel's `hidpp_battery`.
 
 Decision: Cursiva does not send its own low-battery notification
 (requirements decision log, 2026-11-02).
+
+### Observation O-10 (2026-11-02) — user's hardware tests H5
+
+The user ran section M5b of `docs/hardware-test.md` with the daemon
+stopped. Captures are in `evidence/m5b/`: the `lab write` JSON of every
+write and restore, three `lab read` files and `log.jsonl`. The Bluetooth
+address and the unit ID are redacted by the tool (`<redacted>`, `** ** ** **`
+in the transcripts); no home path; nothing else was sanitized. The user
+reported that everything behaved as the tests describe.
+
+| Test | Bytes sent (f, params) | Answer | Read back | What the user felt |
+|---|---|---|---|---|
+| H5-01 off | 0x2110 f1 `00 ff` | `00 ff` | threshold 255, mode 2 | Wheel kept clicking on hard pushes; mode button still switched |
+| H5-01 restore | 0x2110 f1 `00 0a` | `00 0a` | threshold 10, mode 2 | Hard push freed the wheel again |
+| H5-02 back to middle | 0x1B04 f3 `00 53 00 00 52` | same | mapped_to 0x0052, flags 0 | Back opened links in a new tab |
+| H5-02 restore | `00 53 00 00 53` | same | 0x0053 | Back went back |
+| H5-03 forward to back | `00 56 00 00 53` | same | 0x0053 | Forward went back |
+| H5-03 restore | `00 56 00 00 56` | same | 0x0056 | Forward went forward |
+| H5-04 mode to middle | `00 c4 00 00 52` | same | 0x0052 | Mode button opened links in a new tab; the wheel did not change mode |
+| H5-04 restore | `00 c4 00 00 c4` | same | 0x00C4 | Mode button switched modes |
+| H5-05 gesture to forward | `00 c3 00 00 56` | same | 0x0056 | Went forward, as it already did before the remap |
+| H5-05 restore | `00 c3 00 00 c3` | same | 0x00C3 | — |
+| H5-06 back to middle | `00 53 00 00 52` | same | 0x0052 | — |
+| H5-06 after power cycle | (read) | — | back mapped to 0x0053 (itself), HID device `.0004` to `.0005` | User thinks the remap was lost |
+| H5-06 restore | none, `no_change` | — | — | — |
+
+Other findings:
+
+- Unremapped, the gesture button made the browser go forward (H5-05 step
+  1). Which input event it sends is UNKNOWN; one observation.
+- At the end `lab-write/` held only `log.jsonl` (every original restored),
+  the daemon started and `hid-lab status` showed the four settings `ok`.
 
