@@ -1,4 +1,6 @@
+crates/hidlab-gtk/src/changes.rs
 crates/hidlab-gtk/src/dbus.rs
 crates/hidlab-gtk/src/model.rs
 crates/hidlab-gtk/src/mouse.rs
+crates/hidlab-gtk/src/pointer.rs
 crates/hidlab-gtk/src/window.rs

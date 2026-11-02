@@ -5,8 +5,12 @@
 use gettextrs::gettext;
 use gtk::gio;
 use gtk::glib;
-use hidlab_api::daemon::{BUS_NAME, BatteryEvent, INTERFACE, OBJECT_PATH, Status, UNIT};
+use hidlab_api::daemon::{
+    ApplyReport, BUS_NAME, BatteryEvent, INTERFACE, ItemResult, OBJECT_PATH, ResetReply, SetReply,
+    Status, UNIT,
+};
 
+use crate::changes::Op;
 use crate::model::fill;
 
 /// Longest wait for the daemon; the first call may start it.
@@ -90,6 +94,82 @@ fn call_error(e: &glib::Error) -> String {
         ),
     };
     fill(&text, &[("unit", UNIT), ("error", e.message())])
+}
+
+/// Runs one change call and checks the daemon's answer.
+pub async fn run(conn: &gio::DBusConnection, op: &Op) -> Result<(), String> {
+    let (method, args) = op.call();
+    let args: Vec<glib::Variant> = args
+        .iter()
+        .map(glib::prelude::ToVariant::to_variant)
+        .collect();
+    let reply = conn
+        .call_future(
+            Some(BUS_NAME),
+            OBJECT_PATH,
+            INTERFACE,
+            method,
+            Some(&glib::Variant::tuple_from_iter(args)),
+            Some(glib::VariantTy::new("(s)").expect("valid type")),
+            gio::DBusCallFlags::NONE,
+            TIMEOUT_MS,
+        )
+        .await
+        .map_err(|e| refused(&e))?;
+    let json: String = reply.child_value(0).get().unwrap_or_default();
+    outcome(method, &json)
+}
+
+/// The daemon's own message for a refused call (an `fdo::Error::Failed`).
+fn refused(e: &glib::Error) -> String {
+    if gio::DBusError::remote_error(e).as_deref() == Some("org.freedesktop.DBus.Error.Failed") {
+        let mut e = e.clone();
+        gio::DBusError::strip_remote_error(&mut e);
+        e.message().to_owned()
+    } else {
+        call_error(e)
+    }
+}
+
+/// Reads a `Set` or `Reset` reply: an error when the mouse refused the
+/// value or the read-back did not match. Other replies are fine.
+pub fn outcome(method: &str, json: &str) -> Result<(), String> {
+    let applied = match method {
+        "Set" => {
+            let r: SetReply = serde_json::from_str(json).map_err(|e| e.to_string())?;
+            if r.saved_to.is_none() {
+                return Err(r.note.unwrap_or_else(|| gettext("Nothing was saved")));
+            }
+            r.applied
+        }
+        "Reset" => {
+            let r: ResetReply = serde_json::from_str(json).map_err(|e| e.to_string())?;
+            r.applied
+        }
+        _ => None,
+    };
+    applied.as_ref().map_or(Ok(()), report_error)
+}
+
+fn report_error(report: &ApplyReport) -> Result<(), String> {
+    if report.ok {
+        return Ok(());
+    }
+    let item = report
+        .items
+        .iter()
+        .find(|i| !matches!(i.result, ItemResult::Unchanged | ItemResult::Written));
+    Err(match item {
+        Some(i) => match &i.error {
+            Some(e) => e.clone(),
+            None => fill(
+                // TRANSLATORS: {setting} is a setting name such as `dpi`.
+                &gettext("The mouse did not keep {setting}"),
+                &[("setting", i.setting.name())],
+            ),
+        },
+        None => gettext("The mouse did not keep the change"),
+    })
 }
 
 /// Handles that keep the subscriptions alive; dropping them unsubscribes.
@@ -184,6 +264,32 @@ mod tests {
         );
         assert_eq!(decode("BatteryChanged", Some("{")), Some(Event::Changed));
         assert_eq!(decode("ButtonPressed", Some("{}")), None);
+    }
+
+    #[test]
+    fn replies_that_did_not_stick_are_errors() {
+        // SYNTHETIC replies.
+        let rejected = r#"{"schema":"hid-lab.daemon-set/1","value":{"setting":"dpi","value":1625},
+            "saved_to":null,"note":"the mouse cannot take this value; nothing was saved",
+            "applied":{"items":[{"setting":"dpi","target":{"setting":"dpi","value":1625},
+            "before":null,"result":"rejected","checks":[],"error":"1625 is not in the list"}],
+            "ok":false,"elapsed_ms":3,"ignored_reports":0}}"#;
+        assert_eq!(
+            outcome("Set", rejected),
+            Err("the mouse cannot take this value; nothing was saved".into())
+        );
+        let saved_offline = r#"{"schema":"hid-lab.daemon-set/1","value":{"setting":"dpi","value":1600},
+            "saved_to":"~/.config/hid-lab/config.toml","applied":null,"note":null}"#;
+        assert_eq!(outcome("Set", saved_offline), Ok(()));
+        let mismatch = r#"{"schema":"hid-lab.daemon-reset/1","values":[],"saved_to":[],"note":null,
+            "applied":{"items":[{"setting":"dpi","target":{"setting":"dpi","value":1000},
+            "before":null,"result":"mismatch","checks":[],"error":null}],
+            "ok":false,"elapsed_ms":3,"ignored_reports":0}}"#;
+        assert_eq!(
+            outcome("Reset", mismatch),
+            Err("The mouse did not keep dpi".into())
+        );
+        assert_eq!(outcome("SetDesktop", "{}"), Ok(()));
     }
 
     #[test]

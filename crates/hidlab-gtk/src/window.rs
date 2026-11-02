@@ -1,17 +1,23 @@
 //! The main window: a sidebar with Home, Pointer and scrolling, and
-//! Buttons, and a Home page that follows the daemon live.
+//! Buttons. Pages follow the daemon live; changes go to the daemon one at
+//! a time and show a toast with Undo.
 
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::rc::{Rc, Weak};
 
 use adw::prelude::*;
 use gettextrs::gettext;
 use gtk::{gio, glib};
-use hidlab_api::daemon::{Status, UNIT};
+use hidlab_api::daemon::{DesktopSetting, Status, UNIT};
+use hidlab_api::settings::SettingValue;
 
+use crate::changes::{self, Change};
 use crate::dbus::{self, Event, Subscriptions};
+use crate::geometry::Hotspot;
 use crate::model::{Health, View, fill};
 use crate::mouse::MouseView;
+use crate::pointer::{PointerPage, Request, Section};
 
 /// Width under which the sidebar folds away (the narrow mockup).
 const NARROW: &str = "max-width: 600sp";
@@ -56,10 +62,28 @@ struct Home {
     battery_icon: gtk::Image,
     dpi: gtk::Label,
     wheel: gtk::Label,
+    mouse: MouseView,
+    dpi_row: adw::ActionRow,
+    wheel_row: adw::ActionRow,
+}
+
+/// Widgets that switch pages.
+struct Nav {
+    list: gtk::ListBox,
+    stack: gtk::Stack,
+    content: adw::NavigationPage,
+    split: adw::NavigationSplitView,
 }
 
 struct App {
     home: Home,
+    pointer: Rc<PointerPage>,
+    nav: Nav,
+    toasts: adw::ToastOverlay,
+    /// Changes waiting for the daemon, run one at a time; the flag says
+    /// whether to offer Undo.
+    queue: RefCell<VecDeque<(Change, bool)>>,
+    running: Cell<bool>,
     conn: RefCell<Option<gio::DBusConnection>>,
     subscriptions: RefCell<Option<Subscriptions>>,
     status: RefCell<Option<Status>>,
@@ -81,98 +105,118 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
         .height_request(480)
         .build();
 
-    let content_stack = gtk::Stack::builder()
-        .transition_type(gtk::StackTransitionType::Crossfade)
-        .build();
-    let (home_widget, home) = home_page();
-    let pages = pages();
-    content_stack.add_titled(&home_widget, Some(pages[0].name), &pages[0].title);
-    content_stack.add_titled(
-        &later_page(
-            pages[1].icon,
-            &gettext("Pointer speed, wheel and thumb wheel settings arrive in the next update."),
-        ),
-        Some(pages[1].name),
-        &pages[1].title,
-    );
-    content_stack.add_titled(
-        &later_page(
-            pages[2].icon,
-            &gettext("Choosing what each button does arrives in a later update."),
-        ),
-        Some(pages[2].name),
-        &pages[2].title,
-    );
-
-    let content = adw::NavigationPage::builder()
-        .title(&pages[0].title)
-        .tag("content")
-        .child(&with_header(&content_stack, false))
-        .build();
-
-    let list = gtk::ListBox::builder()
-        .css_classes(["navigation-sidebar"])
-        .selection_mode(gtk::SelectionMode::Browse)
-        .build();
-    for page in &pages {
-        let row_box = gtk::Box::builder().spacing(12).build();
-        row_box.append(&gtk::Image::from_icon_name(page.icon));
-        row_box.append(&gtk::Label::builder().label(&page.title).xalign(0.0).build());
-        let row = gtk::ListBoxRow::builder().child(&row_box).build();
-        row.set_widget_name(page.name);
-        list.append(&row);
-    }
-    let sidebar_scroll = gtk::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk::PolicyType::Never)
-        .child(&list)
-        .build();
-    let sidebar = adw::NavigationPage::builder()
-        .title("Cursiva")
-        .tag("sidebar")
-        .child(&with_header(&sidebar_scroll, true))
-        .build();
-
-    let split = adw::NavigationSplitView::builder()
-        .sidebar(&sidebar)
-        .content(&content)
-        .min_sidebar_width(200.0)
-        .build();
-    list.connect_row_activated(glib::clone!(
-        #[weak]
-        split,
-        #[weak]
-        content_stack,
-        #[weak]
-        content,
-        move |_, row| {
-            let name = row.widget_name();
-            content_stack.set_visible_child_name(&name);
-            if let Some(title) = content_stack
-                .page(&content_stack.visible_child().unwrap())
-                .title()
-            {
-                content.set_title(&title);
+    let state = Rc::new_cyclic(|weak: &Weak<App>| {
+        let weak = weak.clone();
+        let pointer = PointerPage::new(Rc::new(move |r| {
+            if let Some(a) = weak.upgrade() {
+                a.request(r);
             }
-            split.set_show_content(true);
+        }));
+        let stack = gtk::Stack::builder()
+            .transition_type(gtk::StackTransitionType::Crossfade)
+            .build();
+        let (home_widget, home) = home_page();
+        let pages = pages();
+        stack.add_titled(&home_widget, Some(pages[0].name), &pages[0].title);
+        stack.add_titled(&pointer.root, Some(pages[1].name), &pages[1].title);
+        stack.add_titled(
+            &later_page(
+                pages[2].icon,
+                &gettext("Choosing what each button does arrives in a later update."),
+            ),
+            Some(pages[2].name),
+            &pages[2].title,
+        );
+        let content = adw::NavigationPage::builder()
+            .title(&pages[0].title)
+            .tag("content")
+            .child(&with_header(&stack, false))
+            .build();
+
+        let list = gtk::ListBox::builder()
+            .css_classes(["navigation-sidebar"])
+            .selection_mode(gtk::SelectionMode::Browse)
+            .build();
+        for page in &pages {
+            let row_box = gtk::Box::builder().spacing(12).build();
+            row_box.append(&gtk::Image::from_icon_name(page.icon));
+            row_box.append(&gtk::Label::builder().label(&page.title).xalign(0.0).build());
+            let row = gtk::ListBoxRow::builder().child(&row_box).build();
+            row.set_widget_name(page.name);
+            list.append(&row);
         }
-    ));
-    list.select_row(list.row_at_index(0).as_ref());
+        list.select_row(list.row_at_index(0).as_ref());
+        let sidebar_scroll = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .child(&list)
+            .build();
+        let sidebar = adw::NavigationPage::builder()
+            .title("Cursiva")
+            .tag("sidebar")
+            .child(&with_header(&sidebar_scroll, true))
+            .build();
+        let split = adw::NavigationSplitView::builder()
+            .sidebar(&sidebar)
+            .content(&content)
+            .min_sidebar_width(200.0)
+            .build();
+        let toasts = adw::ToastOverlay::new();
+        toasts.set_child(Some(&split));
+        App {
+            home,
+            pointer,
+            nav: Nav {
+                list,
+                stack,
+                content,
+                split,
+            },
+            toasts,
+            queue: RefCell::new(VecDeque::new()),
+            running: Cell::new(false),
+            conn: RefCell::new(None),
+            subscriptions: RefCell::new(None),
+            status: RefCell::new(None),
+            fetching: Cell::new(false),
+            fetch_again: Cell::new(false),
+            seen_daemon: Cell::new(false),
+        }
+    });
+
+    let weak = Rc::downgrade(&state);
+    state.nav.list.connect_row_activated(move |_, row| {
+        if let Some(s) = weak.upgrade() {
+            s.show_page(&row.widget_name(), None);
+        }
+    });
+    let weak = Rc::downgrade(&state);
+    state.home.mouse.connect_hotspot_activated(move |_, id| {
+        let Some(s) = weak.upgrade() else { return };
+        let spot = Hotspot::ALL.into_iter().find(|h| h.id() == id);
+        match spot {
+            Some(Hotspot::Wheel) => s.show_page("pointer", Some(Section::Wheel)),
+            Some(Hotspot::Thumb) => s.show_page("pointer", Some(Section::Thumb)),
+            _ => s.show_page("buttons", None),
+        }
+    });
+    for (row, section) in [
+        (&state.home.dpi_row, Section::Pointer),
+        (&state.home.wheel_row, Section::Wheel),
+    ] {
+        let weak = Rc::downgrade(&state);
+        row.connect_activated(move |_| {
+            if let Some(s) = weak.upgrade() {
+                s.show_page("pointer", Some(section));
+            }
+        });
+    }
 
     let narrow =
         adw::Breakpoint::new(adw::BreakpointCondition::parse(NARROW).expect("valid condition"));
-    narrow.add_setter(&split, "collapsed", Some(&true.to_value()));
+    narrow.add_setter(&state.nav.split, "collapsed", Some(&true.to_value()));
     window.add_breakpoint(narrow);
-    window.set_content(Some(&split));
+    window.set_content(Some(&state.toasts));
 
-    let state = Rc::new(App {
-        home,
-        conn: RefCell::new(None),
-        subscriptions: RefCell::new(None),
-        status: RefCell::new(None),
-        fetching: Cell::new(false),
-        fetch_again: Cell::new(false),
-        seen_daemon: Cell::new(false),
-    });
     state.render(&View::Connecting);
     let retry = Rc::downgrade(&state);
     if let Some(button) = state.home.no_daemon.child().and_downcast::<gtk::Button>() {
@@ -183,12 +227,83 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
             }
         });
     }
+    // GNOME settings changed elsewhere send no signal: read again when the
+    // window comes back to the front.
+    let weak = Rc::downgrade(&state);
+    window.connect_is_active_notify(move |w| {
+        if w.is_active()
+            && let Some(s) = weak.upgrade()
+        {
+            s.refresh();
+        }
+    });
     glib::spawn_future_local(start(Rc::downgrade(&state)));
+    #[cfg(debug_assertions)]
+    dev_screenshot(&window, &state);
     // The window keeps the state alive; the async parts hold weak references.
     window.connect_destroy(move |_| {
         let _ = &state;
     });
     window
+}
+
+/// Development aid, debug builds only: with `CURSIVA_DEV_SCREENSHOT=<png>`
+/// the app opens `CURSIVA_DEV_PAGE` (`home`, `pointer`, `pointer:wheel`,
+/// `pointer:thumb`, `buttons`), waits `CURSIVA_DEV_DELAY_MS` (default
+/// 3000), saves the window as a PNG and quits. `CURSIVA_DEV_SIZE=<w>x<h>`
+/// sets the window size. Used with the broadway backend to look at pages
+/// without a desktop session; see CONTRIBUTING.md.
+#[cfg(debug_assertions)]
+fn dev_screenshot(window: &adw::ApplicationWindow, state: &Rc<App>) {
+    let Some(path) = std::env::var_os("CURSIVA_DEV_SCREENSHOT") else {
+        return;
+    };
+    let var = |name: &str| std::env::var(name).ok();
+    if let Some((w, h)) = var("CURSIVA_DEV_SIZE").and_then(|s| {
+        let (w, h) = s.split_once('x')?;
+        Some((w.parse().ok()?, h.parse().ok()?))
+    }) {
+        window.set_default_size(w, h);
+    }
+    let page = var("CURSIVA_DEV_PAGE").unwrap_or_else(|| "home".into());
+    let delay = var("CURSIVA_DEV_DELAY_MS")
+        .and_then(|d| d.parse().ok())
+        .unwrap_or(3000);
+    let (window, weak) = (window.clone(), Rc::downgrade(state));
+    glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
+        if let Some(s) = weak.upgrade() {
+            let (name, section) = page.split_once(':').unwrap_or((&page, ""));
+            let section = match section {
+                "wheel" => Some(Section::Wheel),
+                "thumb" => Some(Section::Thumb),
+                _ => None,
+            };
+            s.show_page(name, section);
+        }
+        glib::timeout_add_local_once(std::time::Duration::from_millis(delay), move || {
+            let (w, h) = (window.width(), window.height());
+            let paintable = gtk::WidgetPaintable::new(Some(&window));
+            let snapshot = gtk::Snapshot::new();
+            paintable.snapshot(&snapshot, f64::from(w), f64::from(h));
+            let saved = snapshot
+                .to_node()
+                .zip(window.renderer())
+                .map(|(node, renderer)| {
+                    let rect = gtk::graphene::Rect::new(0.0, 0.0, w as f32, h as f32);
+                    renderer
+                        .render_texture(node, Some(&rect))
+                        .save_to_png(&path)
+                });
+            match saved {
+                Some(Ok(())) => eprintln!("screenshot saved to {}", path.to_string_lossy()),
+                Some(Err(e)) => eprintln!("cannot save the screenshot: {e}"),
+                None => eprintln!("nothing to save: the window has no content or renderer"),
+            }
+            if let Some(app) = window.application() {
+                app.quit();
+            }
+        });
+    });
 }
 
 fn with_header(child: &impl IsA<gtk::Widget>, sidebar: bool) -> adw::ToolbarView {
@@ -295,6 +410,10 @@ fn home_page() -> (gtk::Stack, Home) {
         .build();
     let (dpi_row, dpi) = row(gettext("Pointer speed"), None);
     let (wheel_row, wheel) = row(gettext("Wheel"), None);
+    for r in [&dpi_row, &wheel_row] {
+        r.set_activatable(true);
+        r.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    }
     settings.add(&dpi_row);
     settings.add(&wheel_row);
 
@@ -335,6 +454,9 @@ fn home_page() -> (gtk::Stack, Home) {
         battery_icon,
         dpi,
         wheel,
+        mouse,
+        dpi_row,
+        wheel_row,
     };
     (states, home)
 }
@@ -358,6 +480,123 @@ async fn start(app: Weak<App>) {
 }
 
 impl App {
+    fn show_page(&self, name: &str, section: Option<Section>) {
+        let nav = &self.nav;
+        let index = pages().iter().position(|p| p.name == name);
+        if let Some(row) = index.and_then(|i| nav.list.row_at_index(i as i32)) {
+            nav.list.select_row(Some(&row));
+        }
+        nav.stack.set_visible_child_name(name);
+        if let Some(child) = nav.stack.visible_child()
+            && let Some(title) = nav.stack.page(&child).title()
+        {
+            nav.content.set_title(&title);
+        }
+        nav.split.set_show_content(true);
+        if let Some(section) = section {
+            self.pointer.scroll_to(section);
+        }
+    }
+
+    /// Turns a page's request into daemon calls, from the last status.
+    fn request(self: &Rc<Self>, request: Request) {
+        let change = {
+            let status = self.status.borrow();
+            let Some(st) = status.as_ref() else { return };
+            let on_off = |b: bool| if b { "on" } else { "off" };
+            match request {
+                Request::Dpi(d) => changes::set(st, SettingValue::Dpi(d)),
+                Request::Threshold(t) => changes::set(st, SettingValue::SmartshiftThreshold(t)),
+                Request::WheelMode(m) => changes::set_wheel_mode(st, m),
+                Request::Invert(i) => changes::set(st, SettingValue::ThumbwheelInvert(i)),
+                Request::NaturalScroll(n) => {
+                    changes::set_desktop(st, DesktopSetting::NaturalScroll, on_off(n))
+                }
+                Request::Acceleration(a) => {
+                    changes::set_desktop(st, DesktopSetting::Acceleration, a)
+                }
+                Request::Reset(section) => {
+                    changes::reset(st, section.kinds(), section.reset_label())
+                }
+            }
+        };
+        match change {
+            Some(c) => self.execute(c, true),
+            // Nothing to send: show the status again in case a control
+            // moved away from it.
+            None => self.refresh(),
+        }
+    }
+
+    /// Queues a change; the queue runs one daemon call at a time.
+    fn execute(self: &Rc<Self>, change: Change, undoable: bool) {
+        self.queue.borrow_mut().push_back((change, undoable));
+        if self.running.replace(true) {
+            return;
+        }
+        let weak = Rc::downgrade(self);
+        glib::spawn_future_local(async move {
+            loop {
+                let Some(s) = weak.upgrade() else { return };
+                let next = s.queue.borrow_mut().pop_front();
+                let Some((change, undoable)) = next else {
+                    s.running.set(false);
+                    return;
+                };
+                let Some(conn) = s.conn.borrow().clone() else {
+                    s.queue.borrow_mut().clear();
+                    s.running.set(false);
+                    return;
+                };
+                drop(s);
+                let mut error = None;
+                for op in &change.ops {
+                    if let Err(e) = dbus::run(&conn, op).await {
+                        error = Some(e);
+                        break;
+                    }
+                }
+                let Some(s) = weak.upgrade() else { return };
+                s.toast(&change, undoable, error);
+                s.refresh();
+            }
+        });
+    }
+
+    fn toast(self: &Rc<Self>, change: &Change, undoable: bool, error: Option<String>) {
+        let toast = match error {
+            Some(e) => {
+                let t = adw::Toast::new(&glib::markup_escape_text(&fill(
+                    // TRANSLATORS: {error} is the daemon's message, in English.
+                    &gettext("Not changed: {error}"),
+                    &[("error", &e)],
+                )));
+                t.set_timeout(10);
+                t
+            }
+            None if undoable => {
+                let t = adw::Toast::new(&glib::markup_escape_text(&change.label));
+                if !change.undo.is_empty() {
+                    t.set_button_label(Some(&gettext("Undo")));
+                    let undo = Change {
+                        ops: change.undo.clone(),
+                        undo: Vec::new(),
+                        label: String::new(),
+                    };
+                    let weak = Rc::downgrade(self);
+                    t.connect_button_clicked(move |_| {
+                        if let Some(s) = weak.upgrade() {
+                            s.execute(undo.clone(), false);
+                        }
+                    });
+                }
+                t
+            }
+            None => return,
+        };
+        self.toasts.add_toast(toast);
+    }
+
     fn on_event(self: &Rc<Self>, event: Event) {
         match event {
             Event::Changed | Event::DaemonStarted => self.refresh(),
@@ -418,6 +657,7 @@ impl App {
     }
 
     fn render(&self, view: &View) {
+        self.pointer.update(view, self.status.borrow().as_ref());
         let h = &self.home;
         match view {
             View::Connecting => h.states.set_visible_child_name("connecting"),

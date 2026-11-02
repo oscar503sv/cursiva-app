@@ -16,9 +16,85 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: crates/hidlab-gtk/src/changes.rs:68 crates/hidlab-gtk/src/model.rs:176
+#: crates/hidlab-gtk/src/model.rs:182
+msgid "Clicks"
+msgstr "Con clics"
+
+#: crates/hidlab-gtk/src/changes.rs:69 crates/hidlab-gtk/src/model.rs:173
+msgid "Free spin"
+msgstr "Libre"
+
+#: crates/hidlab-gtk/src/changes.rs:70
+msgid "Automatic"
+msgstr "Automático"
+
+#: crates/hidlab-gtk/src/changes.rs:76
+msgid "Always clicks, even when you push it."
+msgstr "Siempre hace clic, aunque la empujes."
+
+#: crates/hidlab-gtk/src/changes.rs:77
+msgid "Spins freely; the mode button brings the clicks back."
+msgstr "Gira libre; el botón de modo devuelve los clics."
+
+#: crates/hidlab-gtk/src/changes.rs:79
+msgid "Clicks when you turn it slowly and spins freely when you push it."
+msgstr "Hace clic al girar despacio y gira libre cuando la empujas."
+
+#. TRANSLATORS: toast after a change; {dpi} is a number.
+#: crates/hidlab-gtk/src/changes.rs:160
+#, rust-format
+msgid "Pointer speed: {dpi} DPI"
+msgstr "Velocidad del puntero: {dpi} DPI"
+
+#: crates/hidlab-gtk/src/changes.rs:164 crates/hidlab-gtk/src/changes.rs:172
+#: crates/hidlab-gtk/src/changes.rs:175 crates/hidlab-gtk/src/changes.rs:224
+#, rust-format
+msgid "Wheel: {mode}"
+msgstr "Rueda: {mode}"
+
+#. TRANSLATORS: toast; {value} is a number from 1 to 50.
+#: crates/hidlab-gtk/src/changes.rs:168
+#, rust-format
+msgid "Push to switch to free spin: {value}"
+msgstr "Empujón para girar libre: {value}"
+
+#: crates/hidlab-gtk/src/changes.rs:177
+msgid "Thumb wheel: reversed"
+msgstr "Rueda del pulgar: invertida"
+
+#: crates/hidlab-gtk/src/changes.rs:178
+msgid "Thumb wheel: normal direction"
+msgstr "Rueda del pulgar: dirección normal"
+
+#: crates/hidlab-gtk/src/changes.rs:269
+msgid "Natural scrolling on"
+msgstr "Desplazamiento natural activado"
+
+#: crates/hidlab-gtk/src/changes.rs:270
+msgid "Natural scrolling off"
+msgstr "Desplazamiento natural desactivado"
+
+#: crates/hidlab-gtk/src/changes.rs:272
+#, rust-format
+msgid "Acceleration: {profile}"
+msgstr "Aceleración: {profile}"
+
+#: crates/hidlab-gtk/src/changes.rs:291
+msgid "Flat"
+msgstr "Plana"
+
+#: crates/hidlab-gtk/src/changes.rs:292
+msgid "Adaptive"
+msgstr "Adaptativa"
+
+#: crates/hidlab-gtk/src/changes.rs:293
+msgid "Default"
+msgstr "Predeterminada"
+
 #. TRANSLATORS: {error} is a technical parse error; {unit} is
 #. hid-labd.service. Keep the command between backticks as is.
-#: crates/hidlab-gtk/src/dbus.rs:59
+#: crates/hidlab-gtk/src/dbus.rs:63
 #, rust-format
 msgid ""
 "The Cursiva service sent a status this app does not understand ({error}). "
@@ -27,7 +103,7 @@ msgid ""
 msgstr "El servicio de Cursiva envió un estado que esta app no entiende ({error}). Probablemente el servicio y la app son de versiones distintas: instala ambos de la misma compilación y luego ejecuta `systemctl --user restart {unit}`"
 
 #. TRANSLATORS: {unit} is hid-labd.service. Keep commands as is.
-#: crates/hidlab-gtk/src/dbus.rs:74
+#: crates/hidlab-gtk/src/dbus.rs:78
 #, rust-format
 msgid ""
 "The Cursiva service (hid-labd) is not installed for this user, or the "
@@ -36,7 +112,7 @@ msgid ""
 msgstr "El servicio de Cursiva (hid-labd) no está instalado para este usuario, o el bus de sesión aún no ha leído su archivo de servicio. Instálalo como indica el README y luego ejecuta `systemctl --user enable --now {unit}`"
 
 #. TRANSLATORS: {unit} is hid-labd.service. Keep the command as is.
-#: crates/hidlab-gtk/src/dbus.rs:82
+#: crates/hidlab-gtk/src/dbus.rs:86
 #, rust-format
 msgid ""
 "The Cursiva service could not start. See why with `journalctl --user -u "
@@ -45,15 +121,29 @@ msgstr "El servicio de Cursiva no pudo arrancar. Mira por qué con `journalctl -
 
 #. TRANSLATORS: {error} is the D-Bus error message; {unit} is
 #. hid-labd.service. Keep the command as is.
-#: crates/hidlab-gtk/src/dbus.rs:88
+#: crates/hidlab-gtk/src/dbus.rs:92
 #, rust-format
 msgid ""
 "The Cursiva service did not answer ({error}). Check it with `systemctl --"
 "user status {unit}`"
 msgstr "El servicio de Cursiva no respondió ({error}). Revísalo con `systemctl --user status {unit}`"
 
+#: crates/hidlab-gtk/src/dbus.rs:138
+msgid "Nothing was saved"
+msgstr "No se guardó nada"
+
+#. TRANSLATORS: {setting} is a setting name such as `dpi`.
+#: crates/hidlab-gtk/src/dbus.rs:164
+#, rust-format
+msgid "The mouse did not keep {setting}"
+msgstr "El ratón no conservó {setting}"
+
+#: crates/hidlab-gtk/src/dbus.rs:168
+msgid "The mouse did not keep the change"
+msgstr "El ratón no conservó el cambio"
+
 #. TRANSLATORS: {dpi} is a number such as 1600.
-#: crates/hidlab-gtk/src/model.rs:76
+#: crates/hidlab-gtk/src/model.rs:76 crates/hidlab-gtk/src/pointer.rs:391
 #, rust-format
 msgid "{dpi} DPI"
 msgstr "{dpi} DPI"
@@ -108,8 +198,8 @@ msgstr "Llena"
 msgid "Normal"
 msgstr "Normal"
 
-#: crates/hidlab-gtk/src/model.rs:141 crates/hidlab-gtk/src/window.rs:466
-#: crates/hidlab-gtk/src/window.rs:470
+#: crates/hidlab-gtk/src/model.rs:141 crates/hidlab-gtk/src/window.rs:704
+#: crates/hidlab-gtk/src/window.rs:708
 msgid "Unknown"
 msgstr "Desconocido"
 
@@ -124,14 +214,6 @@ msgstr "Carga completa"
 #: crates/hidlab-gtk/src/model.rs:147
 msgid "Not charging"
 msgstr "No se está cargando"
-
-#: crates/hidlab-gtk/src/model.rs:173
-msgid "Free spin"
-msgstr "Libre"
-
-#: crates/hidlab-gtk/src/model.rs:176 crates/hidlab-gtk/src/model.rs:182
-msgid "Clicks"
-msgstr "Con clics"
 
 #: crates/hidlab-gtk/src/model.rs:177
 msgid "Automatic, switches with a light push"
@@ -161,7 +243,7 @@ msgstr "Rueda principal y botón central"
 msgid "Wheel mode button"
 msgstr "Botón de modo de la rueda"
 
-#: crates/hidlab-gtk/src/mouse.rs:24
+#: crates/hidlab-gtk/src/mouse.rs:24 crates/hidlab-gtk/src/pointer.rs:241
 msgid "Thumb wheel"
 msgstr "Rueda del pulgar"
 
@@ -177,101 +259,225 @@ msgstr "Botón atrás"
 msgid "Gesture button"
 msgstr "Botón de gestos"
 
-#: crates/hidlab-gtk/src/mouse.rs:147
+#: crates/hidlab-gtk/src/mouse.rs:215
 msgid "Mouse"
 msgstr "Ratón"
 
-#: crates/hidlab-gtk/src/window.rs:29
-msgid "Home"
-msgstr "Inicio"
+#: crates/hidlab-gtk/src/pointer.rs:58
+msgid "Pointer speed restored"
+msgstr "Velocidad del puntero restaurada"
 
-#: crates/hidlab-gtk/src/window.rs:34
-msgid "Pointer and scrolling"
-msgstr "Puntero y desplazamiento"
+#: crates/hidlab-gtk/src/pointer.rs:59
+msgid "Main wheel restored"
+msgstr "Rueda principal restaurada"
 
-#: crates/hidlab-gtk/src/window.rs:39
-msgid "Buttons"
-msgstr "Botones"
+#: crates/hidlab-gtk/src/pointer.rs:60
+msgid "Thumb wheel restored"
+msgstr "Rueda del pulgar restaurada"
 
-#: crates/hidlab-gtk/src/window.rs:93
-msgid ""
-"Pointer speed, wheel and thumb wheel settings arrive in the next update."
-msgstr "Los ajustes de velocidad del puntero, rueda y rueda del pulgar llegan en la próxima actualización."
+#: crates/hidlab-gtk/src/pointer.rs:142
+msgid "Restore Default"
+msgstr "Restaurar predeterminado"
 
-#: crates/hidlab-gtk/src/window.rs:101
-msgid "Choosing what each button does arrives in a later update."
-msgstr "Elegir qué hace cada botón llega en una actualización posterior."
+#: crates/hidlab-gtk/src/pointer.rs:169
+msgid "Speed"
+msgstr "Velocidad"
 
-#: crates/hidlab-gtk/src/window.rs:208
-msgid "Coming soon"
-msgstr "Próximamente"
+#: crates/hidlab-gtk/src/pointer.rs:169
+msgid "Slower"
+msgstr "Más lenta"
 
-#: crates/hidlab-gtk/src/window.rs:226
+#: crates/hidlab-gtk/src/pointer.rs:169
+msgid "Faster"
+msgstr "Más rápida"
+
+#: crates/hidlab-gtk/src/pointer.rs:175
+msgid "Acceleration"
+msgstr "Aceleración"
+
+#: crates/hidlab-gtk/src/pointer.rs:176
+msgid "GNOME setting, for every mouse"
+msgstr "Ajuste de GNOME, para todos los ratones"
+
+#: crates/hidlab-gtk/src/pointer.rs:179
+msgid "Pointer"
+msgstr "Puntero"
+
+#: crates/hidlab-gtk/src/pointer.rs:201
+msgid "Scroll mode"
+msgstr "Modo de desplazamiento"
+
+#: crates/hidlab-gtk/src/pointer.rs:216
+msgid "Switches to free spin with"
+msgstr "Pasa a giro libre con"
+
+#: crates/hidlab-gtk/src/pointer.rs:218
+msgid "A light push"
+msgstr "Un empujón suave"
+
+#: crates/hidlab-gtk/src/pointer.rs:219
+msgid "A hard push"
+msgstr "Un empujón fuerte"
+
+#: crates/hidlab-gtk/src/pointer.rs:222
+msgid "Natural scrolling"
+msgstr "Desplazamiento natural"
+
+#: crates/hidlab-gtk/src/pointer.rs:223
+msgid "Content follows your finger. GNOME setting, for every mouse"
+msgstr "El contenido sigue al dedo. Ajuste de GNOME, para todos los ratones"
+
+#: crates/hidlab-gtk/src/pointer.rs:226
+msgid "Smooth scrolling"
+msgstr "Desplazamiento suave"
+
+#: crates/hidlab-gtk/src/pointer.rs:227
+msgid "High-resolution wheel, managed by the system"
+msgstr "Rueda de alta resolución, la gestiona el sistema"
+
+#: crates/hidlab-gtk/src/pointer.rs:229
+msgid "On"
+msgstr "Activado"
+
+#: crates/hidlab-gtk/src/pointer.rs:230
+msgid "Main wheel"
+msgstr "Rueda principal"
+
+#: crates/hidlab-gtk/src/pointer.rs:238
+msgid "Reverse direction"
+msgstr "Invertir dirección"
+
+#: crates/hidlab-gtk/src/pointer.rs:239
+msgid "Scrolls sideways the other way"
+msgstr "Desplaza de lado en sentido contrario"
+
+#: crates/hidlab-gtk/src/pointer.rs:246
+msgid "Resolution"
+msgstr "Resolución"
+
+#: crates/hidlab-gtk/src/pointer.rs:248
+msgid "SmartShift threshold"
+msgstr "Umbral de SmartShift"
+
+#: crates/hidlab-gtk/src/pointer.rs:249
+msgid "1 (light) to 50 (hard)"
+msgstr "1 (suave) a 50 (fuerte)"
+
+#: crates/hidlab-gtk/src/pointer.rs:250
+msgid "Exact values"
+msgstr "Valores exactos"
+
+#: crates/hidlab-gtk/src/pointer.rs:253
+msgid "Advanced"
+msgstr "Avanzado"
+
+#: crates/hidlab-gtk/src/pointer.rs:406 crates/hidlab-gtk/src/window.rs:339
 msgid "Connecting to the Cursiva service…"
 msgstr "Conectando con el servicio de Cursiva…"
 
-#: crates/hidlab-gtk/src/window.rs:238
+#: crates/hidlab-gtk/src/pointer.rs:407 crates/hidlab-gtk/src/window.rs:351
 msgid "Cannot reach the Cursiva service"
 msgstr "No se puede contactar con el servicio de Cursiva"
 
-#: crates/hidlab-gtk/src/window.rs:241
-msgid "Try Again"
-msgstr "Reintentar"
-
-#: crates/hidlab-gtk/src/window.rs:251
+#: crates/hidlab-gtk/src/pointer.rs:409 crates/hidlab-gtk/src/window.rs:364
 msgid "Connect your mouse"
 msgstr "Conecta tu ratón"
 
-#: crates/hidlab-gtk/src/window.rs:258
+#: crates/hidlab-gtk/src/pointer.rs:410 crates/hidlab-gtk/src/window.rs:669
+msgid ""
+"Turn the mouse on and connect it over Bluetooth. Cursiva finds it by itself."
+msgstr "Enciende el ratón y conéctalo por Bluetooth. Cursiva lo encuentra solo."
+
+#: crates/hidlab-gtk/src/pointer.rs:429
+#, rust-format
+msgid "{dpi} · default"
+msgstr "{dpi} · predeterminado"
+
+#. TRANSLATORS: the DPI range the mouse accepts.
+#: crates/hidlab-gtk/src/pointer.rs:440
+#, rust-format
+msgid "From {min} to {max} in steps of {step}"
+msgstr "De {min} a {max} en pasos de {step}"
+
+#: crates/hidlab-gtk/src/window.rs:35
+msgid "Home"
+msgstr "Inicio"
+
+#: crates/hidlab-gtk/src/window.rs:40
+msgid "Pointer and scrolling"
+msgstr "Puntero y desplazamiento"
+
+#: crates/hidlab-gtk/src/window.rs:45
+msgid "Buttons"
+msgstr "Botones"
+
+#: crates/hidlab-gtk/src/window.rs:125
+msgid "Choosing what each button does arrives in a later update."
+msgstr "Elegir qué hace cada botón llega en una actualización posterior."
+
+#: crates/hidlab-gtk/src/window.rs:321
+msgid "Coming soon"
+msgstr "Próximamente"
+
+#: crates/hidlab-gtk/src/window.rs:354
+msgid "Try Again"
+msgstr "Reintentar"
+
+#: crates/hidlab-gtk/src/window.rs:371
 msgid "Click a part of the mouse to change it"
 msgstr "Haz clic en una parte del ratón para cambiarla"
 
-#: crates/hidlab-gtk/src/window.rs:280
+#: crates/hidlab-gtk/src/window.rs:393
 msgid "Connection"
 msgstr "Conexión"
 
-#: crates/hidlab-gtk/src/window.rs:281
+#: crates/hidlab-gtk/src/window.rs:394
 msgid "Battery"
 msgstr "Batería"
 
-#: crates/hidlab-gtk/src/window.rs:285
+#: crates/hidlab-gtk/src/window.rs:398
 msgid "Profile"
 msgstr "Perfil"
 
-#: crates/hidlab-gtk/src/window.rs:286
+#: crates/hidlab-gtk/src/window.rs:399
 msgid "The same settings in every app"
 msgstr "Los mismos ajustes en todas las apps"
 
-#: crates/hidlab-gtk/src/window.rs:288
+#: crates/hidlab-gtk/src/window.rs:401
 msgid "General"
 msgstr "General"
 
-#: crates/hidlab-gtk/src/window.rs:294
+#: crates/hidlab-gtk/src/window.rs:407
 msgid "Active settings"
 msgstr "Ajustes activos"
 
-#: crates/hidlab-gtk/src/window.rs:296
+#: crates/hidlab-gtk/src/window.rs:409
 msgid "Pointer speed"
 msgstr "Velocidad del puntero"
 
-#: crates/hidlab-gtk/src/window.rs:297
+#: crates/hidlab-gtk/src/window.rs:410
 msgid "Wheel"
 msgstr "Rueda"
 
+#. TRANSLATORS: {error} is the daemon's message, in English.
+#: crates/hidlab-gtk/src/window.rs:569
+#, rust-format
+msgid "Not changed: {error}"
+msgstr "No se cambió: {error}"
+
+#: crates/hidlab-gtk/src/window.rs:578
+msgid "Undo"
+msgstr "Deshacer"
+
 #. TRANSLATORS: {unit} is hid-labd.service.
-#: crates/hidlab-gtk/src/window.rs:369
+#: crates/hidlab-gtk/src/window.rs:606
 #, rust-format
 msgid ""
 "The Cursiva service stopped. Start it with `systemctl --user start {unit}`"
 msgstr "El servicio de Cursiva se detuvo. Inícialo con `systemctl --user start {unit}`"
 
-#: crates/hidlab-gtk/src/window.rs:431
-msgid ""
-"Turn the mouse on and connect it over Bluetooth. Cursiva finds it by itself."
-msgstr "Enciende el ratón y conéctalo por Bluetooth. Cursiva lo encuentra solo."
-
 #. TRANSLATORS: {error} is the daemon's message, in English.
-#: crates/hidlab-gtk/src/window.rs:437
+#: crates/hidlab-gtk/src/window.rs:675
 #, rust-format
 msgid "Your settings file has an error: {error}"
 msgstr "Tu archivo de ajustes tiene un error: {error}"

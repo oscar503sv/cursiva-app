@@ -2,11 +2,13 @@
 //! contains no device logic; everything goes through the daemon's D-Bus
 //! API (`hidlab-api`).
 
+mod changes;
 mod dbus;
 mod geometry;
 mod i18n;
 mod model;
 mod mouse;
+mod pointer;
 mod window;
 
 use adw::prelude::*;
