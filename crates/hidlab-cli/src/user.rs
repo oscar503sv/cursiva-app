@@ -41,7 +41,7 @@ fn result_label(r: ItemResult) -> &'static str {
 
 fn print_item(i: &ApplyItem) {
     println!(
-        "  {:<22} {:<10} {}",
+        "  {:<22} {:<18} {}",
         i.setting.name(),
         i.target.display(),
         result_label(i.result)
