@@ -64,9 +64,9 @@ impl DeviceProfile {
 /// hid-lab's choice (power-off keeps the mode, so the mouse has no reset
 /// value to copy). Every button does its own task.
 ///
-/// Input buttons: 1 to 5 as left, right, middle, back and forward is the
-/// usual HID mouse order (HYPOTHESIS for this mouse until test H5C-05; the
-/// report has 16 button bits, docs/protocol/evidence/m5c).
+/// Input buttons: 1 to 5 are left, right, middle, back and forward and 6 is
+/// the gesture button (LIKELY, one run of test H5C-05, docs/protocol T-2);
+/// the mode button sets no bit.
 pub const MX_MASTER_3S: DeviceProfile = DeviceProfile {
     key: "mx-master-3s",
     name: "MX Master 3S",
@@ -103,6 +103,7 @@ pub const MX_MASTER_3S: DeviceProfile = DeviceProfile {
         (3, "middle"),
         (4, "back"),
         (5, "forward"),
+        (6, "gesture"),
     ],
 };
 
