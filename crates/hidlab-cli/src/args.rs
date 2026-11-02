@@ -10,6 +10,7 @@ Usage:
   hid-lab set <setting> <value> [--json]
   hid-lab reset (<setting> | all) [--json]
   hid-lab reapply [--json]
+  hid-lab buttons [--duration <s>] [--json]
   hid-lab lab devices [--json] [--show-unique]
   hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
   hid-lab lab read [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -19,7 +20,8 @@ Usage:
   hid-lab lab write <setting> --restore [<device>] (--dry-run | --write) [--json]
   hid-lab --help | --version
 
-status, set, reset and reapply talk to the daemon hid-labd (docs/daemon.md).
+status, set, reset, reapply and buttons talk to the daemon hid-labd
+(docs/daemon.md).
 Settings: dpi <n>, smartshift-mode <ratchet|free-spin>,
 smartshift-threshold <1..50|off|on>, thumbwheel-invert <on|off>,
 remap-<button> <target|default>; GNOME: natural-scroll <on|off>,
@@ -62,6 +64,21 @@ and saves it: the mode in its state file, everything else in
 GNOME pointer settings (stored by GNOME, for every mouse):
   natural-scroll <on|off>       content follows the fingers
   acceleration <default|flat|adaptive>
+";
+
+pub const BUTTONS_HELP: &str = "\
+hid-lab buttons — show mouse button presses as they happen
+
+Usage: hid-lab buttons [--duration <s>] [--json]
+
+Asks hid-labd to report presses (it reads the mouse's own input reports;
+nothing is written) and prints each button going down or up, with its
+number and, when known, its name. A remapped button shows the control
+whose task it performs. The mode button shows as `mode` on press only.
+
+Options:
+  --duration <s>  How long to listen, 1..=3600 seconds (default 30)
+  --json          One JSON object per line
 ";
 
 pub const RESET_HELP: &str = "\
@@ -250,6 +267,7 @@ pub enum HelpTopic {
     Set,
     Reset,
     Reapply,
+    Buttons,
 }
 
 impl HelpTopic {
@@ -266,6 +284,7 @@ impl HelpTopic {
             HelpTopic::Status => STATUS_HELP,
             HelpTopic::Set => SET_HELP,
             HelpTopic::Reset => RESET_HELP,
+            HelpTopic::Buttons => BUTTONS_HELP,
             HelpTopic::Reapply => REAPPLY_HELP,
         }
     }
@@ -350,10 +369,16 @@ pub enum Command {
     Watch(WatchArgs),
     Hotplug(HotplugArgs),
     Write(WriteArgs),
-    Status { json: bool },
+    Status {
+        json: bool,
+    },
     Set(SetArgs),
     Reset(ResetArgs),
-    Reapply { json: bool },
+    Reapply {
+        json: bool,
+    },
+    /// `hid-lab buttons`: same options as `lab hotplug`.
+    Buttons(HotplugArgs),
 }
 
 /// Parses arguments (without the program name). `Err` is a usage message.
@@ -388,6 +413,7 @@ where
         }),
         Some("set") => parse_set(it.collect()),
         Some("reset") => parse_reset(it.collect()),
+        Some("buttons") => parse_buttons(it.collect()),
         Some(other) => Err(format!("unknown command `{other}`. Try: hid-lab --help")),
     }
 }
@@ -533,32 +559,46 @@ fn parse_duration(v: &str) -> Result<Duration, String> {
         .ok_or_else(|| format!("--duration must be 1..=3600 seconds, got `{v}`"))
 }
 
-fn parse_hotplug(rest: Vec<&str>) -> Result<Command, String> {
+/// `[--duration <s>] [--json]`, for commands that listen. `Ok(None)` is
+/// `--help`.
+fn parse_listen(
+    rest: Vec<&str>,
+    default_s: u64,
+    try_help: &str,
+) -> Result<Option<HotplugArgs>, String> {
     let mut out = HotplugArgs {
-        duration: Duration::from_secs(60),
+        duration: Duration::from_secs(default_s),
         json: false,
     };
     let mut it = rest.into_iter();
     while let Some(arg) = it.next() {
         let (flag, inline) = split_flag(arg);
         match flag {
-            "-h" | "--help" => return Ok(Command::Help(HelpTopic::Hotplug)),
+            "-h" | "--help" => return Ok(None),
             "--json" => out.json = true,
             "--duration" => {
                 let v = inline
                     .map(str::to_owned)
                     .or_else(|| it.next().map(str::to_owned))
-                    .ok_or("--duration needs a value. Try: hid-lab lab hotplug --help")?;
+                    .ok_or_else(|| format!("--duration needs a value. Try: {try_help}"))?;
                 out.duration = parse_duration(&v)?;
             }
             other => {
-                return Err(format!(
-                    "unexpected argument `{other}`. Try: hid-lab lab hotplug --help"
-                ));
+                return Err(format!("unexpected argument `{other}`. Try: {try_help}"));
             }
         }
     }
-    Ok(Command::Hotplug(out))
+    Ok(Some(out))
+}
+
+fn parse_hotplug(rest: Vec<&str>) -> Result<Command, String> {
+    Ok(parse_listen(rest, 60, "hid-lab lab hotplug --help")?
+        .map_or(Command::Help(HelpTopic::Hotplug), Command::Hotplug))
+}
+
+fn parse_buttons(rest: Vec<&str>) -> Result<Command, String> {
+    Ok(parse_listen(rest, 30, "hid-lab buttons --help")?
+        .map_or(Command::Help(HelpTopic::Buttons), Command::Buttons))
 }
 
 fn parse_write(rest: Vec<&str>) -> Result<Command, String> {
@@ -913,6 +953,18 @@ mod tests {
             }))
         );
         assert!(parse(["reset"]).is_err());
+        assert_eq!(
+            parse(["buttons", "--duration", "5", "--json"]),
+            Ok(Command::Buttons(HotplugArgs {
+                duration: Duration::from_secs(5),
+                json: true
+            }))
+        );
+        assert_eq!(
+            parse(["buttons", "-h"]),
+            Ok(Command::Help(HelpTopic::Buttons))
+        );
+        assert!(parse(["buttons", "x"]).is_err());
         assert!(parse(["reset", "wheel-mode"]).is_err());
         assert!(parse(["set", "dpi"]).is_err());
         assert!(parse(["set", "dpi", "fast"]).is_err());

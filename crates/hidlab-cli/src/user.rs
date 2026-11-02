@@ -2,13 +2,13 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hidlab_daemon::api::{DesktopReply, ReapplyReply, ResetReply, SetReply, Status};
+use hidlab_daemon::api::{ButtonEvent, DesktopReply, ReapplyReply, ResetReply, SetReply, Status};
 use hidlab_daemon::apply::{ApplyItem, ApplyReport, ItemResult};
 use hidlab_features::settings::SettingKind;
 use serde::Serialize;
 
-use crate::args::{ResetArgs, SetArgs, SetTarget};
-use crate::client::call;
+use crate::args::{HotplugArgs, ResetArgs, SetArgs, SetTarget};
+use crate::client::{call, call_value, subscribe};
 
 fn print_json<T: Serialize>(v: &T) -> Result<(), String> {
     println!(
@@ -263,6 +263,65 @@ pub fn reset(args: &ResetArgs) -> Result<(), String> {
         Some(r) => report_result(r),
         None => Ok(()),
     }
+}
+
+/// `hid-lab buttons`: renews the daemon's lease every 20 s while listening.
+pub fn buttons(args: &HotplugArgs) -> Result<(), String> {
+    use std::io::Write as _;
+    use std::sync::mpsc::RecvTimeoutError;
+    use std::time::{Duration, Instant};
+
+    const RENEW: Duration = Duration::from_secs(20);
+    let rx = subscribe("ButtonPressed")?;
+    let end = Instant::now() + args.duration;
+    let mut renew_at = Instant::now();
+    if !args.json {
+        println!(
+            "Press mouse buttons; listening for {} s.",
+            args.duration.as_secs()
+        );
+    }
+    let mut out = std::io::stdout().lock();
+    loop {
+        let now = Instant::now();
+        if now >= end {
+            break;
+        }
+        if now >= renew_at {
+            let _: u32 = call_value("WatchButtons", &(30u32,))?;
+            renew_at = now + RENEW;
+        }
+        let wait = end.min(renew_at).saturating_duration_since(now);
+        let body = match rx.recv_timeout(wait) {
+            Ok(b) => b,
+            Err(RecvTimeoutError::Timeout) => continue,
+            Err(RecvTimeoutError::Disconnected) => {
+                return Err("the D-Bus connection closed".into());
+            }
+        };
+        let line = if args.json {
+            body
+        } else {
+            let ev: ButtonEvent = serde_json::from_str(&body).map_err(|e| {
+                format!("hid-labd sent a button event this hid-lab cannot read: {e}")
+            })?;
+            format!(
+                "{:<8} {:<5} {}",
+                ev.control.as_deref().unwrap_or("unknown"),
+                if ev.pressed { "down" } else { "up" },
+                ev.number
+                    .map_or_else(|| "(ratchet event)".into(), |n| format!("button {n}"))
+            )
+        };
+        // A closed pipe (for example `| head`) ends quietly.
+        if writeln!(out, "{line}").is_err() {
+            break;
+        }
+    }
+    drop(out);
+    // Best effort: stop the lease; it also ends by itself.
+    let _: Result<u32, String> = call_value("WatchButtons", &(0u32,));
+    Ok(())
 }
 
 pub fn reapply(json: bool) -> Result<(), String> {
