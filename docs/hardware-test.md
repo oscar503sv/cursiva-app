@@ -901,4 +901,4 @@ Run by the user with the phase 5c daemon. Captures in
 | H5C-05 | Pass | Gesture is button 6; mode shows through the ratchet event. The remapped run's file was overwritten by the default run |
 | H5C-06 | Pass | Values put back |
 | H5C-07 | Pass | |
-| H5C-08 | Fail, fixed | The bus had not read the activation file (installed after login); the install steps now run `ReloadConfig`. Repeated: the call started the daemon, but `status` said "not connected" because the daemon owned its name before looking for the mouse; fixed (it now looks first). To repeat once more |
+| H5C-08 | Fail, fixed | The bus had not read the activation file (installed after login); the install steps now run `ReloadConfig`. Repeated: the call started the daemon, but `status` said "not connected" because the daemon owned its name before looking for the mouse; fixed (it now looks first). Third run: pass, the first answer showed the mouse with every setting `ok` |
