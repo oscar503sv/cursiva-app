@@ -91,7 +91,7 @@ pub struct ConfirmedWrite {
     pub evidence: &'static str,
 }
 
-/// Writes confirmed by the hardware tests H4 (observation O-6).
+/// Writes confirmed by the hardware tests H4 (O-6) and H5 (O-10).
 pub const CONFIRMED_WRITES: &[ConfirmedWrite] = &[
     ConfirmedWrite {
         feature: FeatureId(0x2201),
@@ -110,6 +110,13 @@ pub const CONFIRMED_WRITES: &[ConfirmedWrite] = &[
         function: 2,
         name: "setThumbwheelReporting",
         evidence: "P-032",
+    },
+    // Remap only (flags byte 0); diversion is not confirmed.
+    ConfirmedWrite {
+        feature: FeatureId(0x1B04),
+        function: 3,
+        name: "setCidReporting",
+        evidence: "P-036",
     },
 ];
 
@@ -180,7 +187,7 @@ mod tests {
             .iter()
             .map(|w| (w.feature.0, w.function))
             .collect();
-        assert_eq!(got, [(0x2201, 3), (0x2110, 1), (0x2150, 2)]);
+        assert_eq!(got, [(0x2201, 3), (0x2110, 1), (0x2150, 2), (0x1B04, 3)]);
         for w in CONFIRMED_WRITES {
             // Only a write that went through `lab write` can be confirmed.
             assert!(write_allowed(w.feature, w.function).is_some());
