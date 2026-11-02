@@ -27,7 +27,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
 | 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
-| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). Next: 5c daemon API v2 |
+| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 implemented (O-11); hardware tests H5C pending |
 | 6–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
@@ -41,6 +41,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 - The kernel exposes the battery as `/sys/class/power_supply/hidpp_battery_N`; the name changes on reconnect.
 - Main-wheel scroll direction is GNOME's natural-scrolling setting, not a device write.
 - Write functions CONFIRMED by H4: 0x2201 setSensorDpi, 0x2110 setRatchetControlMode (mode and threshold; `00` in the other byte means no change), 0x2150 setThumbwheelReporting.
+- Input report `0x02` carries 16 button bits, then X/Y (12 bits each), wheel and AC Pan (T-2, from the descriptor). Which bit each physical button sets is a HYPOTHESIS until H5C.
 - CONFIRMED by H5: threshold 255 keeps the wheel ratcheted (SmartShift off); 0x1B04 setCidReporting `[cid, 00, target]` remaps a button to another control's task, read back by f2 `mapped_to`. A remap is lost on power-off (LIKELY). Unremapped, the gesture button acts as forward (one observation).
 - A 0x2110 mode write, like the mode button, produces a 0x2121 f1 notification. Automatic switching by the threshold does not.
 - Switching the mouse off resets DPI, threshold and thumb-wheel inversion to 1000, 10 and off, and keeps the SmartShift mode (CONFIRMED, P-033). A channel switch, a suspend or GNOME Bluetooth off/on that reconnects does the same (LIKELY, one run each).
@@ -63,8 +64,10 @@ Commands today:
 
 ```bash
 hid-lab status   [--json]
-hid-lab set      <setting> <value> [--json]
+hid-lab set      <setting> <value> [--json]     # also remap-<button>, natural-scroll, acceleration
+hid-lab reset    (<setting> | all) [--json]
 hid-lab reapply  [--json]
+hid-lab buttons  [--duration <s>] [--json]
 hid-lab lab devices  [--json] [--show-unique]
 hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
 hid-lab lab read     [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -75,7 +78,7 @@ hid-lab lab write    <setting> (<value> | --restore) [<device>] (--dry-run | --w
 
 `lab write` state (saved originals, `log.jsonl`) lives in `$XDG_STATE_HOME/hid-lab/lab-write/`. `lab write --write` refuses while `hid-labd` owns its D-Bus name.
 
-Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written. The user's own `hid-labd.service` normally runs: never stop or restart it; run a test instance on a private bus with `dbus-run-session`.
+Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, D-Bus activation file `packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`, plus the GNOME settings `natural-scroll` and `accel-profile` (via `gsettings`) when asked with `SetDesktop`. Never call `SetDesktop`, `Set` or `Reset` on the user's real session from Claude Code. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written. The user's own `hid-labd.service` normally runs: never stop or restart it; run a test instance on a private bus with `dbus-run-session`.
 
 Dependencies: `libc`, `serde`, `serde_json`, `thiserror`, `udev` (needs `systemd-devel` to build), `zbus` 5.13.2 (blocking API; 6.0.0 dropped it), `toml`. Explain why before adding any other crate, and verify its current version with `cargo info`.
 
