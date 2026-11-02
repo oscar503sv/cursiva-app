@@ -892,9 +892,14 @@ report 0x11 (vendor 0xFF43): 19 bytes in, 19 bytes out (HID++ long)
 | Fact | Status | Evidence |
 |---|---|---|
 | The descriptor declares the layout above | **CONFIRMED** | Read from sysfs on the user's machine; `crates/hidlab-transport/src/descriptor.rs` test |
-| Buttons 1 to 5 are left, right, middle, back and forward | HYPOTHESIS | Usual HID mouse order; to be checked with `hid-lab buttons` (H5C-05) |
-| Which button bit the gesture button sets, and whether the mode button sets one | UNKNOWN | H5C-05 |
-| A remapped control sets the bit of its target | HYPOTHESIS | Follows from P-036 (the target's task); H5C-05 |
+| Buttons 1 to 5 are left, right, middle, back and forward | LIKELY | O-12: one press and release of each, unremapped (`05-buttons.txt`) |
+| The gesture button sets button 6; the mode button sets no bit | LIKELY | O-12, same run; the mode press showed only as the ratchet event |
+| A remapped control sets the bit of its target | LIKELY | O-12: the user saw back and gesture as `middle` and forward as `back` with the H5C-03 remaps; that capture was overwritten by the unremapped run |
+| The main wheel and the thumb wheel set no button bit | LIKELY | O-12: no line while scrolling |
+
+Button 6 also explains O-10: unremapped, the gesture button made the
+browser go forward. Which input event the kernel makes of button 6 was not
+checked in R-1 or the HID input code.
 
 The daemon already receives these reports on its read-only listener
 (P-014) and skips them; during a `WatchButtons` lease it reports changes
@@ -910,6 +915,30 @@ not read for this entry, sends a `change` uevent for it.
 | Fact | Status | Evidence |
 |---|---|---|
 | The driver calls `power_supply_changed()` on battery events | **CONFIRMED** (source) | R-1 at the pinned commit |
-| A udev `change` event for `power_supply` follows, with the HID device in its path | LIKELY | Not observed yet; H5C-04 |
+| A udev `change` event for `power_supply` follows, with the HID device in its path | **CONFIRMED** | O-12: three `change` events for `.../uhid/0005:046D:B034.0008/power_supply/hidpp_battery_5` while charging and after unplugging, each followed by `BatteryChanged` |
 
 The daemon follows these events (no polling) and emits `BatteryChanged`.
+
+### Observation O-12 (2026-11-02) — user's hardware tests H5C
+
+The user ran section M5c of `docs/hardware-test.md` with the phase 5c
+daemon installed. Captures in `evidence/m5c/` (no unit ID or Bluetooth
+address in any of them; home paths already shown as `~` by the tool). The
+D-Bus monitor capture is not committed (1.8 MB of other programs' traffic);
+`04-battery-signals.txt` holds its three `BatteryChanged` signals.
+`01-status.json` was taken before remap values were serialized by name
+(phase 5c fix), so its `defaults` use the earlier `button-remap` form.
+
+| Test | Result | Data |
+|---|---|---|
+| H5C-01 status 3 | Pass | `01-status.json`: battery 40 %, capabilities with DPI 200–8000 step 50 and every remap button allowing all six other controls |
+| H5C-02 SmartShift off after power-off | Pass | Threshold `off` restored on `connect`, 1466 ms in total; the user felt the wheel keep clicking |
+| H5C-03 three remaps after power-off | Pass | Seven settings applied, 1726 and 1756 ms in total (two power cycles); the user felt the three remaps after each |
+| H5C-04 battery | Pass | Three udev `change` events and three `BatteryChanged`: 35 % charging, 40 % charging, 40 % discharging |
+| H5C-05 button presses | Pass | Buttons 1–5 named as expected, gesture = button 6, mode as ratchet event; remapped buttons showed their target (user report) |
+| H5C-06 GNOME settings | Pass | User report; values put back |
+| H5C-07 reset | Pass | `07-reset-all.txt`: threshold 20 written back to 10, the rest already at defaults; config and state updated |
+| H5C-08 D-Bus activation | **Fail**, cause found | `hid-lab status` answered "not running". The file was installed after login and dbus-broker had not read it: `ListActivatableNames` did not list the name until `ReloadConfig`. The install steps now reload the bus |
+
+The HID device went from `.0005` to `.0008` during the tests (power
+cycles); the battery entry was `hidpp_battery_5`.

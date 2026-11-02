@@ -1,0 +1,12 @@
+  dpi                    1000       already set
+  smartshift-mode        ratchet    already set
+  smartshift-threshold   10         written and verified
+  thumbwheel-invert      off        already set
+  remap-middle           middle (default) already set
+  remap-back             back (default) already set
+  remap-forward          forward (default) already set
+  remap-gesture          gesture (default) already set
+  remap-mode             mode (default) already set
+  verified in 431 ms
+Updated ~/.config/hid-lab/config.toml
+Updated ~/.local/state/hid-lab/daemon/state.toml

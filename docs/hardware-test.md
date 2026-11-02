@@ -886,3 +886,19 @@ hid-lab status
 
 If there was no backup (no config before), run `hid-lab reset all`
 instead of the two `cp` lines.
+
+### M5c results (2026-11-02)
+
+Run by the user with the phase 5c daemon. Captures in
+`docs/protocol/evidence/m5c/`, observation O-12.
+
+| Test | Result | Notes |
+|---|---|---|
+| H5C-01 | Pass | Battery, nine settings, GNOME line, status 3 with capabilities |
+| H5C-02 | Pass | `off` kept after power-off, 1466 ms |
+| H5C-03 | Pass | Three remaps kept after power-off, 1726 and 1756 ms |
+| H5C-04 | Pass | Three `BatteryChanged` signals while charging and unplugging |
+| H5C-05 | Pass | Gesture is button 6; mode shows through the ratchet event. The remapped run's file was overwritten by the default run |
+| H5C-06 | Pass | Values put back |
+| H5C-07 | Pass | |
+| H5C-08 | Fail, fixed | The bus had not read the activation file (installed after login); the install steps now run `ReloadConfig`. To repeat |

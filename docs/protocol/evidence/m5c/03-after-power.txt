@@ -1,0 +1,21 @@
+Daemon:  hid-labd 0.1.0
+Config:  ~/.config/hid-lab/config.toml
+Mouse:   MX Master 3S at /dev/hidraw2 (bluetooth 046D:B034, access ok)
+Battery: 35%, discharging
+
+  setting                wanted             current           
+  dpi                    1000               1000               ok
+  smartshift-mode        ratchet            ratchet            ok
+  smartshift-threshold   20                 20                 ok
+  thumbwheel-invert      off                off                ok
+  remap-middle           -                  middle (default)   
+  remap-back             middle             middle             ok
+  remap-forward          back               back               ok
+  remap-gesture          middle             middle             ok
+  remap-mode             -                  mode (default)     
+
+GNOME:   natural-scroll off, acceleration default
+
+Last apply: Connect, 30 s ago: 7 setting(s) verified 622 ms after the event
+            second check 1726 ms after the event: nothing overwritten
+            1726 ms in total; the target is 2000 ms

@@ -1,0 +1,336 @@
+{
+  "schema": "hid-lab.daemon-status/3",
+  "daemon_version": "0.1.0",
+  "config_file": "~/.config/hid-lab/config.toml",
+  "config_error": null,
+  "state_error": null,
+  "device": {
+    "profile": "mx-master-3s",
+    "name": "MX Master 3S",
+    "node": "/dev/hidraw2",
+    "hid_device": "0005:046D:B034.0005",
+    "bus": "bluetooth",
+    "vendor_id": 1133,
+    "product_id": 45108,
+    "access": "ok"
+  },
+  "desired": [
+    {
+      "setting": "dpi",
+      "value": 1000
+    },
+    {
+      "setting": "smartshift-mode",
+      "value": 2
+    },
+    {
+      "setting": "smartshift-threshold",
+      "value": 10
+    },
+    {
+      "setting": "thumbwheel-invert",
+      "value": false
+    }
+  ],
+  "current": [
+    {
+      "setting": "dpi",
+      "value": {
+        "setting": "dpi",
+        "value": 1000
+      },
+      "error": null
+    },
+    {
+      "setting": "smartshift-mode",
+      "value": {
+        "setting": "smartshift-mode",
+        "value": 2
+      },
+      "error": null
+    },
+    {
+      "setting": "smartshift-threshold",
+      "value": {
+        "setting": "smartshift-threshold",
+        "value": 10
+      },
+      "error": null
+    },
+    {
+      "setting": "thumbwheel-invert",
+      "value": {
+        "setting": "thumbwheel-invert",
+        "value": false
+      },
+      "error": null
+    },
+    {
+      "setting": "remap-middle",
+      "value": {
+        "setting": "button-remap",
+        "value": [
+          "middle",
+          82
+        ]
+      },
+      "error": null
+    },
+    {
+      "setting": "remap-back",
+      "value": {
+        "setting": "button-remap",
+        "value": [
+          "back",
+          83
+        ]
+      },
+      "error": null
+    },
+    {
+      "setting": "remap-forward",
+      "value": {
+        "setting": "button-remap",
+        "value": [
+          "forward",
+          86
+        ]
+      },
+      "error": null
+    },
+    {
+      "setting": "remap-gesture",
+      "value": {
+        "setting": "button-remap",
+        "value": [
+          "gesture",
+          195
+        ]
+      },
+      "error": null
+    },
+    {
+      "setting": "remap-mode",
+      "value": {
+        "setting": "button-remap",
+        "value": [
+          "mode",
+          196
+        ]
+      },
+      "error": null
+    }
+  ],
+  "saved_threshold": 10,
+  "battery": {
+    "percent": 40,
+    "level": null,
+    "status": "Discharging"
+  },
+  "capabilities": {
+    "dpi": [
+      {
+        "from": 200,
+        "to": 8000,
+        "step": 50
+      }
+    ],
+    "threshold_min": 1,
+    "threshold_max": 50,
+    "buttons": [
+      {
+        "button": "middle",
+        "targets": [
+          "middle",
+          "left",
+          "right",
+          "back",
+          "forward",
+          "gesture",
+          "mode"
+        ]
+      },
+      {
+        "button": "back",
+        "targets": [
+          "back",
+          "left",
+          "right",
+          "middle",
+          "forward",
+          "gesture",
+          "mode"
+        ]
+      },
+      {
+        "button": "forward",
+        "targets": [
+          "forward",
+          "left",
+          "right",
+          "middle",
+          "back",
+          "gesture",
+          "mode"
+        ]
+      },
+      {
+        "button": "gesture",
+        "targets": [
+          "gesture",
+          "left",
+          "right",
+          "middle",
+          "back",
+          "forward",
+          "mode"
+        ]
+      },
+      {
+        "button": "mode",
+        "targets": [
+          "mode",
+          "left",
+          "right",
+          "middle",
+          "back",
+          "forward",
+          "gesture"
+        ]
+      }
+    ],
+    "defaults": [
+      {
+        "setting": "dpi",
+        "value": 1000
+      },
+      {
+        "setting": "smartshift-mode",
+        "value": 2
+      },
+      {
+        "setting": "smartshift-threshold",
+        "value": 10
+      },
+      {
+        "setting": "thumbwheel-invert",
+        "value": false
+      },
+      {
+        "setting": "button-remap",
+        "value": [
+          "middle",
+          82
+        ]
+      },
+      {
+        "setting": "button-remap",
+        "value": [
+          "back",
+          83
+        ]
+      },
+      {
+        "setting": "button-remap",
+        "value": [
+          "forward",
+          86
+        ]
+      },
+      {
+        "setting": "button-remap",
+        "value": [
+          "gesture",
+          195
+        ]
+      },
+      {
+        "setting": "button-remap",
+        "value": [
+          "mode",
+          196
+        ]
+      }
+    ]
+  },
+  "desktop": {
+    "natural_scroll": false,
+    "acceleration": "default",
+    "error": null
+  },
+  "last_apply": {
+    "trigger": "start",
+    "at_unix": 1793658015,
+    "report": {
+      "items": [
+        {
+          "setting": "dpi",
+          "target": {
+            "setting": "dpi",
+            "value": 1000
+          },
+          "before": {
+            "setting": "dpi",
+            "value": 1000
+          },
+          "result": "unchanged",
+          "checks": [],
+          "error": null
+        },
+        {
+          "setting": "smartshift-mode",
+          "target": {
+            "setting": "smartshift-mode",
+            "value": 2
+          },
+          "before": {
+            "setting": "smartshift-mode",
+            "value": 2
+          },
+          "result": "unchanged",
+          "checks": [],
+          "error": null
+        },
+        {
+          "setting": "smartshift-threshold",
+          "target": {
+            "setting": "smartshift-threshold",
+            "value": 10
+          },
+          "before": {
+            "setting": "smartshift-threshold",
+            "value": 10
+          },
+          "result": "unchanged",
+          "checks": [],
+          "error": null
+        },
+        {
+          "setting": "thumbwheel-invert",
+          "target": {
+            "setting": "thumbwheel-invert",
+            "value": false
+          },
+          "before": {
+            "setting": "thumbwheel-invert",
+            "value": false
+          },
+          "result": "unchanged",
+          "checks": [],
+          "error": null
+        }
+      ],
+      "ok": true,
+      "elapsed_ms": 67,
+      "ignored_reports": 1
+    },
+    "since_event_ms": 638,
+    "second_check": {
+      "ok": true,
+      "since_event_ms": 1680,
+      "overwritten": [],
+      "reapplied": null
+    }
+  },
+  "conflicts": []
+}

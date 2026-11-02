@@ -1,0 +1,16 @@
+Press mouse buttons; listening for 90 s.
+left     down  button 1
+left     up    button 1
+right    down  button 2
+right    up    button 2
+middle   down  button 3
+middle   up    button 3
+back     down  button 4
+back     up    button 4
+forward  down  button 5
+forward  up    button 5
+unknown  down  button 6
+unknown  up    button 6
+mode     down  (ratchet event)
+left     down  button 1
+left     up    button 1

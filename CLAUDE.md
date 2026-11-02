@@ -27,7 +27,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
 | 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
-| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 implemented (O-11); hardware tests H5C pending |
+| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 done (H5C, O-12; D-Bus activation to re-check after the reload fix). Next: 5d GTK app skeleton |
 | 6–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
@@ -41,7 +41,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 - The kernel exposes the battery as `/sys/class/power_supply/hidpp_battery_N`; the name changes on reconnect.
 - Main-wheel scroll direction is GNOME's natural-scrolling setting, not a device write.
 - Write functions CONFIRMED by H4: 0x2201 setSensorDpi, 0x2110 setRatchetControlMode (mode and threshold; `00` in the other byte means no change), 0x2150 setThumbwheelReporting.
-- Input report `0x02` carries 16 button bits, then X/Y (12 bits each), wheel and AC Pan (T-2, from the descriptor). Which bit each physical button sets is a HYPOTHESIS until H5C.
+- Input report `0x02` carries 16 button bits, then X/Y (12 bits each), wheel and AC Pan (T-2, from the descriptor). Buttons 1–5 are left, right, middle, back, forward and 6 is gesture; the mode button sets no bit (LIKELY, H5C-05).
 - CONFIRMED by H5: threshold 255 keeps the wheel ratcheted (SmartShift off); 0x1B04 setCidReporting `[cid, 00, target]` remaps a button to another control's task, read back by f2 `mapped_to`. A remap is lost on power-off (LIKELY). Unremapped, the gesture button acts as forward (one observation).
 - A 0x2110 mode write, like the mode button, produces a 0x2121 f1 notification. Automatic switching by the threshold does not.
 - Switching the mouse off resets DPI, threshold and thumb-wheel inversion to 1000, 10 and off, and keeps the SmartShift mode (CONFIRMED, P-033). A channel switch, a suspend or GNOME Bluetooth off/on that reconnects does the same (LIKELY, one run each).

@@ -1,0 +1,8 @@
+# BatteryChanged signals extracted from the user's busctl monitor capture (H5C-04).
+# The full capture (1.8 MB, other programs' D-Bus traffic) is not committed.
+Sender=:1.249  Path=/dev/ozkkar/Cursiva/Daemon1  Interface=dev.ozkkar.Cursiva.Daemon1  Member=BatteryChanged
+STRING "{"schema":"hid-lab.daemon-battery/1","battery":{"percent":35,"level":null,"status":"Charging"}}";
+Sender=:1.249  Path=/dev/ozkkar/Cursiva/Daemon1  Interface=dev.ozkkar.Cursiva.Daemon1  Member=BatteryChanged
+STRING "{"schema":"hid-lab.daemon-battery/1","battery":{"percent":40,"level":null,"status":"Charging"}}";
+Sender=:1.249  Path=/dev/ozkkar/Cursiva/Daemon1  Interface=dev.ozkkar.Cursiva.Daemon1  Member=BatteryChanged
+STRING "{"schema":"hid-lab.daemon-battery/1","battery":{"percent":40,"level":null,"status":"Discharging"}}";

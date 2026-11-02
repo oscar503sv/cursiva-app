@@ -1,0 +1,9 @@
+monitor will print the received events for:
+UDEV - the event which udev sends out after rule processing
+
+UDEV  [8362.656738] change   /devices/virtual/misc/uhid/0005:046D:B034.0008/power_supply/hidpp_battery_5 (power_supply)
+UDEV  [8390.946937] change   /devices/platform/ACPI0003:00/power_supply/AC (power_supply)
+UDEV  [8390.947864] change   /devices/LNXSYSTM:00/LNXSYBUS:00/PNP0C0A:00/power_supply/BAT0 (power_supply)
+UDEV  [8395.484853] change   /devices/LNXSYSTM:00/LNXSYBUS:00/PNP0C0A:00/power_supply/BAT0 (power_supply)
+UDEV  [8482.943236] change   /devices/virtual/misc/uhid/0005:046D:B034.0008/power_supply/hidpp_battery_5 (power_supply)
+UDEV  [8528.543525] change   /devices/virtual/misc/uhid/0005:046D:B034.0008/power_supply/hidpp_battery_5 (power_supply)
