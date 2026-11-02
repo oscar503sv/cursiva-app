@@ -7,6 +7,7 @@ use common::{FakeDevice, map_for};
 use hidlab_daemon::apply::{ItemResult, apply};
 use hidlab_devices::MX_MASTER_3S;
 use hidlab_features::Reader;
+use hidlab_features::reprog_controls::RemapControl;
 use hidlab_features::settings::SettingValue;
 
 /// Stores DPI, SmartShift and thumb wheel state; `obey` false ignores writes.
@@ -148,4 +149,64 @@ fn a_silent_device_stops_the_run() {
             .starts_with("not sent")
     );
     assert!(!s.into_parts().0.seen.iter().any(|&(id, _)| id == 0x2150));
+}
+
+/// 0x1B04 with the group layout of P-024: back (0x53), forward (0x56) and
+/// middle (0x52) in group 2 with mask 3, left (0x50) in group 1.
+fn buttons() -> FakeDevice {
+    let cids = [0x50u8, 0x52, 0x53, 0x56];
+    let mut mapped = [0u16; 4];
+    FakeDevice::new(
+        &[0x1B04],
+        Box::new(move |_, func, p| match func {
+            0 => Ok(vec![cids.len() as u8]),
+            1 => {
+                let cid = cids[usize::from(p[0])];
+                let (group, mask) = if cid == 0x50 { (1, 1) } else { (2, 3) };
+                Ok(vec![0x00, cid, 0x00, 0x00, 0x31, 0, group, mask, 0])
+            }
+            2 => {
+                let i = cids.iter().position(|&c| c == p[1]).ok_or(0x02u8)?;
+                let [h, l] = mapped[i].to_be_bytes();
+                Ok(vec![p[0], p[1], 0x00, h, l, 0x00])
+            }
+            3 => {
+                let i = cids.iter().position(|&c| c == p[1]).ok_or(0x02u8)?;
+                mapped[i] = u16::from_be_bytes([p[3], p[4]]);
+                Ok(p[..5].to_vec())
+            }
+            _ => Err(0x07),
+        }),
+    )
+}
+
+#[test]
+fn remaps_are_written_with_one_control_list_read() {
+    let mut s = buttons().session();
+    let map = map_for(&mut s, &[0x1B04]);
+    let mut r = Reader::new(&mut s, map);
+    let report = apply(
+        &mut r,
+        &MX_MASTER_3S,
+        &[
+            SettingValue::ButtonRemap(RemapControl::Back, 0x52),
+            SettingValue::ButtonRemap(RemapControl::Forward, 0x56),
+            SettingValue::ButtonRemap(RemapControl::Middle, 0x50),
+        ],
+    );
+    let results: Vec<ItemResult> = report.items.iter().map(|i| i.result).collect();
+    // Forward already does its own task; mask 3 lets middle become left.
+    assert_eq!(
+        results,
+        [
+            ItemResult::Written,
+            ItemResult::Unchanged,
+            ItemResult::Written
+        ]
+    );
+    let seen = s.into_parts().0.seen;
+    let n = |f: u8| seen.iter().filter(|&&x| x == (0x1B04, f)).count();
+    // The control list is read once for the three buttons.
+    assert_eq!((n(0), n(1)), (1, 4));
+    assert!(seen.contains(&(0x1B04, 3)));
 }

@@ -1,19 +1,20 @@
 //! The daemon's state and operations, independent of D-Bus.
 
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use hidlab_devices::{DeviceProfile, PROFILES, profile_for};
 use hidlab_features::settings::{SettingKind, SettingValue};
-use hidlab_features::{FeatureMap, Reader};
+use hidlab_features::{FeatureMap, Memo, Reader};
 use hidlab_features::{hires_wheel, smartshift};
 use hidlab_hidpp::{Session, SessionConfig, get_feature, get_protocol_version};
 use hidlab_transport::{Access, Hidraw, HidrawDevice, discover};
 
 use crate::api::{
     ApplyRecord, CurrentValue, DEVICE_EVENT_SCHEMA, DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA,
-    ModeEvent, REAPPLY_SCHEMA, ReapplyReply, SET_SCHEMA, STATUS_SCHEMA, SecondCheck, SetReply,
-    Status, Trigger,
+    ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA, ReapplyReply, ResetReply, SET_SCHEMA, STATUS_SCHEMA,
+    SecondCheck, SetReply, Status, Trigger,
 };
 use crate::apply::{self, ApplyReport, ItemResult};
 use crate::config::{Config, SmartShiftMode};
@@ -48,6 +49,8 @@ pub struct Engine {
     present: Option<Present>,
     /// The last apply, and the event time it was measured from.
     last_apply: Option<(ApplyRecord, Instant)>,
+    /// Capability reads of the connected device; emptied when it goes away.
+    memo: RefCell<Memo>,
 }
 
 /// Raw bytes, at debug level only (requirements §17).
@@ -128,6 +131,7 @@ impl Engine {
             state_error,
             present: None,
             last_apply: None,
+            memo: RefCell::default(),
         }
     }
 
@@ -191,6 +195,9 @@ impl Engine {
         let after = found.as_ref().and_then(|p| p.device.hid_device.clone());
         let changed = before != after || self.present.is_some() != found.is_some();
         self.present = found;
+        if changed {
+            self.memo.take();
+        }
         changed.then(|| self.device_event())
     }
 
@@ -204,6 +211,7 @@ impl Engine {
             return None;
         }
         self.present = None;
+        self.memo.take();
         Some(self.device_event())
     }
 
@@ -232,7 +240,9 @@ impl Engine {
         let mut session = Session::new(channel, config);
         let map = FeatureMap::resolve(&mut session, &apply::features_for(p.profile))
             .map_err(|e| e.to_string())?;
-        let out = f(&mut Reader::new(&mut session, map), p.profile);
+        let mut reader = Reader::with_memo(&mut session, map, self.memo.take());
+        let out = f(&mut reader, p.profile);
+        self.memo.replace(reader.into_memo());
         log_transcript(&session);
         Ok(out)
     }
@@ -451,14 +461,32 @@ impl Engine {
         }
     }
 
+    fn refuse_broken_config(&self) -> Result<(), String> {
+        match &self.config_error {
+            Some(e) => Err(format!(
+                "the config file has an error, so it was not changed:\n{e}\n\
+                 Fix the file, then run `hid-lab reapply`."
+            )),
+            None => Ok(()),
+        }
+    }
+
     /// `Set`: applies one setting if the mouse is connected and stores it,
-    /// unless the mouse rejected the value.
+    /// unless the mouse rejected the value. `smartshift-threshold on`
+    /// turns automatic switching back on with the saved threshold.
     pub fn set(&mut self, setting: &str, value: &str) -> Result<SetReply, String> {
-        let kind = SettingKind::from_name(setting).ok_or_else(|| {
-            let names: Vec<&str> = SettingKind::ALL.iter().map(|k| k.name()).collect();
-            format!("unknown setting `{setting}`; known: {}", names.join(", "))
-        })?;
-        let target = kind.parse_value(value)?;
+        let kind = parse_kind(setting)?;
+        let target = if kind == SettingKind::SmartshiftThreshold && value == "on" {
+            let profile = self.target_profile()?;
+            self.config
+                .device(profile)
+                .and_then(|d| d.saved_threshold())
+                .map(SettingValue::SmartshiftThreshold)
+                .or_else(|| profile.default_value(kind))
+                .ok_or("no threshold to turn back on; give a number, 1..=50")?
+        } else {
+            kind.parse_value(value)?
+        };
         if !target.confirmed() {
             return Err(format!(
                 "{setting} {} has not been confirmed on the mouse yet, so the daemon does not \
@@ -470,12 +498,7 @@ impl Engine {
         if !profile.supports(kind) {
             return Err(format!("{} does not support {setting}", profile.name));
         }
-        if let Some(e) = &self.config_error {
-            return Err(format!(
-                "the config file has an error, so it was not changed:\n{e}\n\
-                 Fix the file, then run `hid-lab reapply`."
-            ));
-        }
+        self.refuse_broken_config()?;
 
         let applied = if self.present.is_some() {
             let started = Instant::now();
@@ -522,6 +545,68 @@ impl Engine {
             note: applied
                 .is_none()
                 .then(|| "the mouse is not connected; saved for later".into()),
+            applied,
+        })
+    }
+
+    /// `Reset`: forgets `setting` (or `all`) in the config file and writes
+    /// the profile's default to the mouse if it is connected. Resetting the
+    /// SmartShift mode remembers ratchet.
+    pub fn reset(&mut self, setting: &str) -> Result<ResetReply, String> {
+        let profile = self.target_profile()?;
+        let kinds: Vec<SettingKind> = if setting == "all" {
+            profile.settings.to_vec()
+        } else {
+            let kind = parse_kind(setting)?;
+            if !profile.supports(kind) {
+                return Err(format!("{} does not support {setting}", profile.name));
+            }
+            vec![kind]
+        };
+        self.refuse_broken_config()?;
+        let values: Vec<SettingValue> = kinds
+            .iter()
+            .filter_map(|&k| profile.default_value(k))
+            .collect();
+
+        let applied = if self.present.is_some() {
+            let started = Instant::now();
+            Self::warn_conflicts();
+            let report = self.with_reader(|r, p| apply::apply(r, p, &values))?;
+            Some(self.record(Trigger::Reset, started, report).report)
+        } else {
+            None
+        };
+
+        let mut saved_to = Vec::new();
+        let dev = self.config.device_mut(profile);
+        let before = dev.clone();
+        for &k in &kinds {
+            dev.remove(k);
+        }
+        if *dev != before {
+            self.config.save(&self.config_path)?;
+            saved_to.push(tilde(&self.config_path));
+        }
+        if let Some(SettingValue::SmartshiftMode(code)) = values
+            .iter()
+            .copied()
+            .find(|v| v.kind() == SettingKind::SmartshiftMode)
+        {
+            let mode = SmartShiftMode::from_code(code).ok_or("invalid SmartShift mode")?;
+            self.state.set_mode(profile, mode);
+            self.state.save(&self.state_path)?;
+            self.state_error = None;
+            saved_to.push(tilde(&self.state_path));
+        }
+        info!("reset {setting} to the defaults");
+        Ok(ResetReply {
+            schema: RESET_SCHEMA.into(),
+            values,
+            saved_to,
+            note: applied
+                .is_none()
+                .then(|| "the mouse is not connected; the defaults apply when it is".into()),
             applied,
         })
     }
@@ -578,10 +663,18 @@ impl Engine {
     }
 }
 
+fn parse_kind(setting: &str) -> Result<SettingKind, String> {
+    SettingKind::from_name(setting).ok_or_else(|| {
+        let names: Vec<&str> = SettingKind::ALL.iter().map(|k| k.name()).collect();
+        format!("unknown setting `{setting}`; known: {}", names.join(", "))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use hidlab_devices::MX_MASTER_3S;
+    use hidlab_features::reprog_controls::RemapControl;
     use std::fs;
 
     struct Dir(PathBuf);
@@ -643,6 +736,54 @@ mod tests {
                 .unwrap_err()
                 .contains("unknown setting")
         );
+    }
+
+    #[test]
+    fn threshold_off_on_and_remaps_are_saved() {
+        let d = Dir::new("auto");
+        let mut c = d.engine();
+        c.set("smartshift-threshold", "30").unwrap();
+        c.set("smartshift-threshold", "off").unwrap();
+        c.set("remap-gesture", "middle").unwrap();
+        let c2 = d.engine();
+        assert_eq!(
+            c2.desired(&MX_MASTER_3S),
+            [
+                SettingValue::SmartshiftThreshold(255),
+                SettingValue::ButtonRemap(RemapControl::Gesture, 0x52),
+            ]
+        );
+        // `on` brings the saved threshold back.
+        let r = c.set("smartshift-threshold", "on").unwrap();
+        assert_eq!(r.value, SettingValue::SmartshiftThreshold(30));
+        assert!(c.set("remap-left", "back").is_err());
+    }
+
+    #[test]
+    fn reset_forgets_settings_and_remembers_ratchet() {
+        let d = Dir::new("reset");
+        let mut c = d.engine();
+        c.set("dpi", "1600").unwrap();
+        c.set("smartshift-mode", "free-spin").unwrap();
+        c.set("remap-back", "middle").unwrap();
+        let r = c.reset("dpi").unwrap();
+        assert_eq!(r.values, [SettingValue::Dpi(1000)]);
+        assert!(r.applied.is_none() && r.note.is_some());
+        assert_eq!(
+            d.engine().desired(&MX_MASTER_3S),
+            [
+                SettingValue::SmartshiftMode(1),
+                SettingValue::ButtonRemap(RemapControl::Back, 0x52),
+            ]
+        );
+        let r = c.reset("all").unwrap();
+        assert_eq!(r.values.len(), MX_MASTER_3S.settings.len());
+        assert_eq!(r.saved_to.len(), 2);
+        assert_eq!(
+            d.engine().desired(&MX_MASTER_3S),
+            [SettingValue::SmartshiftMode(2)]
+        );
+        assert!(c.reset("wheel-mode").is_err());
     }
 
     #[test]

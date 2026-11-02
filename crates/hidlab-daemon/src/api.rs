@@ -8,6 +8,7 @@
 //! | `GetStatus` | — | [`Status`] JSON |
 //! | `Set` | setting name, value | [`SetReply`] JSON |
 //! | `Reapply` | — | [`ReapplyReply`] JSON |
+//! | `Reset` | setting name or `all` | [`ResetReply`] JSON |
 //!
 //! Signals: `DeviceChanged` ([`DeviceEvent`] JSON), `Applied`
 //! ([`ApplyRecord`] JSON) and `ModeChanged` ([`ModeEvent`] JSON).
@@ -27,6 +28,7 @@ pub const UNIT: &str = "hid-labd.service";
 pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/2";
 pub const SET_SCHEMA: &str = "hid-lab.daemon-set/1";
 pub const REAPPLY_SCHEMA: &str = "hid-lab.daemon-reapply/1";
+pub const RESET_SCHEMA: &str = "hid-lab.daemon-reset/1";
 pub const DEVICE_EVENT_SCHEMA: &str = "hid-lab.daemon-device/1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,6 +66,8 @@ pub enum Trigger {
     Reapply,
     /// `hid-lab set`.
     Set,
+    /// `hid-lab reset`.
+    Reset,
 }
 
 /// The second verification, 1 s after the first (requirements, Milestone 4).
@@ -139,6 +143,20 @@ pub struct SetReply {
     pub value: SettingValue,
     /// Where the value was stored, or `None` if the mouse rejected it.
     pub saved_to: Option<String>,
+    /// `None` when the mouse is not connected.
+    pub applied: Option<ApplyReport>,
+    pub note: Option<String>,
+}
+
+/// `Reset`: the settings were removed from the config file and their
+/// defaults written to the mouse.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResetReply {
+    pub schema: String,
+    /// The defaults written, one per setting reset.
+    pub values: Vec<SettingValue>,
+    /// The files changed.
+    pub saved_to: Vec<String>,
     /// `None` when the mouse is not connected.
     pub applied: Option<ApplyReport>,
     pub note: Option<String>,
