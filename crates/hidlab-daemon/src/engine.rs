@@ -39,6 +39,21 @@ pub struct Present {
     pub profile: &'static DeviceProfile,
 }
 
+/// What the daemon reuses between calls to save time on Bluetooth, where
+/// each request takes about 15 ms (O-11).
+#[derive(Default)]
+struct ConnCache {
+    /// Feature indices of the current connection. Never reused for another
+    /// connection: a firmware update may move features.
+    map: Option<FeatureMap>,
+    /// Capability reads (DPI list, control list), kept across reconnects of
+    /// the same model while the daemon runs; for another model they are
+    /// dropped. A stale entry can only make a check refuse a value; every
+    /// write still goes to the index resolved on this connection.
+    memo: Memo,
+    memo_profile: Option<&'static str>,
+}
+
 pub struct Engine {
     config_path: PathBuf,
     state_path: PathBuf,
@@ -49,8 +64,8 @@ pub struct Engine {
     present: Option<Present>,
     /// The last apply, and the event time it was measured from.
     last_apply: Option<(ApplyRecord, Instant)>,
-    /// Capability reads of the connected device; emptied when it goes away.
-    memo: RefCell<Memo>,
+    /// Reads reused between calls; see [`ConnCache`].
+    cache: RefCell<ConnCache>,
     /// The battery last sent in `BatteryChanged`.
     last_battery: Option<Battery>,
 }
@@ -133,7 +148,7 @@ impl Engine {
             state_error,
             present: None,
             last_apply: None,
-            memo: RefCell::default(),
+            cache: RefCell::default(),
             last_battery: None,
         }
     }
@@ -199,7 +214,14 @@ impl Engine {
         let changed = before != after || self.present.is_some() != found.is_some();
         self.present = found;
         if changed {
-            self.memo.take();
+            let mut cache = self.cache.borrow_mut();
+            cache.map = None;
+            let key = self.present.as_ref().map(|p| p.profile.key);
+            if key.is_some() && key != cache.memo_profile {
+                cache.memo = Memo::default();
+                cache.memo_profile = key;
+            }
+            drop(cache);
             self.last_battery = self.battery();
         }
         changed.then(|| self.device_event())
@@ -215,7 +237,7 @@ impl Engine {
             return None;
         }
         self.present = None;
-        self.memo.take();
+        self.cache.borrow_mut().map = None;
         self.last_battery = None;
         Some(self.device_event())
     }
@@ -243,11 +265,23 @@ impl Engine {
             ..SessionConfig::for_device(&p.device, None, REQUEST_TIMEOUT)
         };
         let mut session = Session::new(channel, config);
-        let map = FeatureMap::resolve(&mut session, &apply::features_for(p.profile))
-            .map_err(|e| e.to_string())?;
-        let mut reader = Reader::with_memo(&mut session, map, self.memo.take());
+        let cached = self.cache.borrow().map.clone();
+        let map = match cached {
+            Some(m) => m,
+            None => {
+                let m = FeatureMap::resolve(&mut session, &apply::features_for(p.profile))
+                    .map_err(|e| {
+                        log_transcript(&session);
+                        e.to_string()
+                    })?;
+                self.cache.borrow_mut().map = Some(m.clone());
+                m
+            }
+        };
+        let memo = std::mem::take(&mut self.cache.borrow_mut().memo);
+        let mut reader = Reader::with_memo(&mut session, map, memo);
         let out = f(&mut reader, p.profile);
-        self.memo.replace(reader.into_memo());
+        self.cache.borrow_mut().memo = reader.into_memo();
         log_transcript(&session);
         Ok(out)
     }
@@ -362,17 +396,16 @@ impl Engine {
             .ok_or("the mouse is not connected")?
             .profile;
         let desired = self.desired(profile);
-        let current = self.with_reader(apply::read_current)?;
+        let kinds: Vec<SettingKind> = desired.iter().map(|v| v.kind()).collect();
+        let current = self.with_reader(|r, _| apply::read_values(r, &kinds))?;
         let overwritten: Vec<CurrentValue> = desired
             .iter()
-            .filter_map(|want| {
-                let i = profile.settings.iter().position(|&k| k == want.kind())?;
-                let got = &current[i];
-                (got.as_ref().ok() != Some(want)).then(|| CurrentValue {
-                    setting: want.kind(),
-                    value: got.as_ref().ok().copied(),
-                    error: got.as_ref().err().cloned(),
-                })
+            .zip(&current)
+            .filter(|&(want, got)| got.as_ref().ok() != Some(want))
+            .map(|(want, got)| CurrentValue {
+                setting: want.kind(),
+                value: got.as_ref().ok().copied(),
+                error: got.as_ref().err().cloned(),
             })
             .collect();
         let reapplied = if overwritten.is_empty() {

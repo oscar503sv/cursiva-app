@@ -256,3 +256,23 @@ fn capabilities_come_from_the_same_reads() {
     let values = values_of(&MX_MASTER_3S, &snaps);
     assert_eq!(values[0], Ok(SettingValue::Dpi(1000)));
 }
+
+#[test]
+fn mode_and_threshold_share_one_read() {
+    let mut s = stateful(true).session();
+    let map = map_for(&mut s, &FEATURES);
+    let mut r = Reader::new(&mut s, map);
+    let report = apply(
+        &mut r,
+        &MX_MASTER_3S,
+        &[
+            SettingValue::SmartshiftMode(2),
+            SettingValue::SmartshiftThreshold(10),
+        ],
+    );
+    assert!(report.ok, "{report:?}");
+    let seen = s.into_parts().0.seen;
+    // Both already match: one getRatchetControlMode, no write.
+    assert_eq!(seen.iter().filter(|&&x| x == (0x2110, 0)).count(), 1);
+    assert!(!seen.contains(&(0x2110, 1)));
+}

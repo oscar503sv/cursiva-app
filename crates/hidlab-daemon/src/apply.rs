@@ -97,11 +97,27 @@ fn not_applied(
     }
 }
 
+/// Reads the feature of `kind`, unless `last` (the newest snapshot of this
+/// run) already holds it: SmartShift mode and threshold share one read.
+fn snapshot_reusing<C: RawChannel>(
+    r: &mut Reader<'_, C>,
+    last: &mut Option<Snapshot>,
+    kind: SettingKind,
+) -> Result<Snapshot, ReadError> {
+    if let Some(s) = last.as_ref().filter(|s| s.value(kind).is_some()) {
+        return Ok(s.clone());
+    }
+    let s = settings::snapshot(r, kind)?;
+    *last = Some(s.clone());
+    Ok(s)
+}
+
 fn apply_one<C: RawChannel>(
     r: &mut Reader<'_, C>,
+    last: &mut Option<Snapshot>,
     target: SettingValue,
 ) -> Result<ApplyItem, ReadError> {
-    let before_snap = settings::snapshot(r, target.kind())?;
+    let before_snap = snapshot_reusing(r, last, target.kind())?;
     let before = before_snap.value(target.kind());
     if before == Some(target) {
         return Ok(ApplyItem {
@@ -129,7 +145,9 @@ fn apply_one<C: RawChannel>(
         Ok(p) => p,
         Err(e) => return Ok(not_applied(ItemResult::Rejected, target, before, e)),
     };
+    *last = None;
     let outcome = settings::execute(r, WriteAuth::Confirmed, &before_snap, plan)?;
+    *last = Some(outcome.after.clone());
     Ok(ApplyItem {
         setting: target.kind(),
         target,
@@ -155,6 +173,7 @@ pub fn apply<C: RawChannel>(
     let ignored_at_start = r.session().ignored();
     let mut items = Vec::with_capacity(desired.len());
     let mut fatal: Option<String> = None;
+    let mut last = None;
     for &target in desired {
         if let Some(e) = &fatal {
             items.push(not_applied(
@@ -174,7 +193,7 @@ pub fn apply<C: RawChannel>(
             ));
             continue;
         }
-        match apply_one(r, target) {
+        match apply_one(r, &mut last, target) {
             Ok(item) => items.push(item),
             Err(e) => {
                 if e.is_fatal() {
@@ -200,10 +219,27 @@ pub fn read_snapshots<C: RawChannel>(
     r: &mut Reader<'_, C>,
     profile: &DeviceProfile,
 ) -> Vec<Result<Snapshot, String>> {
+    let mut last = None;
     profile
         .settings
         .iter()
-        .map(|&k| settings::snapshot(r, k).map_err(|e| e.to_string()))
+        .map(|&k| snapshot_reusing(r, &mut last, k).map_err(|e| e.to_string()))
+        .collect()
+}
+
+/// Reads the current value of each of `kinds` (reads only).
+pub fn read_values<C: RawChannel>(
+    r: &mut Reader<'_, C>,
+    kinds: &[SettingKind],
+) -> Vec<Result<SettingValue, String>> {
+    let mut last = None;
+    kinds
+        .iter()
+        .map(|&k| {
+            let snap = snapshot_reusing(r, &mut last, k).map_err(|e| e.to_string())?;
+            snap.value(k)
+                .ok_or_else(|| format!("{} not in the read answer", k.name()))
+        })
         .collect()
 }
 
@@ -223,14 +259,6 @@ pub fn values_of(
             })
         })
         .collect()
-}
-
-/// Reads the current value of every setting the profile lists (reads only).
-pub fn read_current<C: RawChannel>(
-    r: &mut Reader<'_, C>,
-    profile: &DeviceProfile,
-) -> Vec<Result<SettingValue, String>> {
-    values_of(profile, &read_snapshots(r, profile))
 }
 
 /// What the mouse accepts, from the snapshots of [`read_snapshots`]. `None`
