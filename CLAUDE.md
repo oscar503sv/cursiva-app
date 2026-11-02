@@ -27,7 +27,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
 | 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
-| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). Phase 5a, mockups, in progress; no GUI code before the mockups are approved |
+| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b implemented (threshold `off`, `remap-<button>` as `lab write` experiments; P-035, P-036); wait for the user's H5 results before 5c |
 | 6–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
@@ -93,6 +93,7 @@ Dependencies: `libc`, `serde`, `serde_json`, `thiserror`, `udev` (needs `systemd
 - The daemon may only write with CONFIRMED write functions.
 - The only exception is `hid-lab lab write` (requirements §13): explicit `--write`, `--dry-run`, target device shown, original value read and saved, every byte logged, read-back comparison, `--restore`. One write function at a time, each with a physical test the user runs.
 - Never write the 0x2121 wheel mode. Never call 0x1814 setCurrentHost.
+- 0x1B04 setCidReporting is sent only to remap (flags byte `00`), never to divert, until Milestone 6. The daemon refuses values that `SettingValue::confirmed` rejects.
 
 ## Privacy
 
