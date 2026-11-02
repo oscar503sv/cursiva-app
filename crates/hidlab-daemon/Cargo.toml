@@ -13,6 +13,7 @@ name = "hid-labd"
 path = "src/main.rs"
 
 [dependencies]
+hidlab-api.workspace = true
 hidlab-transport.workspace = true
 hidlab-hidpp.workspace = true
 hidlab-features.workspace = true

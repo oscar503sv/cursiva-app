@@ -339,10 +339,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hidlab-api"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "hidlab-cli"
 version = "0.1.0"
 dependencies = [
- "hidlab-daemon",
+ "hidlab-api",
  "hidlab-features",
  "hidlab-hidpp",
  "hidlab-transport",
@@ -356,6 +364,7 @@ dependencies = [
 name = "hidlab-daemon"
 version = "0.1.0"
 dependencies = [
+ "hidlab-api",
  "hidlab-devices",
  "hidlab-features",
  "hidlab-hidpp",
@@ -380,6 +389,7 @@ dependencies = [
 name = "hidlab-features"
 version = "0.1.0"
 dependencies = [
+ "hidlab-api",
  "hidlab-hidpp",
  "hidlab-transport",
  "serde",

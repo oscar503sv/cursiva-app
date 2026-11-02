@@ -125,6 +125,7 @@ pub fn profile_by_key(key: &str) -> Option<&'static DeviceProfile> {
 mod tests {
     use super::*;
     use hidlab_features::confirmed_write;
+    use hidlab_features::settings::SettingKindExt;
 
     #[test]
     fn finds_the_mx_master_3s_over_bluetooth_only() {

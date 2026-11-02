@@ -2,8 +2,8 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hidlab_daemon::api::{ButtonEvent, DesktopReply, ReapplyReply, ResetReply, SetReply, Status};
-use hidlab_daemon::apply::{ApplyItem, ApplyReport, ItemResult};
+use hidlab_api::daemon::{ApplyItem, ApplyReport, ItemResult};
+use hidlab_api::daemon::{ButtonEvent, DesktopReply, ReapplyReply, ResetReply, SetReply, Status};
 use hidlab_features::settings::SettingKind;
 use serde::Serialize;
 

@@ -341,7 +341,7 @@ pub enum SetTarget {
     /// Written to the mouse and saved by hid-labd.
     Device(hidlab_features::settings::SettingKind),
     /// A GNOME setting.
-    Desktop(hidlab_daemon::api::DesktopSetting),
+    Desktop(hidlab_api::daemon::DesktopSetting),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -714,8 +714,8 @@ fn parse_set(rest: Vec<&str>) -> Result<Command, String> {
     let [name, raw] = positionals[..] else {
         return Err(format!("expected <setting> <value>. {TRY}"));
     };
-    let setting = if let Some(d) = hidlab_daemon::api::DesktopSetting::from_name(name) {
-        d.to_gvariant(raw)?;
+    let setting = if let Some(d) = hidlab_api::daemon::DesktopSetting::from_name(name) {
+        d.check_value(raw)?;
         SetTarget::Desktop(d)
     } else {
         let kind = SettingKind::from_name(name)

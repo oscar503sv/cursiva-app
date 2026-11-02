@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/hidlab-api",
     "crates/hidlab-transport",
     "crates/hidlab-hidpp",
     "crates/hidlab-features",
@@ -18,6 +19,7 @@ repository = "https://github.com/oscar503sv/cursiva-app"
 publish = false
 
 [workspace.dependencies]
+hidlab-api = { path = "crates/hidlab-api" }
 hidlab-transport = { path = "crates/hidlab-transport" }
 hidlab-hidpp = { path = "crates/hidlab-hidpp" }
 hidlab-features = { path = "crates/hidlab-features" }

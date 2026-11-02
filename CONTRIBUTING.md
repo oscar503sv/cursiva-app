@@ -46,6 +46,9 @@ gtk / cli ─► D-Bus ─► daemon ─► devices ─► features ─► hidpp
 
 - The daemon is the only program that talks to the mouse. The CLI and the
   app call it over D-Bus; the app contains no device logic.
+- `hidlab-api` is the daemon's public contract (D-Bus names, JSON types,
+  setting names). It depends on serde only; change it with care and bump
+  the schema string of any JSON document whose shape changes.
 - `hidlab-hidpp` and `hidlab-features` are generic HID++ 2.0. Anything
   specific to one mouse goes in `hidlab-devices`.
 - No root at runtime, ever. Do not suggest `sudo` as a workaround.

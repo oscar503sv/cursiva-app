@@ -9,68 +9,25 @@ use std::time::Instant;
 use hidlab_devices::DeviceProfile;
 use hidlab_features::dpi::DpiEntry;
 use hidlab_features::reprog_controls;
-use hidlab_features::settings::{self, FieldCheck, SettingKind, SettingValue, Snapshot};
+use hidlab_features::settings::{
+    self, FieldCheck, SettingKind, SettingKindExt, SettingValue, Snapshot,
+};
 use hidlab_features::{ReadError, Reader, WriteAuth};
 use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
-use serde::{Deserialize, Serialize};
 
 use crate::api::{ButtonTargets, Capabilities, DpiRange};
 use crate::config::THRESHOLD_RANGE;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ItemResult {
-    /// Already at the target; nothing was written.
-    Unchanged,
-    /// Written and verified.
-    Written,
-    /// Written, but the read-back does not match.
-    Mismatch,
-    /// Refused before sending because the device cannot take this value
-    /// (for example a DPI outside its list): see `error`.
-    Rejected,
-    /// Not applied: see `error`.
-    Failed,
-}
+pub use hidlab_api::daemon::{ApplyItem, ApplyReport, CheckJson, ItemResult};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CheckJson {
-    pub field: String,
-    pub expected: String,
-    pub actual: String,
-    pub ok: bool,
-}
-
-impl From<&FieldCheck> for CheckJson {
-    fn from(c: &FieldCheck) -> Self {
-        Self {
-            field: c.field.to_owned(),
-            expected: c.expected.clone(),
-            actual: c.actual.clone(),
-            ok: c.ok,
-        }
+fn check_json(c: &FieldCheck) -> CheckJson {
+    CheckJson {
+        field: c.field.to_owned(),
+        expected: c.expected.clone(),
+        actual: c.actual.clone(),
+        ok: c.ok,
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ApplyItem {
-    pub setting: SettingKind,
-    pub target: SettingValue,
-    pub before: Option<SettingValue>,
-    pub result: ItemResult,
-    pub checks: Vec<CheckJson>,
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ApplyReport {
-    pub items: Vec<ApplyItem>,
-    /// True when every item is `unchanged` or `written`.
-    pub ok: bool,
-    pub elapsed_ms: u64,
-    /// Unrelated reports (mouse input, notifications) skipped while waiting.
-    pub ignored_reports: u64,
 }
 
 /// Features the daemon needs resolved for `profile`.
@@ -157,7 +114,7 @@ fn apply_one<C: RawChannel>(
         } else {
             ItemResult::Mismatch
         },
-        checks: outcome.checks.iter().map(CheckJson::from).collect(),
+        checks: outcome.checks.iter().map(check_json).collect(),
         error: None,
     })
 }

@@ -2,7 +2,7 @@
 
 use std::sync::mpsc::{self, Receiver};
 
-use hidlab_daemon::api::{BUS_NAME, INTERFACE, OBJECT_PATH, UNIT};
+use hidlab_api::daemon::{BUS_NAME, INTERFACE, OBJECT_PATH, UNIT};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use zbus::blocking::Connection;

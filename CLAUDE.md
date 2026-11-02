@@ -50,6 +50,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 
 ```text
 crates/
+├── hidlab-api/         D-Bus names, JSON types, settings vocabulary (serde only)
 ├── hidlab-transport/   sysfs discovery, report-descriptor walker, hidraw I/O (poll), power_supply lookup
 ├── hidlab-hidpp/       generic HID++ 2.0: framing, request/response matching, transcript, enumeration
 ├── hidlab-features/    typed feature access behind allowlists (crates/hidlab-features/src/allowlist.rs); `settings` plans, sends and verifies writes
@@ -58,7 +59,7 @@ crates/
 └── hidlab-cli/         binary `hid-lab` (user commands via D-Bus; lab commands direct)
 ```
 
-Dependency direction is mandatory: `cli → (D-Bus) → daemon → devices → features → hidpp → transport`. The CLI links `hidlab-daemon` only for the API types and D-Bus names. `hidpp` and `features` are generic HID++; device-specific knowledge goes in `hidlab-devices` (requirements §5).
+Dependency direction is mandatory: `cli / gtk → (D-Bus) → daemon → devices → features → hidpp → transport`. `hidlab-api` (serde only) holds the D-Bus names, the JSON types and the settings vocabulary; every crate may use it, and the app uses nothing else of ours. The CLI does not link `hidlab-daemon`. `hidpp` and `features` are generic HID++; device-specific knowledge goes in `hidlab-devices` (requirements §5).
 
 Commands today:
 

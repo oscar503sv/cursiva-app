@@ -19,7 +19,7 @@
 
 use hidlab_hidpp::FeatureId;
 use hidlab_transport::RawChannel;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::reader::{ReadError, Reader};
 use crate::util::{bit_names, need, soft, tail_hex, unknown_bits};
@@ -79,76 +79,7 @@ const TID_NAMES: &[(u16, &str)] = &[
     (0x00B4, "VIRTUAL_GESTURE_BUTTON"),
 ];
 
-/// A control `hid-lab lab write` may remap, by its control ID (Solaar
-/// `special_keys.CONTROL`; which physical button each one is, is LIKELY,
-/// P-024).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum RemapControl {
-    Middle,
-    Back,
-    Forward,
-    Gesture,
-    #[serde(rename = "mode")]
-    ModeButton,
-}
-
-impl RemapControl {
-    pub const ALL: [RemapControl; 5] = [
-        RemapControl::Middle,
-        RemapControl::Back,
-        RemapControl::Forward,
-        RemapControl::Gesture,
-        RemapControl::ModeButton,
-    ];
-
-    pub fn cid(self) -> u16 {
-        match self {
-            RemapControl::Middle => 0x0052,
-            RemapControl::Back => 0x0053,
-            RemapControl::Forward => 0x0056,
-            RemapControl::Gesture => 0x00C3,
-            RemapControl::ModeButton => 0x00C4,
-        }
-    }
-
-    pub fn name(self) -> &'static str {
-        match self {
-            RemapControl::Middle => "middle",
-            RemapControl::Back => "back",
-            RemapControl::Forward => "forward",
-            RemapControl::Gesture => "gesture",
-            RemapControl::ModeButton => "mode",
-        }
-    }
-}
-
-/// Names accepted as remap targets, by control ID (same source as
-/// [`RemapControl`]). Whether a target is allowed for a control is decided
-/// by the device's groups, not by this list.
-pub const TARGET_NAMES: &[(&str, u16)] = &[
-    ("left", 0x0050),
-    ("right", 0x0051),
-    ("middle", 0x0052),
-    ("back", 0x0053),
-    ("forward", 0x0056),
-    ("gesture", 0x00C3),
-    ("mode", 0x00C4),
-];
-
-pub fn target_cid(name: &str) -> Option<u16> {
-    TARGET_NAMES
-        .iter()
-        .find(|(n, _)| *n == name)
-        .map(|(_, c)| *c)
-}
-
-pub fn target_name(cid: u16) -> Option<&'static str> {
-    TARGET_NAMES
-        .iter()
-        .find(|(_, c)| *c == cid)
-        .map(|(n, _)| *n)
-}
+pub use hidlab_api::remap::{RemapControl, TARGET_NAMES, target_cid, target_name};
 
 fn lookup(table: &[(u16, &'static str)], id: u16) -> Option<&'static str> {
     table.iter().find(|(k, _)| *k == id).map(|(_, n)| *n)

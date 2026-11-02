@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+hidlab-api.workspace = true
 hidlab-hidpp.workspace = true
 hidlab-transport.workspace = true
 serde.workspace = true

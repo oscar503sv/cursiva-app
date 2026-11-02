@@ -181,7 +181,8 @@ and only when asked with `SetDesktop`.
 
 Name `dev.ozkkar.Cursiva.Daemon1`, object `/dev/ozkkar/Cursiva/Daemon1`,
 interface `dev.ozkkar.Cursiva.Daemon1`. Every answer is one JSON string,
-except `WatchButtons`; the types are in `crates/hidlab-daemon/src/api.rs`.
+except `WatchButtons`; the types are in the `hidlab-api` crate
+(`crates/hidlab-api/src/daemon.rs`).
 
 | Member | Kind | Arguments | Returns |
 |---|---|---|---|

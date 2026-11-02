@@ -4,31 +4,11 @@
 use std::fs;
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
-
 /// Program names checked, as they appear in `/proc/<pid>/comm` or as the
 /// first or second command-line word (Solaar is a Python script).
 const KNOWN: &[&str] = &["solaar", "logid"];
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Conflict {
-    pub program: String,
-    pub pid: u32,
-}
-
-impl Conflict {
-    pub fn advice(&self) -> String {
-        let stop = match self.program.as_str() {
-            "logid" => "sudo systemctl stop logid",
-            _ => "quit Solaar from its tray icon, or run `pkill solaar`",
-        };
-        format!(
-            "{} (pid {}) is running and may also configure the mouse; settings can fight. \
-             To stop it: {stop}",
-            self.program, self.pid
-        )
-    }
-}
+pub use hidlab_api::daemon::Conflict;
 
 fn base(word: &[u8]) -> &[u8] {
     word.rsplit(|&b| b == b'/').next().unwrap_or(word)

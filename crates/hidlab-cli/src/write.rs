@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hidlab_features::settings::{
-    self, SettingKind, SettingValue, Snapshot, WriteOutcome, WritePlan,
+    self, SettingKind, SettingKindExt, SettingValue, Snapshot, WriteOutcome, WritePlan,
 };
 use hidlab_features::{FeatureMap, Reader, WriteAuth, WriteIntent, confirmed_write, write_allowed};
 use hidlab_hidpp::{Disposition, Session, SessionConfig, TranscriptEntry, reference_name};
@@ -123,7 +123,7 @@ pub fn run(args: &WriteArgs) -> Result<(), String> {
              systemctl --user stop {unit}\n  \
              hid-lab lab write ...\n  \
              systemctl --user start {unit}",
-            unit = hidlab_daemon::api::UNIT
+            unit = hidlab_api::daemon::UNIT
         ));
     }
     let dir = state_dir()?;
