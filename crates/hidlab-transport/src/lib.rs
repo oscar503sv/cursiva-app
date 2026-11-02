@@ -11,7 +11,7 @@ mod test_support;
 pub mod uevent;
 
 pub use descriptor::{
-    DescriptorSummary, HIDPP_LONG_REPORT_ID, HIDPP_SHORT_REPORT_ID, walk_descriptor,
+    ButtonField, DescriptorSummary, HIDPP_LONG_REPORT_ID, HIDPP_SHORT_REPORT_ID, walk_descriptor,
 };
 pub use discover::{
     Discovery, HidrawDevice, LOGITECH_VENDOR_ID, SkippedEntry, discover, discover_in,
