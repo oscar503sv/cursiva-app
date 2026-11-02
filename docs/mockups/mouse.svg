@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mouse" viewBox="0 0 320 440" role="img" aria-labelledby="mouse-title">
+  <!--
+    Cursiva mouse illustration, top view of a right-handed ergonomic mouse.
+    Original artwork for the Cursiva project, GPL-3.0-or-later. It is not
+    Logitech artwork and is not traced from any photo or product image.
+
+    Every control is a group with class "m-hot" and a stable id, used as a
+    hotspot by the GUI: h-left, h-right, h-wheel (middle click), h-mode (the
+    button behind the wheel), h-thumb (thumb wheel), h-forward, h-back,
+    h-gesture. Colors come from CSS custom properties with light fallbacks.
+  -->
+  <title id="mouse-title">Mouse</title>
+  <style>
+    .m-body { fill: var(--m-body, #f4f4f7); stroke: var(--m-line, #8e8e98); stroke-width: 2; stroke-linejoin: round; }
+    .m-glow { opacity: 0.7; pointer-events: none; }
+    .m-part { fill: var(--m-part, #e6e6ec); stroke: var(--m-line, #8e8e98); stroke-width: 1.5; stroke-linejoin: round; transition: fill 120ms ease-out; }
+    .m-ridge { stroke: var(--m-ridge, #b9b9c3); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+    .m-crease { fill: none; stroke: var(--m-line, #8e8e98); stroke-width: 1.2; opacity: 0.35; pointer-events: none; }
+    .m-hot { cursor: pointer; outline: none; }
+    .m-hot:hover .m-part, .m-hot:focus-visible .m-part { fill: var(--m-hover, #c4dbf7); }
+    .m-hot:focus-visible .m-part { stroke: var(--m-focus, #3584e4); stroke-width: 2.5; }
+    .m-hot.sel .m-part { fill: var(--m-sel, #3584e4); stroke: var(--m-sel-line, #1c71d8); }
+    .m-hot.sel .m-ridge { stroke: var(--m-sel-ridge, #9ec5f5); }
+    .m-hot.pressed .m-part { fill: var(--m-press, #f6d32d); }
+    .m-off { cursor: default; }
+    .m-off .m-part { opacity: 0.55; }
+    @media (prefers-reduced-motion: reduce) { .m-part { transition: none; } }
+  </style>
+
+  <path class="m-body" d="M170 28 C220 28 252 66 258 130 C264 200 278 270 268 330 C258 392 214 420 168 418 C132 416 108 404 96 388 C72 382 44 370 32 348 C20 326 22 296 34 274 C44 256 60 246 80 240 C80 176 86 112 106 72 C120 44 142 28 170 28 Z"/>
+  <defs>
+    <radialGradient id="m-glow-grad" cx="0.5" cy="0.45" r="0.5">
+      <stop offset="0" stop-color="var(--m-glow, #ffffff)" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="var(--m-glow, #ffffff)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse class="m-glow" cx="182" cy="280" rx="80" ry="120" fill="url(#m-glow-grad)"/>
+  <path class="m-crease" d="M82 246 C94 300 102 346 102 392"/>
+
+  <g class="m-hot" id="h-left" tabindex="0" role="button" aria-label="Left button">
+    <path class="m-part" d="M165 31 C141 32 121 48 108 75 C92 107 86 140 85 169 C112 164 140 161 162 160 Z"/>
+  </g>
+  <g class="m-hot" id="h-right" tabindex="0" role="button" aria-label="Right button">
+    <path class="m-part" d="M175 31 C215 32 248 68 254 130 L256 165 C232 161 205 159 178 160 Z"/>
+  </g>
+  <g class="m-hot" id="h-wheel" tabindex="0" role="button" aria-label="Main wheel and middle button">
+    <rect class="m-part" x="157" y="54" width="24" height="68" rx="12"/>
+    <path class="m-ridge" d="M163 66 H175 M163 74 H175 M163 82 H175 M163 90 H175 M163 98 H175 M163 106 H175"/>
+  </g>
+  <g class="m-hot" id="h-mode" tabindex="0" role="button" aria-label="Wheel mode button">
+    <rect class="m-part" x="161" y="132" width="16" height="22" rx="6"/>
+  </g>
+  <g class="m-hot" id="h-thumb" tabindex="0" role="button" aria-label="Thumb wheel" transform="translate(70 262) rotate(-30)">
+    <rect class="m-part" x="-19" y="-8" width="38" height="16" rx="8"/>
+    <path class="m-ridge" d="M-11 -4 V4 M-5 -4 V4 M1 -4 V4 M7 -4 V4 M13 -4 V4"/>
+  </g>
+  <g class="m-hot" id="h-forward" tabindex="0" role="button" aria-label="Forward button" transform="translate(60 292) rotate(-30)">
+    <rect class="m-part" x="-16" y="-6" width="32" height="12" rx="6"/>
+  </g>
+  <g class="m-hot" id="h-back" tabindex="0" role="button" aria-label="Back button" transform="translate(52 314) rotate(-30)">
+    <rect class="m-part" x="-16" y="-6" width="32" height="12" rx="6"/>
+  </g>
+  <g class="m-hot" id="h-gesture" tabindex="0" role="button" aria-label="Gesture button">
+    <ellipse class="m-part" cx="64" cy="350" rx="20" ry="11" transform="rotate(-25 64 350)"/>
+  </g>
+</svg>

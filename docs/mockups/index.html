@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cursiva MVP mockups</title>
+<!--
+  Milestone 5, phase 5a: mockups of every MVP view for approval
+  (requirements §11). Static HTML that imitates GTK4 + Libadwaita; it is not
+  the app. Strings switch between Spanish and English (data-en holds the
+  English text). The mouse illustration is docs/mockups/mouse.svg, inlined.
+  GPL-3.0-or-later.
+-->
+<style>
+:root {
+  /* Page: neutral studio wall around GNOME windows. Layout: one column of framed windows, notes beside each. */
+  --pg-bg: #e9eaee;
+  --pg-fg: #1f2128;
+  --pg-dim: #5b5f6b;
+  --pg-card: #f7f7f9;
+  --pg-line: #cfd2da;
+  --pg-accent: #1c71d8;
+  --font-ui: "Adwaita Sans", Cantarell, "Noto Sans", system-ui, sans-serif;
+  --font-mono: "Adwaita Mono", "Source Code Pro", ui-monospace, monospace;
+
+  /* Libadwaita light palette, used inside the mock windows. */
+  --a-window: #fafafb;
+  --a-fg: rgba(0, 0, 6, 0.8);
+  --a-dim: rgba(0, 0, 6, 0.55);
+  --a-header: #ffffff;
+  --a-sidebar: #ebebed;
+  --a-card: #ffffff;
+  --a-card-shadow: 0 0 0 1px rgba(0, 0, 6, 0.03), 0 1px 3px 1px rgba(0, 0, 6, 0.07), 0 2px 6px 2px rgba(0, 0, 6, 0.03);
+  --a-line: rgba(0, 0, 6, 0.1);
+  --a-hover: rgba(0, 0, 6, 0.05);
+  --a-sel: rgba(0, 0, 6, 0.1);
+  --a-btn: rgba(0, 0, 6, 0.08);
+  --a-accent: #3584e4;
+  --a-accent-fg: #0461be;
+  --a-success: #1b8553;
+  --a-warning: #9c6e03;
+  --a-warning-bg: #fbf0c4;
+  --a-error: #c30000;
+  --a-shade: rgba(0, 0, 6, 0.36);
+  --m-body: #f4f4f7; --m-part: #e6e6ec; --m-line: #8e8e98; --m-ridge: #b9b9c3; --m-glow: #ffffff;
+  --m-hover: #c4dbf7; --m-sel: #3584e4; --m-sel-line: #1c71d8; --m-sel-ridge: #9ec5f5; --m-press: #f6d32d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --pg-bg: #16171b; --pg-fg: #e6e7ec; --pg-dim: #a2a6b2; --pg-card: #1f2026; --pg-line: #33353f; --pg-accent: #78aeed; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --pg-bg: #16171b; --pg-fg: #e6e7ec; --pg-dim: #a2a6b2; --pg-card: #1f2026; --pg-line: #33353f; --pg-accent: #78aeed; color-scheme: dark; }
+
+/* Libadwaita dark palette, switched by the page's own toggle. */
+.adw-dark {
+  --a-window: #222226; --a-fg: #ffffff; --a-dim: rgba(255, 255, 255, 0.55); --a-header: #2e2e32; --a-sidebar: #2e2e32;
+  --a-card: rgba(255, 255, 255, 0.08); --a-card-shadow: 0 0 0 1px rgba(0, 0, 6, 0.09), 0 1px 3px 1px rgba(0, 0, 6, 0.18);
+  --a-line: rgba(255, 255, 255, 0.1); --a-hover: rgba(255, 255, 255, 0.07); --a-sel: rgba(255, 255, 255, 0.1); --a-btn: rgba(255, 255, 255, 0.1);
+  --a-accent: #3584e4; --a-accent-fg: #81b6f2; --a-success: #8ff0a4; --a-warning: #f8e45c; --a-warning-bg: #4a3f0f; --a-error: #ff938c; --a-shade: rgba(0, 0, 0, 0.5);
+  --m-body: #3b3b42; --m-part: #4a4a52; --m-line: #85858f; --m-ridge: #6c6c76; --m-glow: #55555e;
+  --m-hover: #2a4a70; --m-sel: #3584e4; --m-sel-line: #81b6f2; --m-sel-ridge: #9ec5f5; --m-press: #c88800;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--pg-bg); color: var(--pg-fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.45; }
+:focus-visible { outline: 2px solid var(--pg-accent); outline-offset: 2px; }
+
+/* ---------- Page chrome ---------- */
+.top { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px max(16px, 3vw); background: color-mix(in srgb, var(--pg-bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--pg-line); }
+.top h1 { margin: 0; font-size: 17px; font-weight: 700; }
+.top .meta { color: var(--pg-dim); font-size: 13px; }
+.top .controls { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--pg-line); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; padding: 5px 12px; border: 0; background: transparent; color: var(--pg-fg); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--pg-accent); color: #fff; }
+main { padding: 24px max(16px, 3vw) 64px; display: grid; gap: 48px; }
+.intro { max-width: 70ch; color: var(--pg-dim); }
+.intro p { margin: 0 0 8px; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.toc a { color: var(--pg-accent); }
+.shot { display: grid; grid-template-columns: minmax(0, 920px) 300px; gap: 24px; align-items: start; }
+.shot > header { grid-column: 1 / -1; }
+.shot h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+.shot h2 small { color: var(--pg-dim); font-weight: 400; font-size: 14px; margin-left: 8px; }
+.notes { background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
+.notes h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pg-dim); }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.notes .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: #e5a50a33; color: inherit; }
+.stage { overflow-x: auto; padding: 4px 4px 12px; }
+.pair { display: flex; gap: 24px; flex-wrap: wrap; }
+@media (max-width: 1100px) { .shot { grid-template-columns: 1fr; } }
+
+/* ---------- Mock window (Libadwaita) ---------- */
+.win { position: relative; width: 900px; height: 620px; background: var(--a-window); color: var(--a-fg); border-radius: 15px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 12px 38px rgba(0,0,0,.22); font-size: 14.5px; display: flex; flex-direction: column; flex: none; }
+.win.narrow { width: 360px; height: 700px; }
+.split { flex: 1; display: flex; min-height: 0; }
+.sidebar { width: 236px; flex: none; background: var(--a-sidebar); display: flex; flex-direction: column; }
+.content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.hb { height: 47px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: var(--a-header); }
+.content .hb { background: var(--a-window); }
+.sidebar .hb { background: var(--a-sidebar); }
+.hb .title { flex: 1; text-align: center; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb .sub { display: block; font-weight: 400; font-size: 12px; color: var(--a-dim); }
+.ibtn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; color: var(--a-fg); flex: none; }
+.ibtn:hover { background: var(--a-hover); }
+.ibtn svg { width: 16px; height: 16px; }
+.wclose { width: 24px; height: 24px; border-radius: 50%; background: var(--a-btn); display: grid; place-items: center; margin: 0 4px; flex: none; }
+.wclose svg { width: 10px; height: 10px; }
+.nav { padding: 0 6px; display: grid; gap: 2px; }
+.nav div { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 40px; border-radius: 8px; }
+.nav div:hover { background: var(--a-hover); }
+.nav div.on { background: var(--a-sel); font-weight: 600; }
+.nav svg { width: 16px; height: 16px; flex: none; }
+.side-foot { margin-top: auto; padding: 12px 18px; font-size: 13px; color: var(--a-dim); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--a-success); flex: none; }
+.page { flex: 1; overflow: auto; padding: 8px 24px 32px; }
+.clamp { max-width: 600px; margin: 0 auto; display: grid; gap: 24px; }
+.group { display: grid; gap: 10px; }
+.group-h { display: flex; align-items: flex-end; gap: 8px; }
+.group-h h4 { margin: 0; font-size: 14.5px; font-weight: 700; flex: 1; }
+.group-h p { margin: 2px 0 0; font-size: 13px; color: var(--a-dim); font-weight: 400; }
+.list { background: var(--a-card); border-radius: 12px; box-shadow: var(--a-card-shadow); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; }
+.row + .row, .row + .rowx, .rowx + .row { border-top: 1px solid var(--a-line); }
+.row .t { flex: 1; min-width: 0; }
+.row .t b { font-weight: 400; display: block; }
+.row .t span { display: block; font-size: 13px; color: var(--a-dim); }
+.row .val { color: var(--a-dim); }
+.row svg.chev { width: 16px; height: 16px; color: var(--a-dim); }
+.row.clickable:hover { background: var(--a-hover); }
+.rowx { padding: 10px 12px 14px; display: grid; gap: 8px; }
+.sw { width: 46px; height: 26px; border-radius: 13px; background: var(--a-btn); position: relative; flex: none; cursor: pointer; border: 0; padding: 0; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: left 150ms; }
+.sw[aria-checked="true"] { background: var(--a-accent); }
+.sw[aria-checked="true"]::after { left: 23px; }
+.btn { font: inherit; font-weight: 700; font-size: 14px; padding: 6px 14px; border-radius: 8px; border: 0; background: var(--a-btn); color: var(--a-fg); cursor: pointer; white-space: nowrap; }
+.btn.flat { background: transparent; font-weight: 600; }
+.btn.flat:hover { background: var(--a-hover); }
+.btn.sugg { background: var(--a-accent); color: #fff; }
+.btn.pill { border-radius: 99px; padding: 10px 28px; }
+.btn.small { font-size: 13px; padding: 4px 10px; }
+.drop { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--a-btn); font-weight: 600; font-size: 14px; }
+.drop svg { width: 12px; height: 12px; }
+.tg { display: flex; padding: 3px; gap: 3px; border-radius: 10px; background: var(--a-btn); }
+.tg button { flex: 1; font: inherit; font-size: 14px; font-weight: 600; padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--a-fg); cursor: pointer; white-space: nowrap; }
+.tg button[aria-pressed="true"] { background: var(--a-card-solid, var(--a-header)); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.scale { width: 100%; accent-color: var(--a-accent); margin: 0; }
+.marks { display: flex; justify-content: space-between; font-size: 12px; color: var(--a-dim); font-variant-numeric: tabular-nums; }
+.marks.ends span:last-child { text-align: right; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips .btn { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 99px; }
+.chips .btn[aria-pressed="true"] { background: var(--a-accent); color: #fff; }
+.big-num { font-size: 13px; color: var(--a-dim); font-variant-numeric: tabular-nums; }
+.expander { display: flex; align-items: center; gap: 12px; }
+.spin { display: inline-flex; align-items: center; border-radius: 8px; background: var(--a-btn); font-variant-numeric: tabular-nums; }
+.spin span { padding: 5px 12px; min-width: 64px; text-align: center; }
+.spin i { font-style: normal; padding: 5px 10px; border-left: 1px solid var(--a-line); }
+.toast { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); background: #303034; color: #fff; border-radius: 99px; padding: 6px 6px 6px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.3); white-space: nowrap; font-size: 14px; }
+.toast .btn { background: rgba(255,255,255,.12); color: #fff; border-radius: 99px; }
+.banner { background: var(--a-warning-bg); color: var(--a-fg); display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 18px; font-size: 14px; }
+.banner span { flex: 1; text-align: center; }
+.info-label { color: var(--a-dim); font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.lvl { height: 6px; border-radius: 3px; background: var(--a-btn); overflow: hidden; width: 120px; }
+.lvl i { display: block; height: 100%; background: var(--a-success); border-radius: 3px; }
+.mouse-slot svg { width: 100%; height: 100%; display: block; }
+.mouse-slot.pending .m-hot:not(.sel) .m-part { transition: none; }
+kbd, code { font-family: var(--font-mono); font-size: 13px; }
+
+/* Home */
+.home { flex: 1; display: grid; grid-template-columns: 1fr 300px; gap: 8px; padding: 0 28px 24px; min-height: 0; }
+.home .mouse-wrap { display: grid; grid-template-rows: 1fr auto; align-items: center; justify-items: center; min-height: 0; }
+.home .mouse-slot { height: 470px; width: 340px; }
+.hint { font-size: 13px; color: var(--a-dim); text-align: center; }
+.home-side { display: grid; align-content: center; gap: 18px; }
+.home-side h3 { margin: 0; font-size: 24px; font-weight: 800; }
+.home-side .ok { color: var(--a-success); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+/* Buttons view */
+.buttons { flex: 1; display: grid; grid-template-columns: 300px 1fr; gap: 24px; padding: 0 24px 24px; min-height: 0; }
+.buttons .mouse-slot { height: 420px; width: 300px; align-self: center; }
+.buttons .lists { display: grid; align-content: start; gap: 18px; overflow: auto; padding-top: 8px; }
+.row.selected { background: color-mix(in srgb, var(--a-accent) 14%, transparent); }
+.row.pressed-now .t b::after { content: attr(data-pressed); margin-left: 8px; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--m-press); color: #241f00; }
+.row.dim { opacity: 0.55; }
+.live { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--a-dim); }
+.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--m-press); box-shadow: 0 0 0 4px color-mix(in srgb, var(--m-press) 30%, transparent); flex: none; }
+
+/* Dialog */
+.shade { position: absolute; inset: 0; background: var(--a-shade); display: grid; place-items: center; }
+.dialog { width: 440px; max-height: 540px; background: var(--a-window); border-radius: 14px; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.35); display: flex; flex-direction: column; overflow: hidden; }
+.dialog .hb { background: var(--a-window); }
+.dialog .body { padding: 6px 18px 18px; overflow: auto; display: grid; gap: 16px; }
+.entry { display: flex; align-items: center; gap: 8px; background: var(--a-btn); border-radius: 8px; padding: 7px 10px; color: var(--a-dim); }
+.entry svg { width: 16px; height: 16px; }
+.radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--a-line); flex: none; }
+.radio.on { border: 5px solid var(--a-accent); }
+.foot-note { font-size: 13px; color: var(--a-dim); }
+.prefs { width: 620px; max-height: 560px; }
+
+/* Status page */
+.status { flex: 1; display: grid; place-items: center; padding: 24px; text-align: center; overflow: auto; }
+.status .in { max-width: 460px; display: grid; justify-items: center; gap: 12px; }
+.status .icon { width: 96px; height: 96px; color: var(--a-dim); }
+.status h3 { margin: 6px 0 0; font-size: 26px; font-weight: 800; text-wrap: balance; }
+.status p { margin: 0; color: var(--a-fg); }
+.status .steps { text-align: left; width: 100%; margin-top: 8px; }
+.cmd { display: flex; align-items: center; gap: 8px; width: 100%; background: var(--a-card); box-shadow: var(--a-card-shadow); border-radius: 10px; padding: 8px 8px 8px 12px; text-align: left; }
+.cmd code { flex: 1; overflow-x: auto; white-space: nowrap; }
+.tabs-mini { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+
+/* Narrow */
+.narrow .page { padding: 8px 12px 24px; }
+.narrow .home-n { flex: 1; overflow: auto; padding: 0 16px 20px; display: grid; gap: 14px; align-content: start; justify-items: center; }
+.narrow .home-n .mouse-slot { height: 300px; width: 220px; }
+.narrow .home-n .list { width: 100%; }
+.narrow .tg button { font-size: 13px; padding: 6px 4px; }
+</style>
+</head>
+<body>
+
+<template id="mouse-tpl">
+<svg class="mouse" viewBox="0 0 320 440" role="img" aria-label="MX Master 3S" data-en-aria="MX Master 3S">
+  <defs>
+    <radialGradient id="m-glow-grad" cx="0.5" cy="0.45" r="0.5">
+      <stop offset="0" stop-color="var(--m-glow)" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="var(--m-glow)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .m-body { fill: var(--m-body); stroke: var(--m-line); stroke-width: 2; stroke-linejoin: round; }
+    .m-glow { opacity: 0.7; pointer-events: none; }
+    .m-part { fill: var(--m-part); stroke: var(--m-line); stroke-width: 1.5; stroke-linejoin: round; transition: fill 120ms ease-out; }
+    .m-ridge { stroke: var(--m-ridge); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+    .m-crease { fill: none; stroke: var(--m-line); stroke-width: 1.2; opacity: 0.35; pointer-events: none; }
+    .m-hot { cursor: pointer; outline: none; }
+    .m-hot:hover .m-part, .m-hot:focus-visible .m-part { fill: var(--m-hover); }
+    .m-hot:focus-visible .m-part { stroke: var(--a-accent); stroke-width: 2.5; }
+    .m-hot.sel .m-part { fill: var(--m-sel); stroke: var(--m-sel-line); }
+    .m-hot.sel .m-ridge { stroke: var(--m-sel-ridge); }
+    .m-hot.pressed .m-part { fill: var(--m-press); }
+    .m-off { cursor: default; }
+    .m-off .m-part { opacity: 0.5; }
+    @media (prefers-reduced-motion: reduce) { .m-part { transition: none; } }
+  </style>
+  <path class="m-body" d="M170 28 C220 28 252 66 258 130 C264 200 278 270 268 330 C258 392 214 420 168 418 C132 416 108 404 96 388 C72 382 44 370 32 348 C20 326 22 296 34 274 C44 256 60 246 80 240 C80 176 86 112 106 72 C120 44 142 28 170 28 Z"/>
+  <ellipse class="m-glow" cx="182" cy="280" rx="80" ry="120" fill="url(#m-glow-grad)"/>
+  <path class="m-crease" d="M82 246 C94 300 102 346 102 392"/>
+  <g class="m-hot" data-part="left" tabindex="0" role="button" aria-label="Botón izquierdo"><path class="m-part" d="M165 31 C141 32 121 48 108 75 C92 107 86 140 85 169 C112 164 140 161 162 160 Z"/></g>
+  <g class="m-hot" data-part="right" tabindex="0" role="button" aria-label="Botón derecho"><path class="m-part" d="M175 31 C215 32 248 68 254 130 L256 165 C232 161 205 159 178 160 Z"/></g>
+  <g class="m-hot" data-part="wheel" tabindex="0" role="button" aria-label="Rueda y botón central"><rect class="m-part" x="157" y="54" width="24" height="68" rx="12"/><path class="m-ridge" d="M163 66 H175 M163 74 H175 M163 82 H175 M163 90 H175 M163 98 H175 M163 106 H175"/></g>
+  <g class="m-hot" data-part="mode" tabindex="0" role="button" aria-label="Botón de modo de la rueda"><rect class="m-part" x="161" y="132" width="16" height="22" rx="6"/></g>
+  <g class="m-hot" data-part="thumb" tabindex="0" role="button" aria-label="Rueda del pulgar" transform="translate(70 262) rotate(-30)"><rect class="m-part" x="-19" y="-8" width="38" height="16" rx="8"/><path class="m-ridge" d="M-11 -4 V4 M-5 -4 V4 M1 -4 V4 M7 -4 V4 M13 -4 V4"/></g>
+  <g class="m-hot" data-part="forward" tabindex="0" role="button" aria-label="Botón adelante" transform="translate(60 292) rotate(-30)"><rect class="m-part" x="-16" y="-6" width="32" height="12" rx="6"/></g>
+  <g class="m-hot" data-part="back" tabindex="0" role="button" aria-label="Botón atrás" transform="translate(52 314) rotate(-30)"><rect class="m-part" x="-16" y="-6" width="32" height="12" rx="6"/></g>
+  <g class="m-hot" data-part="gesture" tabindex="0" role="button" aria-label="Botón de gestos"><ellipse class="m-part" cx="64" cy="350" rx="20" ry="11" transform="rotate(-25 64 350)"/></g>
+</svg>
+</template>
+
+<!-- Symbolic icons, drawn for this page in the Adwaita style. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 16 16"><path d="M8 1.5 1.5 7v7.5h4.5v-4.5h4v4.5h4.5V7z" fill="currentColor"/></symbol>
+  <symbol id="i-pointer" viewBox="0 0 16 16"><path d="M3 1v13l3.4-3.1 2.3 4.8 2-.9-2.3-4.8H13z" fill="currentColor"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 16 16"><rect x="3.75" y="1.75" width="8.5" height="12.5" rx="4.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2v4" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><path d="M8 0.8v2.4M8 12.8v2.4M0.8 8h2.4M12.8 8h2.4M2.9 2.9l1.7 1.7M11.4 11.4l1.7 1.7M2.9 13.1l1.7-1.7M11.4 4.6l1.7-1.7" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 16 16"><path d="M10.5 2.5 5 8l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="M5.5 2.5 11 8l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 16 16"><path d="M2.5 5.5 8 11l5.5-5.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="6.8" cy="6.8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10.2 10.2 4.3 4.3" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-close" viewBox="0 0 16 16"><path d="m3 3 10 10M13 3 3 13" stroke="currentColor" stroke-width="2.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="m2.5 8.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-bt" viewBox="0 0 16 16"><path d="M4 4.5 11.5 11 8 14V2l3.5 3L4 11.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 3V2.8A1.8 1.8 0 0 0 9.2 1H3a2 2 0 0 0-2 2v6.2A1.8 1.8 0 0 0 2.8 11H3" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-mouse-big" viewBox="0 0 96 96"><rect x="24" y="8" width="48" height="80" rx="24" fill="none" stroke="currentColor" stroke-width="5"/><path d="M48 10v24M24 36h48" stroke="currentColor" stroke-width="5"/><path d="m70 70 18 18M88 70 70 88" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 96 96"><rect x="20" y="40" width="56" height="44" rx="10" fill="none" stroke="currentColor" stroke-width="5"/><path d="M34 40V26a14 14 0 0 1 28 0v14" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="48" cy="60" r="5" fill="currentColor"/><path d="M48 64v8" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></symbol>
+  <symbol id="i-service" viewBox="0 0 96 96"><circle cx="48" cy="48" r="36" fill="none" stroke="currentColor" stroke-width="5"/><path d="M40 32v32l26-16z" fill="currentColor"/></symbol>
+</svg>
+
+<header class="top">
+  <h1 data-en="Cursiva · MVP mockups">Cursiva · maquetas del MVP</h1>
+  <span class="meta" data-en="Milestone 5, phase 5a · for approval">Hito 5, fase 5a · para aprobación</span>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Idioma / Language">
+      <button type="button" id="lang-es" aria-pressed="true">Español</button>
+      <button type="button" id="lang-en" aria-pressed="false">English</button>
+    </div>
+    <div class="seg" role="group" aria-label="Tema de las ventanas / Window theme">
+      <button type="button" id="theme-light" aria-pressed="true" data-en="Light">Claro</button>
+      <button type="button" id="theme-dark" aria-pressed="false" data-en="Dark">Oscuro</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="intro">
+    <p data-en="Static mockups of the Cursiva windows, drawn to look like GTK4 and Libadwaita on GNOME 50. They show layout, wording and behavior; the real app uses the system's widgets and fonts. Everything in the windows is translatable: switch the language above to see both. The theme switch changes the windows between light and dark.">Maquetas estáticas de las ventanas de Cursiva, dibujadas para parecerse a GTK4 y Libadwaita en GNOME 50. Muestran disposición, textos y comportamiento; la app real usará los widgets y las fuentes del sistema. Todo lo que hay en las ventanas es traducible: cambia el idioma arriba para ver los dos. El selector de tema cambia las ventanas entre claro y oscuro.</p>
+    <p data-en="The mouse illustration is original artwork for this project. Hover over it: every part is a hotspot.">El dibujo del ratón es original de este proyecto. Pasa el puntero por encima: cada parte es una zona clicable.</p>
+    <nav class="toc" aria-label="Vistas">
+      <a href="#home" data-en="1 Home">1 Inicio</a>
+      <a href="#point-scroll" data-en="2 Point &amp; scroll">2 Puntero y desplazamiento</a>
+      <a href="#buttons" data-en="3 Buttons">3 Botones</a>
+      <a href="#picker" data-en="4 Action picker">4 Selector de acción</a>
+      <a href="#first-run" data-en="5 First run and problems">5 Primer arranque y problemas</a>
+      <a href="#prefs" data-en="6 Preferences">6 Preferencias</a>
+      <a href="#narrow" data-en="7 Narrow window">7 Ventana estrecha</a>
+    </nav>
+  </section>
+
+  <!-- ===================== 1 HOME ===================== -->
+  <section class="shot" id="home">
+    <header><h2 data-en="1 · Home">1 · Inicio</h2></header>
+    <div class="stage">
+      <div class="win adw-win">
+        <div class="split">
+          <aside class="sidebar">
+            <div class="hb"><span class="ibtn"></span><span class="title">Cursiva</span><span class="ibtn"><svg><use href="#i-menu"/></svg></span></div>
+            <nav class="nav">
+              <div class="on"><svg><use href="#i-home"/></svg><span data-en="Home">Inicio</span></div>
+              <div><svg><use href="#i-pointer"/></svg><span data-en="Point &amp; scroll">Puntero y desplazamiento</span></div>
+              <div><svg><use href="#i-mouse"/></svg><span data-en="Buttons">Botones</span></div>
+            </nav>
+            <div class="side-foot"><span class="dot"></span><span data-en="Settings active">Ajustes activos</span></div>
+          </aside>
+          <div class="content">
+            <div class="hb"><span class="title"></span><span class="wclose"><svg><use href="#i-close"/></svg></span></div>
+            <div class="home">
+              <div class="mouse-wrap">
+                <div class="mouse-slot" data-view="home"></div>
+                <div class="hint" data-en="Click a part of the mouse to change it">Haz clic en una parte del ratón para cambiarla</div>
+              </div>
+              <div class="home-side">
+                <div>
+                  <h3>MX Master 3S</h3>
+                  <div class="ok"><svg width="14" height="14"><use href="#i-check"/></svg><span data-en="Your settings are active">Tus ajustes están activos</span></div>
+                </div>
+                <div class="list">
+                  <div class="row"><div class="t"><b data-en="Connection">Conexión</b></div><span class="info-label"><svg width="14" height="14"><use href="#i-bt"/></svg>Bluetooth</span></div>
+                  <div class="row"><div class="t"><b data-en="Battery">Batería</b><span data-en="Not charging">No se está cargando</span></div><div class="lvl" aria-hidden="true"><i style="width:85%"></i></div><span class="val">85 %</span></div>
+                  <div class="row"><div class="t"><b data-en="Profile">Perfil</b><span data-en="Same settings in every app">Los mismos ajustes en todas las apps</span></div><span class="val" data-en="General">General</span></div>
+                </div>
+                <div class="list">
+                  <div class="row clickable"><div class="t"><b data-en="Pointer speed">Velocidad del puntero</b><span>1600 DPI</span></div><svg class="chev"><use href="#i-chev"/></svg></div>
+                  <div class="row clickable"><div class="t"><b data-en="Wheel">Rueda</b><span data-en="Automatic, switches with a medium push">Automática, se suelta con un empujón medio</span></div><svg class="chev"><use href="#i-chev"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="Opens here when the mouse is found. Clicking a part goes to its settings: wheel, mode button and thumb wheel to Point &amp; scroll; the other buttons to Buttons.">Abre aquí si encuentra el ratón. Clicar una parte lleva a sus ajustes: rueda, botón de modo y rueda del pulgar a Puntero y desplazamiento; los demás botones a Botones.</li>
+        <li data-en="Battery comes from the kernel, as GNOME shows it. A low-battery notification is sent by the service, so it works with the app closed.">La batería viene del kernel, como la muestra GNOME. El aviso de batería baja lo manda el servicio, así funciona con la app cerrada.</li>
+        <li data-en="“Your settings are active” reflects the service's last verification. If it failed, this line turns into a warning with what to do.">«Tus ajustes están activos» refleja la última verificación del servicio. Si falló, esta línea se vuelve un aviso con qué hacer.</li>
+        <li data-en="Profile is always “General” until per-app profiles (Milestone 7).">El perfil es siempre «General» hasta los perfiles por app (hito 7).</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===================== 2 POINT & SCROLL ===================== -->
+  <section class="shot" id="point-scroll">
+    <header><h2 data-en="2 · Point &amp; scroll">2 · Puntero y desplazamiento</h2></header>
+    <div class="stage">
+      <div class="win adw-win">
+        <div class="split">
+          <aside class="sidebar">
+            <div class="hb"><span class="ibtn"></span><span class="title">Cursiva</span><span class="ibtn"><svg><use href="#i-menu"/></svg></span></div>
+            <nav class="nav">
+              <div><svg><use href="#i-home"/></svg><span data-en="Home">Inicio</span></div>
+              <div class="on"><svg><use href="#i-pointer"/></svg><span data-en="Point &amp; scroll">Puntero y desplazamiento</span></div>
+              <div><svg><use href="#i-mouse"/></svg><span data-en="Buttons">Botones</span></div>
+            </nav>
+            <div class="side-foot"><span class="dot"></span><span data-en="Settings active">Ajustes activos</span></div>
+          </aside>
+          <div class="content">
+            <div class="hb"><span class="title" data-en="Point &amp; scroll">Puntero y desplazamiento</span><span class="wclose"><svg><use href="#i-close"/></svg></span></div>
+            <div class="page">
+              <div class="clamp">
+                <div class="group">
+                  <div class="group-h"><h4 data-en="Pointer">Puntero</h4><button class="btn flat small" type="button" data-en="Restore default">Restaurar predeterminado</button></div>
+                  <div class="list">
+                    <div class="rowx">
+                      <div class="expander"><div class="t" style="flex:1"><b style="font-weight:400" data-en="Speed">Velocidad</b></div><span class="big-num" id="dpi-out">1600 DPI</span></div>
+                      <input class="scale" id="dpi" type="range" min="200" max="8000" step="50" value="1600" aria-label="Velocidad del puntero en DPI">
+                      <div class="marks ends"><span data-en="Slower">Más lenta</span><span data-en="Faster">Más rápida</span></div>
+                      <div class="chips" role="group" aria-label="Valores rápidos">
+                        <button class="btn" type="button" data-dpi="800" aria-pressed="false">800</button>
+                        <button class="btn" type="button" data-dpi="1000" aria-pressed="false" data-en="1000 · default">1000 · predeterminado</button>
+                        <button class="btn" type="button" data-dpi="1600" aria-pressed="true">1600</button>
+                        <button class="btn" type="button" data-dpi="3200" aria-pressed="false">3200</button>
+                      </div>
+                    </div>
+                    <div class="row"><div class="t"><b data-en="Acceleration">Aceleración</b><span data-en="GNOME setting, for every mouse">Ajuste de GNOME, para todos los ratones</span></div><span class="drop"><span data-en="Adaptive">Adaptativa</span><svg><use href="#i-down"/></svg></span></div>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <div class="group-h"><h4 data-en="Main wheel">Rueda principal</h4><button class="btn flat small" type="button" data-en="Restore default">Restaurar predeterminado</button></div>
+                  <div class="list">
+                    <div class="rowx">
+                      <div class="t"><b style="font-weight:400" data-en="Scroll mode">Modo de desplazamiento</b></div>
+                      <div class="tg" role="group" aria-label="Modo de desplazamiento" id="mode-tg">
+                        <button type="button" aria-pressed="false" data-mode="ratchet" data-en="Clicks">Con clics</button>
+                        <button type="button" aria-pressed="false" data-mode="free" data-en="Free spin">Libre</button>
+                        <button type="button" aria-pressed="true" data-mode="auto" data-en="Automatic">Automático</button>
+                      </div>
+                      <div class="big-num" id="mode-desc" data-en="Clicks when you turn it slowly, spins freely when you push it.">Hace clic al girar despacio y gira libre cuando la empujas.</div>
+                    </div>
+                    <div class="rowx" id="sens-row">
+                      <div class="expander"><div class="t" style="flex:1"><b style="font-weight:400" data-en="Switches to free spin with">Pasa a giro libre con</b></div></div>
+                      <input class="scale" id="sens" type="range" min="1" max="50" value="30" aria-label="Sensibilidad del cambio automático">
+                      <div class="marks ends"><span data-en="A gentle push">Un empujón suave</span><span data-en="A strong push">Un empujón fuerte</span></div>
+                    </div>
+                    <div class="row"><div class="t"><b data-en="Natural scrolling">Desplazamiento natural</b><span data-en="Content moves with your finger. GNOME setting, for every mouse">El contenido sigue al dedo. Ajuste de GNOME, para todos los ratones</span></div><button class="sw" type="button" role="switch" aria-checked="false" id="sw-natural" aria-label="Desplazamiento natural"></button></div>
+                    <div class="row"><div class="t"><b data-en="Smooth scrolling">Desplazamiento suave</b><span data-en="High-resolution wheel, managed by the system">Rueda de alta resolución, la gestiona el sistema</span></div><span class="info-label" data-en="On">Activado</span></div>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <div class="group-h"><h4 data-en="Thumb wheel">Rueda del pulgar</h4><button class="btn flat small" type="button" data-en="Restore default">Restaurar predeterminado</button></div>
+                  <div class="list">
+                    <div class="row"><div class="t"><b data-en="Reverse direction">Invertir dirección</b><span data-en="Turning it toward you scrolls right">Girarla hacia ti desplaza a la derecha</span></div><button class="sw" type="button" role="switch" aria-checked="true" id="sw-thumb" aria-label="Invertir rueda del pulgar"></button></div>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <div class="list">
+                    <div class="row clickable"><div class="t"><b data-en="Advanced">Avanzado</b><span data-en="Exact values">Valores exactos</span></div><svg class="chev" style="transform:rotate(90deg)"><use href="#i-chev"/></svg></div>
+                    <div class="row"><div class="t"><b data-en="Resolution">Resolución</b><span data-en="200 to 8000 in steps of 50">De 200 a 8000 en pasos de 50</span></div><span class="spin"><span>1600</span><i>−</i><i>+</i></span></div>
+                    <div class="row"><div class="t"><b data-en="SmartShift threshold">Umbral de SmartShift</b><span data-en="1 (gentle) to 50 (strong)">1 (suave) a 50 (fuerte)</span></div><span class="spin"><span>30</span><i>−</i><i>+</i></span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="toast"><span data-en="Pointer speed set to 1600 DPI">Velocidad del puntero: 1600 DPI</span><button class="btn small" type="button" data-en="Undo">Deshacer</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="Changes apply at once; there is no Save button. A toast offers Undo. The slider writes when you stop moving it.">Los cambios se aplican al momento; no hay botón de guardar. Un aviso ofrece «Deshacer». La barra escribe cuando dejas de moverla.</li>
+        <li data-en="The slider only stops on values the mouse accepts (its DPI list, read from the device).">La barra solo se detiene en valores que el ratón acepta (su lista de DPI, leída del dispositivo).</li>
+        <li><span class="tag">5b</span> <span data-en="“Clicks” means ratchet with no automatic switch. It needs a documented “SmartShift off” value confirmed on the mouse. If there is none, the group offers only Free spin and Automatic.">«Con clics» es con clics y sin cambio automático. Necesita un valor documentado de «SmartShift apagado» confirmado en el ratón. Si no existe, el grupo ofrece solo Libre y Automático.</span></li>
+        <li data-en="The mode button on the mouse changes this selector live, because the service follows it.">El botón de modo del ratón cambia este selector en vivo, porque el servicio lo sigue.</li>
+        <li data-en="Acceleration and natural scrolling are GNOME settings; the service writes them, so the app also works from a Flatpak. Pointer acceleration choices are GNOME's: Adaptive and Flat.">Aceleración y desplazamiento natural son ajustes de GNOME; los escribe el servicio, así la app también funciona desde un Flatpak. Las opciones de aceleración son las de GNOME: Adaptativa y Plana.</li>
+        <li data-en="Smooth scrolling has no switch: the kernel driver owns it and we never write it.">El desplazamiento suave no tiene interruptor: lo controla el driver del kernel y nunca lo escribimos.</li>
+        <li data-en="Restore default uses the values the mouse returns to when switched off: 1000 DPI, threshold 10, not reversed, clicks.">«Restaurar predeterminado» usa los valores a los que vuelve el ratón al apagarse: 1000 DPI, umbral 10, sin invertir, con clics.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===================== 3 BUTTONS ===================== -->
+  <section class="shot" id="buttons">
+    <header><h2 data-en="3 · Buttons">3 · Botones</h2></header>
+    <div class="stage">
+      <div class="win adw-win">
+        <div class="split">
+          <aside class="sidebar">
+            <div class="hb"><span class="ibtn"></span><span class="title">Cursiva</span><span class="ibtn"><svg><use href="#i-menu"/></svg></span></div>
+            <nav class="nav">
+              <div><svg><use href="#i-home"/></svg><span data-en="Home">Inicio</span></div>
+              <div><svg><use href="#i-pointer"/></svg><span data-en="Point &amp; scroll">Puntero y desplazamiento</span></div>
+              <div class="on"><svg><use href="#i-mouse"/></svg><span data-en="Buttons">Botones</span></div>
+            </nav>
+            <div class="side-foot"><span class="dot"></span><span data-en="Settings active">Ajustes activos</span></div>
+          </aside>
+          <div class="content">
+            <div class="hb"><span class="title" data-en="Buttons">Botones</span><span class="wclose"><svg><use href="#i-close"/></svg></span></div>
+            <div class="buttons">
+              <div class="mouse-slot" data-view="buttons"></div>
+              <div class="lists">
+                <div class="live"><span class="pulse"></span><span data-en="Press a button on the mouse to find it here">Pulsa un botón del ratón para encontrarlo aquí</span></div>
+                <div class="group">
+                  <div class="group-h"><h4 data-en="What each button does">Qué hace cada botón</h4><button class="btn flat small" type="button" data-en="Restore all">Restaurar todos</button></div>
+                  <div class="list" id="btn-list">
+                    <div class="row clickable" data-part="wheel"><div class="t"><b data-en="Wheel button" data-pressed="">Botón de la rueda</b><span data-en="Press the wheel down">Presionar la rueda</span></div><span class="val" data-en="Middle click">Clic central</span><svg class="chev"><use href="#i-chev"/></svg></div>
+                    <div class="row clickable" data-part="mode"><div class="t"><b data-en="Mode button">Botón de modo</b><span data-en="Behind the wheel">Detrás de la rueda</span></div><span class="val" data-en="Switch scroll mode">Cambiar modo de rueda</span><svg class="chev"><use href="#i-chev"/></svg></div>
+                    <div class="row clickable pressed-now" data-part="forward"><div class="t"><b data-en="Forward" data-pressed="PULSADO" data-pressed-en="PRESSED">Adelante</b><span data-en="Upper side button">Botón lateral de arriba</span></div><span class="val" data-en="Forward">Adelante</span><svg class="chev"><use href="#i-chev"/></svg></div>
+                    <div class="row clickable selected" data-part="back"><div class="t"><b data-en="Back">Atrás</b><span data-en="Lower side button">Botón lateral de abajo</span></div><span class="val" data-en="Middle click">Clic central</span><svg class="chev"><use href="#i-chev"/></svg></div>
+                    <div class="row dim" data-part="gesture"><div class="t"><b data-en="Gesture button">Botón de gestos</b><span data-en="Configurable in a later version">Configurable en una versión posterior</span></div></div>
+                  </div>
+                </div>
+                <p class="foot-note" data-en="Left and right click are not remapped, so the mouse always works.">Los clics izquierdo y derecho no se reasignan, para que el ratón siempre funcione.</p>
+              </div>
+            </div>
+            <div class="toast"><span data-en="Back now does Middle click">Atrás ahora hace clic central</span><button class="btn small" type="button" data-en="Undo">Deshacer</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="Selecting a row highlights the part on the drawing, and the other way round. Clicking a row opens the action picker (4).">Elegir una fila resalta la parte en el dibujo, y al revés. Clicar una fila abre el selector de acción (4).</li>
+        <li data-en="Live highlight (yellow): the forward button is being pressed. It works for the wheel, back and forward buttons and both clicks, which the mouse reports normally. The service sends presses only while this view is open.">Resaltado en vivo (amarillo): se está pulsando adelante. Funciona con la rueda, atrás, adelante y los dos clics, que el ratón reporta de forma normal. El servicio manda pulsaciones solo mientras esta vista está abierta.</li>
+        <li><span class="tag">5b</span> <span data-en="Remapping uses the mouse's own controls (0x1B04). Which buttons can be remapped, and to what, comes from the mouse and the confirmed write; this list may shrink.">La reasignación usa los controles del propio ratón (0x1B04). Qué botones se pueden reasignar, y a qué, sale del ratón y de la escritura confirmada; esta lista puede quedar más corta.</span></li>
+        <li data-en="The gesture button and the thumb wheel need diversion (Milestone 6).">El botón de gestos y la rueda del pulgar necesitan desvío al software (hito 6).</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===================== 4 PICKER ===================== -->
+  <section class="shot" id="picker">
+    <header><h2 data-en="4 · Action picker">4 · Selector de acción</h2></header>
+    <div class="stage">
+      <div class="win adw-win">
+        <div class="split">
+          <aside class="sidebar">
+            <div class="hb"><span class="ibtn"></span><span class="title">Cursiva</span><span class="ibtn"><svg><use href="#i-menu"/></svg></span></div>
+            <nav class="nav">
+              <div><svg><use href="#i-home"/></svg><span data-en="Home">Inicio</span></div>
+              <div><svg><use href="#i-pointer"/></svg><span data-en="Point &amp; scroll">Puntero y desplazamiento</span></div>
+              <div class="on"><svg><use href="#i-mouse"/></svg><span data-en="Buttons">Botones</span></div>
+            </nav>
+          </aside>
+          <div class="content"><div class="hb"><span class="title" data-en="Buttons">Botones</span><span class="wclose"><svg><use href="#i-close"/></svg></span></div></div>
+        </div>
+        <div class="shade">
+          <div class="dialog" role="dialog" aria-label="Acción del botón Atrás">
+            <div class="hb"><span class="ibtn"></span><span class="title"><span data-en="Back button">Botón Atrás</span><span class="sub" data-en="Choose what it does">Elige qué hace</span></span><span class="ibtn"><svg><use href="#i-close"/></svg></span></div>
+            <div class="body">
+              <div class="entry"><svg><use href="#i-search"/></svg><span data-en="Search actions">Buscar acciones</span></div>
+              <div class="group">
+                <div class="group-h"><h4 data-en="Mouse actions">Acciones del ratón</h4></div>
+                <div class="list">
+                  <div class="row clickable"><span class="radio"></span><div class="t"><b data-en="Back (default)">Atrás (predeterminado)</b><span data-en="Go to the previous page">Ir a la página anterior</span></div></div>
+                  <div class="row clickable"><span class="radio on"></span><div class="t"><b data-en="Middle click">Clic central</b><span data-en="Open links in a new tab, paste the selection">Abrir enlaces en otra pestaña, pegar la selección</span></div></div>
+                  <div class="row clickable"><span class="radio"></span><div class="t"><b data-en="Forward">Adelante</b><span data-en="Go to the next page">Ir a la página siguiente</span></div></div>
+                  <div class="row clickable"><span class="radio"></span><div class="t"><b data-en="Switch scroll mode">Cambiar modo de rueda</b><span data-en="Between clicks and free spin">Entre con clics y libre</span></div></div>
+                </div>
+              </div>
+              <p class="foot-note" data-en="Keyboard shortcuts, media keys and GNOME actions arrive with gestures in a later version.">Los atajos de teclado, las teclas multimedia y las acciones de GNOME llegan con los gestos en una versión posterior.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="A dialog (AdwDialog). It becomes a bottom sheet in a narrow window.">Un diálogo (AdwDialog). En ventana estrecha se vuelve una hoja que sube desde abajo.</li>
+        <li data-en="Choosing applies at once and closes the dialog; the Buttons view shows an Undo toast.">Elegir aplica al momento y cierra el diálogo; la vista Botones muestra un aviso con «Deshacer».</li>
+        <li><span class="tag">5b</span> <span data-en="The options are illustrative: the real list is what 0x1B04 allows for that button, read from the mouse. Search and categories (§11) grow with Milestone 6.">Las opciones son ilustrativas: la lista real es lo que 0x1B04 permite para ese botón, leído del ratón. La búsqueda y las categorías (§11) crecen con el hito 6.</span></li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===================== 5 FIRST RUN ===================== -->
+  <section class="shot" id="first-run">
+    <header><h2 data-en="5 · First run and problems">5 · Primer arranque y problemas</h2></header>
+    <div class="stage">
+      <div class="tabs-mini seg" role="group" aria-label="Estado">
+        <button type="button" data-fr="mouse" aria-pressed="true" data-en="Mouse not found">Ratón no encontrado</button>
+        <button type="button" data-fr="perm" aria-pressed="false" data-en="Missing permission">Falta un permiso</button>
+        <button type="button" data-fr="service" aria-pressed="false" data-en="Service not running">Servicio detenido</button>
+        <button type="button" data-fr="conflict" aria-pressed="false" data-en="Another configurator">Otro configurador</button>
+      </div>
+      <div class="win adw-win" style="height:600px">
+        <div class="hb"><span class="ibtn"></span><span class="title">Cursiva</span><span class="ibtn"><svg><use href="#i-menu"/></svg></span><span class="wclose"><svg><use href="#i-close"/></svg></span></div>
+
+        <div class="status" data-fr-panel="mouse">
+          <div class="in">
+            <svg class="icon"><use href="#i-mouse-big"/></svg>
+            <h3 data-en="Looking for your mouse">Buscando tu ratón</h3>
+            <p data-en="Cursiva supports the MX Master 3S over Bluetooth. It shows up here as soon as it connects.">Cursiva es compatible con el MX Master 3S por Bluetooth. Aparecerá aquí en cuanto se conecte.</p>
+            <div class="list steps">
+              <div class="row"><div class="t"><b data-en="Switch it on">Enciéndelo</b><span data-en="The switch is underneath">El interruptor está debajo</span></div></div>
+              <div class="row"><div class="t"><b data-en="Pick this computer's channel">Elige el canal de esta computadora</b><span data-en="With the button underneath; its light shows the channel">Con el botón de abajo; su luz indica el canal</span></div></div>
+              <div class="row clickable"><div class="t"><b data-en="Check Bluetooth">Revisa el Bluetooth</b><span data-en="It must be on and the mouse paired">Debe estar encendido y el ratón emparejado</span></div><button class="btn" type="button" data-en="Open Bluetooth settings">Abrir ajustes de Bluetooth</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status" data-fr-panel="perm" hidden>
+          <div class="in">
+            <svg class="icon"><use href="#i-plug"/></svg>
+            <h3 data-en="Cursiva can't reach the mouse">Cursiva no puede hablar con el ratón</h3>
+            <p data-en="The mouse is connected, but a permission is missing. The installer adds it once; it lets your user, and only while you are logged in, talk to Logitech devices.">El ratón está conectado, pero falta un permiso. El instalador lo añade una sola vez; permite que tu usuario, y solo mientras tienes la sesión abierta, hable con dispositivos Logitech.</p>
+            <div class="cmd"><code>sudo install -m 644 70-hid-lab-logitech.rules /etc/udev/rules.d/</code><button class="btn small" type="button" data-en="Copy">Copiar</button></div>
+            <p class="foot-note" data-en="Then switch the mouse off and on. Cursiva itself never needs administrator rights.">Después apaga y enciende el ratón. Cursiva nunca necesita permisos de administrador para funcionar.</p>
+          </div>
+        </div>
+
+        <div class="status" data-fr-panel="service" hidden>
+          <div class="in">
+            <svg class="icon"><use href="#i-service"/></svg>
+            <h3 data-en="The Cursiva service isn't running">El servicio de Cursiva no está en marcha</h3>
+            <p data-en="The service applies your settings, even with this window closed. It usually starts by itself; this time it did not.">El servicio aplica tus ajustes, incluso con esta ventana cerrada. Normalmente arranca solo; esta vez no lo hizo.</p>
+            <button class="btn sugg pill" type="button" data-en="Start the service">Iniciar el servicio</button>
+            <button class="btn flat" type="button" data-en="Copy diagnostics">Copiar diagnóstico</button>
+          </div>
+        </div>
+
+        <div data-fr-panel="conflict" hidden style="display:contents">
+          <div class="banner"><span data-en="Solaar is also configuring this mouse. Close it, or settings may change unpredictably.">Solaar también está configurando este ratón. Ciérralo o los ajustes pueden cambiar sin control.</span><button class="btn small" type="button" data-en="How?">¿Cómo?</button></div>
+          <div class="status"><div class="in"><p class="foot-note" data-en="(The banner appears above any view, not instead of it.)">(El aviso aparece encima de cualquier vista, no en lugar de ella.)</p></div></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="The app picks the screen from the service's status, so it never guesses: not found, permission denied, service missing, or a conflict.">La app elige la pantalla según el estado del servicio, así nunca adivina: no encontrado, permiso denegado, servicio ausente o conflicto.</li>
+        <li data-en="The service starts on demand (D-Bus activation), so “Start the service” only appears when that failed. Diagnostics carry no Bluetooth address or serial.">El servicio arranca solo cuando se le llama (activación por D-Bus), así que «Iniciar el servicio» solo aparece si eso falló. El diagnóstico no lleva dirección Bluetooth ni número de serie.</li>
+        <li data-en="The permission screen shows a command to copy instead of running sudo itself: Cursiva never asks for root.">La pantalla de permiso muestra un comando para copiar en lugar de ejecutar sudo: Cursiva nunca pide root.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===================== 6 PREFERENCES ===================== -->
+  <section class="shot" id="prefs">
+    <header><h2 data-en="6 · Preferences">6 · Preferencias</h2></header>
+    <div class="stage">
+      <div class="win adw-win">
+        <div class="split">
+          <aside class="sidebar">
+            <div class="hb"><span class="ibtn"></span><span class="title">Cursiva</span><span class="ibtn"><svg><use href="#i-menu"/></svg></span></div>
+            <nav class="nav">
+              <div class="on"><svg><use href="#i-home"/></svg><span data-en="Home">Inicio</span></div>
+              <div><svg><use href="#i-pointer"/></svg><span data-en="Point &amp; scroll">Puntero y desplazamiento</span></div>
+              <div><svg><use href="#i-mouse"/></svg><span data-en="Buttons">Botones</span></div>
+            </nav>
+          </aside>
+          <div class="content"><div class="hb"><span class="title"></span><span class="wclose"><svg><use href="#i-close"/></svg></span></div></div>
+        </div>
+        <div class="shade">
+          <div class="dialog prefs" role="dialog" aria-label="Preferencias">
+            <div class="hb"><span class="ibtn"></span><span class="title" data-en="Preferences">Preferencias</span><span class="ibtn"><svg><use href="#i-close"/></svg></span></div>
+            <div class="body">
+              <div class="group">
+                <div class="group-h"><h4 data-en="General">General</h4></div>
+                <div class="list">
+                  <div class="row"><div class="t"><b data-en="Apply my settings when I log in">Aplicar mis ajustes al iniciar sesión</b><span data-en="Works without opening Cursiva">Funciona sin abrir Cursiva</span></div><button class="sw" type="button" role="switch" aria-checked="true" id="sw-login" aria-label="Aplicar al iniciar sesión"></button></div>
+                  <div class="row"><div class="t"><b data-en="Low battery warning">Aviso de batería baja</b><span data-en="A notification at 15 %">Una notificación al 15 %</span></div><button class="sw" type="button" role="switch" aria-checked="true" id="sw-batt" aria-label="Aviso de batería baja"></button></div>
+                </div>
+              </div>
+              <div class="group">
+                <div class="group-h"><h4 data-en="Troubleshooting">Solución de problemas</h4></div>
+                <div class="list">
+                  <div class="row"><div class="t"><b data-en="Service">Servicio</b><span data-en="Running · hid-labd 0.1.0">En marcha · hid-labd 0.1.0</span></div><span class="dot"></span></div>
+                  <div class="row"><div class="t"><b data-en="Last time settings were applied">Última vez que se aplicaron los ajustes</b><span data-en="After reconnecting, 3 min ago · checked twice in 1.7 s">Al reconectar, hace 3 min · verificado dos veces en 1,7 s</span></div></div>
+                  <div class="row clickable"><div class="t"><b data-en="Export diagnostics">Exportar diagnóstico</b><span data-en="A file to attach to a bug report, without personal data">Un archivo para adjuntar a un reporte, sin datos personales</span></div><svg class="chev"><use href="#i-chev"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="Opened from the main menu (☰), with About Cursiva and Keyboard shortcuts.">Se abre desde el menú principal (☰), junto a «Acerca de Cursiva» y «Atajos de teclado».</li>
+        <li><span class="tag">5b</span> <span data-en="If GNOME already warns about a low mouse battery, this switch is dropped to avoid two notifications.">Si GNOME ya avisa de batería baja del ratón, este interruptor desaparece para no duplicar avisos.</span></li>
+        <li data-en="Export uses the file chooser portal, so it works inside a Flatpak too.">Exportar usa el portal del selector de archivos, así funciona también dentro de un Flatpak.</li>
+        <li data-en="Language follows the system (Spanish and English to start); there is no language setting.">El idioma sigue al del sistema (español e inglés para empezar); no hay ajuste de idioma.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===================== 7 NARROW ===================== -->
+  <section class="shot" id="narrow">
+    <header><h2 data-en="7 · Narrow window">7 · Ventana estrecha</h2></header>
+    <div class="stage">
+      <div class="pair">
+        <div class="win narrow adw-win">
+          <div class="hb"><span class="ibtn"><svg><use href="#i-menu"/></svg></span><span class="title">Cursiva</span><span class="wclose"><svg><use href="#i-close"/></svg></span></div>
+          <div class="home-n">
+            <div class="mouse-slot" data-view="home"></div>
+            <div class="list">
+              <div class="row"><div class="t"><b>MX Master 3S</b><span data-en="Bluetooth · battery 85 %">Bluetooth · batería 85 %</span></div><span class="dot"></span></div>
+            </div>
+            <div class="list">
+              <div class="row clickable"><svg width="16" height="16"><use href="#i-pointer"/></svg><div class="t"><b data-en="Point &amp; scroll">Puntero y desplazamiento</b></div><svg class="chev"><use href="#i-chev"/></svg></div>
+              <div class="row clickable"><svg width="16" height="16"><use href="#i-mouse"/></svg><div class="t"><b data-en="Buttons">Botones</b></div><svg class="chev"><use href="#i-chev"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div class="win narrow adw-win">
+          <div class="hb"><span class="ibtn"><svg><use href="#i-back"/></svg></span><span class="title" data-en="Point &amp; scroll">Puntero y desplazamiento</span><span class="wclose"><svg><use href="#i-close"/></svg></span></div>
+          <div class="page">
+            <div class="clamp">
+              <div class="group">
+                <div class="group-h"><h4 data-en="Pointer">Puntero</h4></div>
+                <div class="list">
+                  <div class="rowx">
+                    <div class="expander"><div class="t" style="flex:1"><b style="font-weight:400" data-en="Speed">Velocidad</b></div><span class="big-num">1600 DPI</span></div>
+                    <input class="scale" id="dpi-n" type="range" min="200" max="8000" step="50" value="1600" aria-label="Velocidad del puntero en DPI">
+                  </div>
+                </div>
+              </div>
+              <div class="group">
+                <div class="group-h"><h4 data-en="Main wheel">Rueda principal</h4></div>
+                <div class="list">
+                  <div class="rowx">
+                    <div class="tg" role="group" aria-label="Modo de desplazamiento">
+                      <button type="button" aria-pressed="false" data-en="Clicks">Con clics</button>
+                      <button type="button" aria-pressed="false" data-en="Free spin">Libre</button>
+                      <button type="button" aria-pressed="true" data-en="Automatic">Automático</button>
+                    </div>
+                  </div>
+                  <div class="row"><div class="t"><b data-en="Natural scrolling">Desplazamiento natural</b></div><button class="sw" type="button" role="switch" aria-checked="false" id="sw-natural-n" aria-label="Desplazamiento natural"></button></div>
+                </div>
+              </div>
+              <div class="group">
+                <div class="group-h"><h4 data-en="Thumb wheel">Rueda del pulgar</h4></div>
+                <div class="list">
+                  <div class="row"><div class="t"><b data-en="Reverse direction">Invertir dirección</b></div><button class="sw" type="button" role="switch" aria-checked="true" id="sw-thumb-n" aria-label="Invertir rueda del pulgar"></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3 data-en="Notes">Notas</h3>
+      <ul>
+        <li data-en="Below about 600 px the sidebar folds away (AdwNavigationSplitView): Home lists the sections, and each opens as a page with a back button.">Por debajo de unos 600 px la barra lateral se pliega (AdwNavigationSplitView): Inicio lista las secciones y cada una se abre como página con botón de volver.</li>
+        <li data-en="In Spanish the labels are the longest; the narrow layout is checked with them.">En español los textos son los más largos; la versión estrecha se comprueba con ellos.</li>
+        <li data-en="Buttons, narrow: the drawing on top, the list below it.">Botones, estrecha: el dibujo arriba y la lista debajo.</li>
+      </ul>
+    </aside>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var tpl = document.getElementById("mouse-tpl");
+  var partNames = {
+    left: ["Botón izquierdo", "Left button"], right: ["Botón derecho", "Right button"],
+    wheel: ["Rueda y botón central", "Wheel and middle button"], mode: ["Botón de modo de la rueda", "Wheel mode button"],
+    thumb: ["Rueda del pulgar", "Thumb wheel"], forward: ["Botón adelante", "Forward button"],
+    back: ["Botón atrás", "Back button"], gesture: ["Botón de gestos", "Gesture button"]
+  };
+
+  // Put a copy of the illustration in every slot.
+  document.querySelectorAll(".mouse-slot").forEach(function (slot) {
+    slot.appendChild(tpl.content.cloneNode(true));
+    var view = slot.getAttribute("data-view");
+    if (view === "buttons") {
+      slot.querySelectorAll(".m-hot").forEach(function (g) {
+        var p = g.getAttribute("data-part");
+        if (p === "left" || p === "right" || p === "thumb" || p === "gesture") g.classList.add("m-off");
+        if (p === "back") g.classList.add("sel");
+        if (p === "forward") g.classList.add("pressed");
+      });
+    }
+  });
+
+  // Buttons view: rows and hotspots select each other.
+  var list = document.getElementById("btn-list");
+  var bslot = document.querySelector('.mouse-slot[data-view="buttons"]');
+  function select(part) {
+    list.querySelectorAll(".row").forEach(function (r) { r.classList.toggle("selected", r.getAttribute("data-part") === part); });
+    bslot.querySelectorAll(".m-hot").forEach(function (g) { g.classList.toggle("sel", g.getAttribute("data-part") === part); });
+  }
+  list.querySelectorAll(".row.clickable").forEach(function (r) {
+    r.addEventListener("click", function () { select(r.getAttribute("data-part")); });
+  });
+  bslot.querySelectorAll(".m-hot:not(.m-off)").forEach(function (g) {
+    var go = function () { select(g.getAttribute("data-part")); };
+    g.addEventListener("click", go);
+    g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+
+  // Switches, toggle groups, chips.
+  document.querySelectorAll(".sw").forEach(function (s) {
+    s.addEventListener("click", function () { s.setAttribute("aria-checked", s.getAttribute("aria-checked") === "true" ? "false" : "true"); });
+  });
+  var lang = "es";
+  var modeDesc = {
+    ratchet: ["Siempre hace clic al girar.", "Always clicks as you turn it."],
+    free: ["Gira libre, sin clics.", "Spins freely, without clicks."],
+    auto: ["Hace clic al girar despacio y gira libre cuando la empujas.", "Clicks when you turn it slowly, spins freely when you push it."]
+  };
+  var curMode = "auto";
+  function showMode() {
+    var d = document.getElementById("mode-desc");
+    d.textContent = modeDesc[curMode][lang === "es" ? 0 : 1];
+    document.getElementById("sens-row").style.display = curMode === "auto" ? "" : "none";
+  }
+  document.querySelectorAll(".tg").forEach(function (g) {
+    g.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        g.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        if (g.id === "mode-tg") { curMode = b.getAttribute("data-mode"); showMode(); }
+      });
+    });
+  });
+  var dpi = document.getElementById("dpi");
+  var dpiOut = document.getElementById("dpi-out");
+  function syncChips() {
+    document.querySelectorAll("[data-dpi]").forEach(function (c) { c.setAttribute("aria-pressed", c.getAttribute("data-dpi") === dpi.value ? "true" : "false"); });
+    dpiOut.textContent = dpi.value + " DPI";
+  }
+  dpi.addEventListener("input", syncChips);
+  document.querySelectorAll("[data-dpi]").forEach(function (c) {
+    c.addEventListener("click", function () { dpi.value = c.getAttribute("data-dpi"); syncChips(); });
+  });
+
+  // First-run states.
+  document.querySelectorAll("[data-fr]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-fr");
+      document.querySelectorAll("[data-fr]").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      document.querySelectorAll("[data-fr-panel]").forEach(function (p) { p.hidden = p.getAttribute("data-fr-panel") !== k; });
+    });
+  });
+
+  // Language.
+  var nodes = Array.prototype.slice.call(document.querySelectorAll("[data-en]"));
+  nodes.forEach(function (n) { n.setAttribute("data-es", n.textContent); });
+  function setLang(l) {
+    lang = l;
+    document.documentElement.lang = l;
+    nodes.forEach(function (n) { n.textContent = n.getAttribute(l === "es" ? "data-es" : "data-en"); });
+    document.querySelectorAll("[data-pressed-en]").forEach(function (n) {
+      if (!n.hasAttribute("data-pressed-es")) n.setAttribute("data-pressed-es", n.getAttribute("data-pressed"));
+      n.setAttribute("data-pressed", n.getAttribute(l === "es" ? "data-pressed-es" : "data-pressed-en"));
+    });
+    document.querySelectorAll(".m-hot").forEach(function (g) {
+      var nm = partNames[g.getAttribute("data-part")];
+      if (nm) g.setAttribute("aria-label", nm[l === "es" ? 0 : 1]);
+    });
+    document.getElementById("lang-es").setAttribute("aria-pressed", l === "es" ? "true" : "false");
+    document.getElementById("lang-en").setAttribute("aria-pressed", l === "en" ? "true" : "false");
+    showMode();
+  }
+  document.getElementById("lang-es").addEventListener("click", function () { setLang("es"); });
+  document.getElementById("lang-en").addEventListener("click", function () { setLang("en"); });
+
+  // Window theme.
+  function setTheme(dark) {
+    document.querySelectorAll(".adw-win").forEach(function (w) { w.classList.toggle("adw-dark", dark); });
+    document.getElementById("theme-dark").setAttribute("aria-pressed", dark ? "true" : "false");
+    document.getElementById("theme-light").setAttribute("aria-pressed", dark ? "false" : "true");
+  }
+  document.getElementById("theme-light").addEventListener("click", function () { setTheme(false); });
+  document.getElementById("theme-dark").addEventListener("click", function () { setTheme(true); });
+
+  var nav = (navigator.language || "es").toLowerCase();
+  setLang(nav.indexOf("es") === 0 ? "es" : "en");
+})();
+</script>
+</body>
+</html>
