@@ -774,6 +774,7 @@ cargo install --path crates/hidlab-daemon --root ~/.local
 cargo install --path crates/hidlab-cli --root ~/.local
 install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
   ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
+busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
 systemctl --user restart hid-labd.service
 gsettings get org.gnome.desktop.peripherals.mouse natural-scroll
 gsettings get org.gnome.desktop.peripherals.mouse accel-profile

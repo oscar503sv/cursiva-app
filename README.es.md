@@ -86,6 +86,7 @@ cd cursiva-app
    install -Dm644 packaging/systemd/hid-labd.service ~/.config/systemd/user/hid-labd.service
    install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
      ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
+   busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
    systemctl --user daemon-reload
    systemctl --user enable --now hid-labd.service
    ```

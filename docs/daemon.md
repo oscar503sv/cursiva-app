@@ -82,6 +82,7 @@ cargo install --path crates/hidlab-cli --root ~/.local
 install -Dm644 packaging/systemd/hid-labd.service ~/.config/systemd/user/hid-labd.service
 install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
   ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
+busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
 systemctl --user daemon-reload
 systemctl --user enable --now hid-labd.service
 ```
@@ -89,7 +90,9 @@ systemctl --user enable --now hid-labd.service
 This puts `hid-labd` and `hid-lab` in `~/.local/bin` and starts the daemon
 at every login. The D-Bus service file also starts it on demand: a call
 from the app or from `hid-lab` starts `hid-labd.service` if it is not
-running (D-Bus activation), so a sandboxed app never has to start it. The udev rule from `docs/diagnosis.md` (T-001) must already
+running (D-Bus activation), so a sandboxed app never has to start it. The `ReloadConfig` call makes the session bus read the new file now;
+dbus-broker, Fedora's bus, otherwise reads it only at the next login
+(found by test H5C-08). The udev rule from `docs/diagnosis.md` (T-001) must already
 be installed; it is what lets your user open the mouse.
 
 To stop it: `systemctl --user stop hid-labd.service`. To remove it:

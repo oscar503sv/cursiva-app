@@ -4,6 +4,9 @@
 # Install, as your normal user (no root):
 #   install -Dm644 packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service \
 #     ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service
+#   busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
+# The session bus (dbus-broker on Fedora) reads service files only at login
+# or on ReloadConfig; without the reload, activation works after the next login.
 # See docs/daemon.md.
 
 [D-BUS Service]
