@@ -50,7 +50,7 @@
   <g class="m-hot" id="h-mode" tabindex="0" role="button" aria-label="Wheel mode button">
     <rect class="m-part" x="161" y="132" width="16" height="22" rx="6"/>
   </g>
-  <g class="m-hot" id="h-thumb" tabindex="0" role="button" aria-label="Thumb wheel"><rect class="m-part" x="84" y="201" width="21" height="40" rx="9"/><path class="m-ridge" d="M89 210 H100 M89 216 H100 M89 222 H100 M89 228 H100 M89 234 H100"/></g>
+  <g class="m-hot" id="h-thumb" tabindex="0" role="button" aria-label="Thumb wheel"><rect class="m-part" x="111" y="250" width="21" height="40" rx="9"/><path class="m-ridge" d="M116 258 H127 M116 264 H127 M116 270 H127 M116 276 H127 M116 282 H127"/></g>
   <g class="m-hot" id="h-forward" tabindex="0" role="button" aria-label="Forward button"><rect class="m-part" x="90" y="247" width="12" height="20" rx="6"/></g>
   <g class="m-hot" id="h-back" tabindex="0" role="button" aria-label="Back button"><rect class="m-part" x="94" y="273" width="12" height="20" rx="6"/></g>
   <g class="m-hot" id="h-gesture" tabindex="0" role="button" aria-label="Gesture button">
