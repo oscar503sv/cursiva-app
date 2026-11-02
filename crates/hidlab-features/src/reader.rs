@@ -95,15 +95,44 @@ pub enum WriteAuth<'a> {
     Confirmed,
 }
 
+/// Answers to reads whose result cannot change while the device stays
+/// connected (capabilities such as a control list). Keep one per connection
+/// and drop it when the device goes away.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Memo {
+    answers: BTreeMap<(FeatureId, u8, Vec<u8>), Vec<u8>>,
+}
+
+impl Memo {
+    pub fn len(&self) -> usize {
+        self.answers.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.answers.is_empty()
+    }
+}
+
 /// Sends only allowlisted reads, addressed through a [`FeatureMap`].
 pub struct Reader<'s, C: RawChannel> {
     session: &'s mut Session<C>,
     map: FeatureMap,
+    memo: Memo,
 }
 
 impl<'s, C: RawChannel> Reader<'s, C> {
     pub fn new(session: &'s mut Session<C>, map: FeatureMap) -> Self {
-        Self { session, map }
+        Self::with_memo(session, map, Memo::default())
+    }
+
+    /// Like [`Reader::new`], reusing answers memoized on this connection.
+    pub fn with_memo(session: &'s mut Session<C>, map: FeatureMap, memo: Memo) -> Self {
+        Self { session, map, memo }
+    }
+
+    /// The memoized answers, to pass to the next reader on this connection.
+    pub fn into_memo(self) -> Memo {
+        self.memo
     }
 
     pub fn map(&self) -> &FeatureMap {
@@ -131,6 +160,24 @@ impl<'s, C: RawChannel> Reader<'s, C> {
             .ok_or(ReadError::NotSupported(feature))?
             .index;
         Ok(self.session.request(index, function, params)?)
+    }
+
+    /// Like [`Reader::call`], for reads whose answer cannot change while the
+    /// device is connected: the first answer is kept and returned again
+    /// without sending anything.
+    pub fn call_static(
+        &mut self,
+        feature: FeatureId,
+        function: u8,
+        params: &[u8],
+    ) -> Result<Vec<u8>, ReadError> {
+        let key = (feature, function, params.to_vec());
+        if let Some(answer) = self.memo.answers.get(&key) {
+            return Ok(answer.clone());
+        }
+        let answer = self.call(feature, function, params)?;
+        self.memo.answers.insert(key, answer.clone());
+        Ok(answer)
     }
 
     /// Sends one write from the list `auth` grants; refuses anything else

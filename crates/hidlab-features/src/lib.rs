@@ -23,5 +23,5 @@ pub use allowlist::{
     CONFIRMED_WRITES, ConfirmedWrite, KNOWN_WRITES, NEVER_WRITE, READ_ALLOWLIST, ReadFn,
     WRITE_EXPERIMENT_ALLOWLIST, allowed, confirmed_write, write_allowed,
 };
-pub use reader::{FeatureMap, ReadError, Reader, WriteAuth, WriteIntent};
+pub use reader::{FeatureMap, Memo, ReadError, Reader, WriteAuth, WriteIntent};
 pub use state::{DeviceState, Reading, TARGET_FEATURES, read_all};

@@ -277,12 +277,14 @@ pub fn remap_targets(all: &[Control], control: &Control) -> Vec<u16> {
 }
 
 /// Reads every control's info and the reporting of `cid` (reads only).
+/// The control list is a device capability, so getCount and getCidInfo are
+/// memoized: remapping several controls reads it once per connection.
 pub fn read_remap<C: RawChannel>(r: &mut Reader<'_, C>, cid: u16) -> Result<RemapState, ReadError> {
-    let p = r.call(FEATURE, 0, &[])?;
+    let p = r.call_static(FEATURE, 0, &[])?;
     need(&p, 1, "getCount")?;
     let mut controls = Vec::new();
     for index in 0..p[0] {
-        controls.push(decode_info(index, &r.call(FEATURE, 1, &[index])?)?);
+        controls.push(decode_info(index, &r.call_static(FEATURE, 1, &[index])?)?);
     }
     let control = controls
         .iter()
