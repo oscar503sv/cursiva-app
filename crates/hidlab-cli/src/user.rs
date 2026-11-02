@@ -2,12 +2,12 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hidlab_daemon::api::{ReapplyReply, ResetReply, SetReply, Status};
+use hidlab_daemon::api::{DesktopReply, ReapplyReply, ResetReply, SetReply, Status};
 use hidlab_daemon::apply::{ApplyItem, ApplyReport, ItemResult};
 use hidlab_features::settings::SettingKind;
 use serde::Serialize;
 
-use crate::args::{ResetArgs, SetArgs};
+use crate::args::{ResetArgs, SetArgs, SetTarget};
 use crate::client::call;
 
 fn print_json<T: Serialize>(v: &T) -> Result<(), String> {
@@ -134,6 +134,16 @@ pub fn status(json: bool) -> Result<(), String> {
             cur
         );
     }
+    let d = &s.desktop;
+    let onoff = |b: Option<bool>| b.map_or("?", |b| if b { "on" } else { "off" });
+    println!(
+        "\nGNOME:   natural-scroll {}, acceleration {}",
+        onoff(d.natural_scroll),
+        d.acceleration.as_deref().unwrap_or("?")
+    );
+    if let Some(e) = &d.error {
+        println!("         {e}");
+    }
     let off = wanted(SettingKind::SmartshiftThreshold)
         == Some(
             hidlab_features::settings::SettingValue::SmartshiftThreshold(
@@ -201,7 +211,19 @@ pub fn status(json: bool) -> Result<(), String> {
 }
 
 pub fn set(args: &SetArgs) -> Result<(), String> {
-    let reply: SetReply = call("Set", &(args.setting.name(), args.raw_value.as_str()))?;
+    let kind = match args.setting {
+        SetTarget::Device(k) => k,
+        SetTarget::Desktop(d) => {
+            let reply: DesktopReply = call("SetDesktop", &(d.name(), args.raw_value.as_str()))?;
+            if args.json {
+                print_json(&reply)?;
+            } else {
+                println!("GNOME {} = {}", d.name(), reply.value);
+            }
+            return Ok(());
+        }
+    };
+    let reply: SetReply = call("Set", &(kind.name(), args.raw_value.as_str()))?;
     if args.json {
         print_json(&reply)?;
     } else {

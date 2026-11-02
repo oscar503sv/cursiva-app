@@ -22,7 +22,8 @@ Usage:
 status, set, reset and reapply talk to the daemon hid-labd (docs/daemon.md).
 Settings: dpi <n>, smartshift-mode <ratchet|free-spin>,
 smartshift-threshold <1..50|off|on>, thumbwheel-invert <on|off>,
-remap-<button> <target|default>. See `hid-lab set --help`.
+remap-<button> <target|default>; GNOME: natural-scroll <on|off>,
+acceleration <default|flat|adaptive>. See `hid-lab set --help`.
 
 Run `hid-lab <command> --help` or `hid-lab lab <command> --help` for details.
 All lab commands are read-only except `lab write`, which needs --write.
@@ -57,6 +58,10 @@ Settings:
 hid-labd writes the value to the mouse if it is connected, reads it back,
 and saves it: the mode in its state file, everything else in
 ~/.config/hid-lab/config.toml. A value the mouse rejects is not saved.
+
+GNOME pointer settings (stored by GNOME, for every mouse):
+  natural-scroll <on|off>       content follows the fingers
+  acceleration <default|flat|adaptive>
 ";
 
 pub const RESET_HELP: &str = "\
@@ -312,9 +317,17 @@ pub struct WriteArgs {
     pub timeout: Duration,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SetTarget {
+    /// Written to the mouse and saved by hid-labd.
+    Device(hidlab_features::settings::SettingKind),
+    /// A GNOME setting.
+    Desktop(hidlab_daemon::api::DesktopSetting),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetArgs {
-    pub setting: hidlab_features::settings::SettingKind,
+    pub setting: SetTarget,
     /// The value as typed, checked here and sent to the daemon.
     pub raw_value: String,
     pub json: bool,
@@ -661,14 +674,20 @@ fn parse_set(rest: Vec<&str>) -> Result<Command, String> {
     let [name, raw] = positionals[..] else {
         return Err(format!("expected <setting> <value>. {TRY}"));
     };
-    let kind =
-        SettingKind::from_name(name).ok_or_else(|| format!("unknown setting `{name}`. {TRY}"))?;
-    // `on` needs the saved threshold, which only the daemon knows.
-    if !(kind == SettingKind::SmartshiftThreshold && raw == "on") {
-        kind.parse_value(raw)?;
-    }
+    let setting = if let Some(d) = hidlab_daemon::api::DesktopSetting::from_name(name) {
+        d.to_gvariant(raw)?;
+        SetTarget::Desktop(d)
+    } else {
+        let kind = SettingKind::from_name(name)
+            .ok_or_else(|| format!("unknown setting `{name}`. {TRY}"))?;
+        // `on` needs the saved threshold, which only the daemon knows.
+        if !(kind == SettingKind::SmartshiftThreshold && raw == "on") {
+            kind.parse_value(raw)?;
+        }
+        SetTarget::Device(kind)
+    };
     Ok(Command::Set(SetArgs {
-        setting: kind,
+        setting,
         raw_value: raw.to_owned(),
         json,
     }))
@@ -863,18 +882,22 @@ mod tests {
         let Ok(Command::Set(s)) = parse(["set", "smartshift-mode", "free-spin"]) else {
             panic!()
         };
-        assert_eq!(s.setting, SettingKind::SmartshiftMode);
+        assert_eq!(s.setting, SetTarget::Device(SettingKind::SmartshiftMode));
         assert_eq!(s.raw_value, "free-spin");
         for (k, v) in [
             ("smartshift-threshold", "on"),
             ("smartshift-threshold", "off"),
             ("remap-gesture", "middle"),
             ("remap-back", "default"),
+            ("natural-scroll", "on"),
+            ("acceleration", "flat"),
         ] {
             assert!(parse(["set", k, v]).is_ok(), "{k} {v}");
         }
         assert!(parse(["set", "thumbwheel-invert", "maybe"]).is_err());
         assert!(parse(["set", "remap-left", "back"]).is_err());
+        assert!(parse(["set", "natural-scroll", "true"]).is_err());
+        assert!(parse(["set", "acceleration", "fast"]).is_err());
         assert_eq!(
             parse(["reset", "all", "--json"]),
             Ok(Command::Reset(ResetArgs {
