@@ -10,6 +10,7 @@ pub mod apply;
 pub mod config;
 pub mod conflicts;
 pub mod engine;
+pub mod gnome;
 pub mod log;
 pub mod paths;
 pub mod schedule;

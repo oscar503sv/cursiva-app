@@ -9,6 +9,7 @@
 //! | `Set` | setting name, value | [`SetReply`] JSON |
 //! | `Reapply` | — | [`ReapplyReply`] JSON |
 //! | `Reset` | setting name or `all` | [`ResetReply`] JSON |
+//! | `SetDesktop` | [`DesktopSetting`] name, value | [`DesktopReply`] JSON |
 //!
 //! Signals: `DeviceChanged` ([`DeviceEvent`] JSON), `Applied`
 //! ([`ApplyRecord`] JSON), `ModeChanged` ([`ModeEvent`] JSON) and
@@ -31,6 +32,52 @@ pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/3";
 pub const SET_SCHEMA: &str = "hid-lab.daemon-set/1";
 pub const REAPPLY_SCHEMA: &str = "hid-lab.daemon-reapply/1";
 pub const RESET_SCHEMA: &str = "hid-lab.daemon-reset/1";
+pub const DESKTOP_SCHEMA: &str = "hid-lab.daemon-desktop/1";
+
+/// A GNOME pointer setting the daemon reads and writes for the app (see
+/// `crate::gnome`). GNOME stores it; it is not in the config file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DesktopSetting {
+    /// `on` or `off`: scroll content the way the fingers move.
+    NaturalScroll,
+    /// `default`, `flat` or `adaptive` (GNOME `accel-profile`).
+    Acceleration,
+}
+
+impl DesktopSetting {
+    pub const ALL: [DesktopSetting; 2] =
+        [DesktopSetting::NaturalScroll, DesktopSetting::Acceleration];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            DesktopSetting::NaturalScroll => "natural-scroll",
+            DesktopSetting::Acceleration => "acceleration",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|s| s.name() == name)
+    }
+}
+
+/// GNOME's pointer settings as read now.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DesktopSettings {
+    pub natural_scroll: Option<bool>,
+    pub acceleration: Option<String>,
+    /// Why a value could not be read (for example, not running GNOME).
+    pub error: Option<String>,
+}
+
+/// `SetDesktop`: the settings after the change.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DesktopReply {
+    pub schema: String,
+    pub setting: DesktopSetting,
+    pub value: String,
+    pub desktop: DesktopSettings,
+}
 pub const DEVICE_EVENT_SCHEMA: &str = "hid-lab.daemon-device/1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -191,6 +238,8 @@ pub struct Status {
     pub battery: Option<Battery>,
     /// `None` without a device or when it could not be read.
     pub capabilities: Option<Capabilities>,
+    /// GNOME's pointer settings.
+    pub desktop: DesktopSettings,
     pub last_apply: Option<ApplyRecord>,
     pub conflicts: Vec<Conflict>,
 }

@@ -12,13 +12,15 @@ use hidlab_hidpp::{Session, SessionConfig, get_feature, get_protocol_version};
 use hidlab_transport::{Access, Hidraw, HidrawDevice, discover, power_supplies_for};
 
 use crate::api::{
-    ApplyRecord, BATTERY_EVENT_SCHEMA, Battery, BatteryEvent, CurrentValue, DEVICE_EVENT_SCHEMA,
-    DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA, ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA,
-    ReapplyReply, ResetReply, SET_SCHEMA, STATUS_SCHEMA, SecondCheck, SetReply, Status, Trigger,
+    ApplyRecord, BATTERY_EVENT_SCHEMA, Battery, BatteryEvent, CurrentValue, DESKTOP_SCHEMA,
+    DEVICE_EVENT_SCHEMA, DesktopReply, DesktopSetting, DeviceEvent, DeviceInfo, MODE_EVENT_SCHEMA,
+    ModeEvent, REAPPLY_SCHEMA, RESET_SCHEMA, ReapplyReply, ResetReply, SET_SCHEMA, STATUS_SCHEMA,
+    SecondCheck, SetReply, Status, Trigger,
 };
 use crate::apply::{self, ApplyReport, ItemResult};
 use crate::config::{Config, SmartShiftMode};
 use crate::conflicts;
+use crate::gnome;
 use crate::paths::tilde;
 use crate::state::State;
 use crate::{debug, info, warn};
@@ -684,6 +686,25 @@ impl Engine {
         })
     }
 
+    /// `SetDesktop`: writes one GNOME pointer setting.
+    pub fn set_desktop(&self, setting: &str, value: &str) -> Result<DesktopReply, String> {
+        let s = DesktopSetting::from_name(setting).ok_or_else(|| {
+            let names: Vec<&str> = DesktopSetting::ALL.iter().map(|s| s.name()).collect();
+            format!(
+                "unknown desktop setting `{setting}`; known: {}",
+                names.join(", ")
+            )
+        })?;
+        gnome::set(s, value)?;
+        info!("GNOME {setting} = {value}");
+        Ok(DesktopReply {
+            schema: DESKTOP_SCHEMA.into(),
+            setting: s,
+            value: value.to_owned(),
+            desktop: gnome::read(),
+        })
+    }
+
     /// `GetStatus`. Reads the current values from the mouse (reads only).
     pub fn status(&self) -> Status {
         let mut capabilities = None;
@@ -741,6 +762,7 @@ impl Engine {
             saved_threshold,
             battery: self.battery(),
             capabilities,
+            desktop: gnome::read(),
             last_apply: self.last_apply().cloned(),
             conflicts: conflicts::scan(),
         }

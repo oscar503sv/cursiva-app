@@ -70,6 +70,16 @@ impl Service {
         json(&reply)
     }
 
+    /// Writes one GNOME pointer setting; returns `hid-lab.daemon-desktop/1`
+    /// JSON.
+    fn set_desktop(&self, setting: String, value: String) -> fdo::Result<String> {
+        let reply = self
+            .lock()?
+            .set_desktop(&setting, &value)
+            .map_err(fdo::Error::Failed)?;
+        json(&reply)
+    }
+
     /// Reloads the config file and applies it; returns
     /// `hid-lab.daemon-reapply/1` JSON.
     async fn reapply(
