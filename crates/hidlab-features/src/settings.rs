@@ -156,8 +156,13 @@ impl SettingKind {
 }
 
 /// A value of one setting. SmartShift mode uses the wire codes 1 and 2.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "setting", content = "value", rename_all = "kebab-case")]
+///
+/// Serialized as `{"setting": <name>, "value": <value>}` with the names of
+/// [`SettingKind::name`]; a remap's value is the target name, e.g.
+/// `{"setting": "remap-back", "value": "middle"}` (or `"0x00NN"` for a
+/// control without a name). Reading also accepts the earlier remap form
+/// `{"setting": "button-remap", "value": ["back", 82]}` (phase 5b files).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingValue {
     Dpi(u16),
     SmartshiftMode(u8),
@@ -165,6 +170,85 @@ pub enum SettingValue {
     ThumbwheelInvert(bool),
     /// Control and the control ID whose native task it performs.
     ButtonRemap(RemapControl, u16),
+}
+
+#[derive(Serialize)]
+struct ValueOut<T: Serialize> {
+    setting: &'static str,
+    value: T,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RawValue {
+    Bool(bool),
+    Number(u16),
+    Text(String),
+    LegacyRemap(RemapControl, u16),
+}
+
+#[derive(Deserialize)]
+struct ValueIn {
+    setting: String,
+    value: RawValue,
+}
+
+impl Serialize for SettingValue {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        let setting = self.kind().name();
+        match *self {
+            SettingValue::Dpi(v) => ValueOut { setting, value: v }.serialize(s),
+            SettingValue::SmartshiftMode(v) | SettingValue::SmartshiftThreshold(v) => {
+                ValueOut { setting, value: v }.serialize(s)
+            }
+            SettingValue::ThumbwheelInvert(v) => ValueOut { setting, value: v }.serialize(s),
+            SettingValue::ButtonRemap(_, t) => ValueOut {
+                setting,
+                value: reprog_controls::target_name(t)
+                    .map_or_else(|| format!("0x{t:04X}"), str::to_owned),
+            }
+            .serialize(s),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SettingValue {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+        let raw = ValueIn::deserialize(d)?;
+        let bad = || D::Error::custom(format!("invalid value for `{}`", raw.setting));
+        let byte = |n: u16| u8::try_from(n).map_err(|_| bad());
+        if raw.setting == "button-remap" {
+            return match raw.value {
+                RawValue::LegacyRemap(c, t) => Ok(SettingValue::ButtonRemap(c, t)),
+                _ => Err(bad()),
+            };
+        }
+        let kind = SettingKind::from_name(&raw.setting)
+            .ok_or_else(|| D::Error::custom(format!("unknown setting `{}`", raw.setting)))?;
+        match (kind, &raw.value) {
+            (SettingKind::Dpi, RawValue::Number(n)) => Ok(SettingValue::Dpi(*n)),
+            (SettingKind::SmartshiftMode, RawValue::Number(n)) => {
+                Ok(SettingValue::SmartshiftMode(byte(*n)?))
+            }
+            (SettingKind::SmartshiftThreshold, RawValue::Number(n)) => {
+                Ok(SettingValue::SmartshiftThreshold(byte(*n)?))
+            }
+            (SettingKind::ThumbwheelInvert, RawValue::Bool(b)) => {
+                Ok(SettingValue::ThumbwheelInvert(*b))
+            }
+            (SettingKind::ButtonRemap(c), RawValue::Text(t)) => {
+                let cid = reprog_controls::target_cid(t)
+                    .or_else(|| {
+                        t.strip_prefix("0x")
+                            .and_then(|h| u16::from_str_radix(h, 16).ok())
+                    })
+                    .ok_or_else(bad)?;
+                Ok(SettingValue::ButtonRemap(c, cid))
+            }
+            _ => Err(bad()),
+        }
+    }
 }
 
 impl SettingValue {
@@ -474,6 +558,46 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<SettingKind>("\"dpi\"").unwrap(),
             SettingKind::Dpi
+        );
+    }
+
+    #[test]
+    fn values_serialize_with_setting_names() {
+        let cases = [
+            (SettingValue::Dpi(1600), r#"{"setting":"dpi","value":1600}"#),
+            (
+                SettingValue::SmartshiftMode(2),
+                r#"{"setting":"smartshift-mode","value":2}"#,
+            ),
+            (
+                SettingValue::ThumbwheelInvert(true),
+                r#"{"setting":"thumbwheel-invert","value":true}"#,
+            ),
+            (
+                SettingValue::ButtonRemap(RemapControl::Back, 0x52),
+                r#"{"setting":"remap-back","value":"middle"}"#,
+            ),
+            (
+                SettingValue::ButtonRemap(RemapControl::Back, 0xD7),
+                r#"{"setting":"remap-back","value":"0x00D7"}"#,
+            ),
+        ];
+        for (v, json) in cases {
+            assert_eq!(serde_json::to_string(&v).unwrap(), json);
+            assert_eq!(serde_json::from_str::<SettingValue>(json).unwrap(), v);
+        }
+        // Phase 5b files (docs/protocol/evidence/m5b) still read.
+        assert_eq!(
+            serde_json::from_str::<SettingValue>(
+                r#"{"setting":"button-remap","value":["back",82]}"#
+            )
+            .unwrap(),
+            SettingValue::ButtonRemap(RemapControl::Back, 0x52)
+        );
+        assert!(serde_json::from_str::<SettingValue>(r#"{"setting":"dpi","value":"x"}"#).is_err());
+        assert!(
+            serde_json::from_str::<SettingValue>(r#"{"setting":"smartshift-mode","value":300}"#)
+                .is_err()
         );
     }
 

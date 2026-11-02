@@ -135,7 +135,7 @@ pub fn run(args: &WriteArgs) -> Result<(), String> {
     let mut session = Session::new(channel, config);
 
     let mut out = WriteJson {
-        schema: "hid-lab.write/1",
+        schema: "hid-lab.write/2",
         tool_version: env!("CARGO_PKG_VERSION"),
         mode: match args.mode {
             WriteMode::DryRun => "dry_run",
@@ -294,7 +294,7 @@ fn experiment(
             save_record(
                 record_file,
                 &OriginalRecord {
-                    schema: "hid-lab.lab-write-original/1".into(),
+                    schema: "hid-lab.lab-write-original/2".into(),
                     setting: kind,
                     original: current,
                     vendor_id: device.uevent.vendor_id,
@@ -453,7 +453,7 @@ mod tests {
         let path = record_path(&dir, SettingKind::SmartshiftThreshold);
         assert!(load_record(&path).unwrap().is_none());
         let rec = OriginalRecord {
-            schema: "hid-lab.lab-write-original/1".into(),
+            schema: "hid-lab.lab-write-original/2".into(),
             setting: SettingKind::SmartshiftThreshold,
             original: SettingValue::SmartshiftThreshold(10),
             vendor_id: 0x046D,
