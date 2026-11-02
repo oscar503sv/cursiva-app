@@ -8,14 +8,15 @@ use std::fs;
 use std::path::Path;
 
 use hidlab_devices::{DeviceProfile, profile_by_key};
-use hidlab_features::settings::SettingValue;
+use hidlab_features::reprog_controls::{self, RemapControl};
+use hidlab_features::settings::{SettingKind, SettingValue, THRESHOLD_OFF};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub const FORMAT_VERSION: u32 = 1;
 
-/// Threshold range accepted by Solaar's `SmartShift` setting (R-2); hid-lab
-/// does not send 255, which Solaar uses for 50 and above.
+/// Threshold range accepted by Solaar's `SmartShift` setting (R-2). Turning
+/// automatic switching off is `auto = false`, which sends 255 (P-035).
 pub const THRESHOLD_RANGE: std::ops::RangeInclusive<u8> = 1..=50;
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -62,7 +63,14 @@ pub struct SmartShiftConfig {
     pub mode: Option<SmartShiftMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<u8>,
+    /// `false` keeps the wheel ratcheted in ratchet mode: the daemon sends
+    /// threshold 255 and keeps `threshold` for when it is turned back on.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto: Option<bool>,
 }
+
+/// Value in `[device."<key>".buttons]`: `default` or a target name.
+pub const BUTTON_DEFAULT: &str = "default";
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -80,6 +88,17 @@ pub struct DeviceConfig {
     pub smartshift: Option<SmartShiftConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thumbwheel: Option<ThumbwheelConfig>,
+    /// What each button does, by control name.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub buttons: BTreeMap<RemapControl, String>,
+}
+
+fn button_target(control: RemapControl, value: &str) -> Option<u16> {
+    if value == BUTTON_DEFAULT {
+        Some(control.cid())
+    } else {
+        reprog_controls::target_cid(value)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,13 +126,29 @@ impl DeviceConfig {
         if let Some(d) = self.dpi {
             out.push(SettingValue::Dpi(d));
         }
-        if let Some(t) = self.smartshift.as_ref().and_then(|s| s.threshold) {
+        if self.smartshift_auto() == Some(false) {
+            out.push(SettingValue::SmartshiftThreshold(THRESHOLD_OFF));
+        } else if let Some(t) = self.saved_threshold() {
             out.push(SettingValue::SmartshiftThreshold(t));
         }
         if let Some(i) = self.thumbwheel.as_ref().and_then(|t| t.invert) {
             out.push(SettingValue::ThumbwheelInvert(i));
         }
+        for c in RemapControl::ALL {
+            if let Some(t) = self.buttons.get(&c).and_then(|v| button_target(c, v)) {
+                out.push(SettingValue::ButtonRemap(c, t));
+            }
+        }
         out
+    }
+
+    /// The threshold in the file, also while automatic switching is off.
+    pub fn saved_threshold(&self) -> Option<u8> {
+        self.smartshift.as_ref().and_then(|s| s.threshold)
+    }
+
+    pub fn smartshift_auto(&self) -> Option<bool> {
+        self.smartshift.as_ref().and_then(|s| s.auto)
     }
 
     pub fn initial_mode(&self) -> Option<SmartShiftMode> {
@@ -122,18 +157,59 @@ impl DeviceConfig {
 
     /// Stores `v` (any setting except the mode, which belongs to the state,
     /// and values the daemon may not send, which callers refuse first).
+    /// Threshold `off` (255) sets `auto = false` and keeps the threshold;
+    /// any other threshold turns automatic switching back on.
     pub fn set(&mut self, v: SettingValue) {
         match v {
             SettingValue::Dpi(d) => self.dpi = Some(d),
+            SettingValue::SmartshiftThreshold(THRESHOLD_OFF) => {
+                self.smartshift.get_or_insert_with(Default::default).auto = Some(false);
+            }
             SettingValue::SmartshiftThreshold(t) => {
-                self.smartshift
-                    .get_or_insert_with(Default::default)
-                    .threshold = Some(t);
+                let s = self.smartshift.get_or_insert_with(Default::default);
+                s.threshold = Some(t);
+                s.auto = None;
             }
             SettingValue::ThumbwheelInvert(i) => {
                 self.thumbwheel.get_or_insert_with(Default::default).invert = Some(i);
             }
-            SettingValue::SmartshiftMode(_) | SettingValue::ButtonRemap(..) => {}
+            SettingValue::ButtonRemap(c, t) => {
+                let name = if t == c.cid() {
+                    Some(BUTTON_DEFAULT)
+                } else {
+                    reprog_controls::target_name(t)
+                };
+                if let Some(n) = name {
+                    self.buttons.insert(c, n.to_owned());
+                }
+            }
+            SettingValue::SmartshiftMode(_) => {}
+        }
+    }
+
+    /// Removes `kind` from the file, so the daemon stops applying it. For
+    /// the SmartShift mode this removes the initial mode.
+    pub fn remove(&mut self, kind: SettingKind) {
+        match kind {
+            SettingKind::Dpi => self.dpi = None,
+            SettingKind::SmartshiftMode => {
+                if let Some(s) = &mut self.smartshift {
+                    s.mode = None;
+                }
+            }
+            SettingKind::SmartshiftThreshold => {
+                if let Some(s) = &mut self.smartshift {
+                    s.threshold = None;
+                    s.auto = None;
+                }
+            }
+            SettingKind::ThumbwheelInvert => self.thumbwheel = None,
+            SettingKind::ButtonRemap(c) => {
+                self.buttons.remove(&c);
+            }
+        }
+        if self.smartshift.as_ref() == Some(&SmartShiftConfig::default()) {
+            self.smartshift = None;
         }
     }
 }
@@ -178,6 +254,19 @@ impl Config {
                     )));
                 }
                 _ => {}
+            }
+            for (c, v) in &dev.buttons {
+                if button_target(*c, v).is_none() {
+                    let names: Vec<&str> = reprog_controls::TARGET_NAMES
+                        .iter()
+                        .map(|(n, _)| *n)
+                        .collect();
+                    return Err(invalid(format!(
+                        "device \"{key}\": buttons.{} = \"{v}\" is not `{BUTTON_DEFAULT}` or one of {}",
+                        c.name(),
+                        names.join(", ")
+                    )));
+                }
             }
         }
         Ok(())
@@ -226,6 +315,10 @@ format_version = 1
 dpi = 1600
 smartshift = { mode = "free-spin", threshold = 30 }
 thumbwheel = { invert = true }
+
+[device."mx-master-3s".buttons]
+gesture = "middle"
+back = "default"
 "#;
 
     #[test]
@@ -239,8 +332,56 @@ thumbwheel = { invert = true }
                 SettingValue::Dpi(1600),
                 SettingValue::SmartshiftThreshold(30),
                 SettingValue::ThumbwheelInvert(true),
+                SettingValue::ButtonRemap(RemapControl::Back, 0x53),
+                SettingValue::ButtonRemap(RemapControl::Gesture, 0x52),
             ]
         );
+    }
+
+    #[test]
+    fn auto_off_sends_255_and_keeps_the_threshold() {
+        let p = &hidlab_devices::MX_MASTER_3S;
+        let mut c = Config::default();
+        c.device_mut(p).set(SettingValue::SmartshiftThreshold(30));
+        c.device_mut(p)
+            .set(SettingValue::SmartshiftThreshold(THRESHOLD_OFF));
+        let d = c.device(p).unwrap();
+        assert_eq!(d.values(), [SettingValue::SmartshiftThreshold(255)]);
+        assert_eq!(
+            (d.saved_threshold(), d.smartshift_auto()),
+            (Some(30), Some(false))
+        );
+        let body = toml::to_string(&c).unwrap();
+        assert!(body.contains("auto = false"), "{body}");
+        assert_eq!(Config::parse(&body, "t").unwrap(), c);
+        // A threshold turns it back on.
+        c.device_mut(p).set(SettingValue::SmartshiftThreshold(12));
+        assert_eq!(c.device(p).unwrap().smartshift_auto(), None);
+        assert_eq!(
+            c.device(p).unwrap().values(),
+            [SettingValue::SmartshiftThreshold(12)]
+        );
+    }
+
+    #[test]
+    fn remove_forgets_a_setting() {
+        let p = &hidlab_devices::MX_MASTER_3S;
+        let mut c = Config::parse(FULL, "t").unwrap();
+        let d = c.device_mut(p);
+        d.remove(SettingKind::SmartshiftMode);
+        d.remove(SettingKind::SmartshiftThreshold);
+        d.remove(SettingKind::ButtonRemap(RemapControl::Gesture));
+        assert_eq!(d.smartshift, None);
+        assert_eq!(
+            d.values(),
+            [
+                SettingValue::Dpi(1600),
+                SettingValue::ThumbwheelInvert(true),
+                SettingValue::ButtonRemap(RemapControl::Back, 0x53),
+            ]
+        );
+        d.set(SettingValue::ButtonRemap(RemapControl::Forward, 0x50));
+        assert_eq!(d.buttons[&RemapControl::Forward], "left");
     }
 
     #[test]
@@ -279,6 +420,14 @@ thumbwheel = { invert = true }
             (
                 "format_version = 1\n[device.\"mx-master-3s\"]\ndpi = 0\n",
                 "positive",
+            ),
+            (
+                "format_version = 1\n[device.\"mx-master-3s\".buttons]\nback = \"jump\"\n",
+                "buttons.back = \"jump\"",
+            ),
+            (
+                "format_version = 1\n[device.\"mx-master-3s\".buttons]\nleft = \"back\"\n",
+                "left",
             ),
         ];
         for (text, needle) in cases {

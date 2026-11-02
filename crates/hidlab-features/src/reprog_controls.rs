@@ -82,7 +82,7 @@ const TID_NAMES: &[(u16, &str)] = &[
 /// A control `hid-lab lab write` may remap, by its control ID (Solaar
 /// `special_keys.CONTROL`; which physical button each one is, is LIKELY,
 /// P-024).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RemapControl {
     Middle,
