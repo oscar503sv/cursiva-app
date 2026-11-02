@@ -380,6 +380,9 @@ fn run() -> Result<(), String> {
         }
     };
     let engine = Arc::new(Mutex::new(Engine::new(config_path, state_path)));
+    // Find the mouse before taking the bus name: with D-Bus activation the
+    // call that started the daemon is answered as soon as the name is owned.
+    lock(&engine).refresh_device();
 
     let conn = zbus::blocking::connection::Builder::session()
         .and_then(|b| {
@@ -430,8 +433,7 @@ fn run() -> Result<(), String> {
         held: 0,
     };
     {
-        let mut e = lock(&engine);
-        e.refresh_device();
+        let e = lock(&engine);
         let event = e.device_event();
         info!("{}", describe(&event));
         if event.connected {
