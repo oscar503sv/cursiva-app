@@ -383,6 +383,7 @@ dependencies = [
  "hidlab-hidpp",
  "hidlab-transport",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
