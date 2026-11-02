@@ -25,6 +25,9 @@ pub struct DeviceProfile {
     pub settings: &'static [SettingKind],
     /// What `hid-lab reset` writes, one per setting in `settings`.
     pub defaults: &'static [SettingValue],
+    /// Which control each button number of the input report is, by the
+    /// names `remap-<button>` uses. Numbers not listed show as numbers.
+    pub input_buttons: &'static [(u16, &'static str)],
 }
 
 impl DeviceProfile {
@@ -42,6 +45,14 @@ impl DeviceProfile {
     pub fn default_value(&self, kind: SettingKind) -> Option<SettingValue> {
         self.defaults.iter().copied().find(|v| v.kind() == kind)
     }
+
+    /// The control name of input button `number`, if known.
+    pub fn input_button(&self, number: u16) -> Option<&'static str> {
+        self.input_buttons
+            .iter()
+            .find(|(n, _)| *n == number)
+            .map(|(_, name)| *name)
+    }
 }
 
 /// Logitech MX Master 3S. Bluetooth ID from docs/diagnosis.md (CONFIRMED);
@@ -52,6 +63,10 @@ impl DeviceProfile {
 /// the mouse returns to after power-off (P-033, CONFIRMED). Ratchet mode is
 /// hid-lab's choice (power-off keeps the mode, so the mouse has no reset
 /// value to copy). Every button does its own task.
+///
+/// Input buttons: 1 to 5 as left, right, middle, back and forward is the
+/// usual HID mouse order (HYPOTHESIS for this mouse until test H5C-05; the
+/// report has 16 button bits, docs/protocol/evidence/m5c).
 pub const MX_MASTER_3S: DeviceProfile = DeviceProfile {
     key: "mx-master-3s",
     name: "MX Master 3S",
@@ -81,6 +96,13 @@ pub const MX_MASTER_3S: DeviceProfile = DeviceProfile {
         SettingValue::ButtonRemap(RemapControl::Forward, 0x0056),
         SettingValue::ButtonRemap(RemapControl::Gesture, 0x00C3),
         SettingValue::ButtonRemap(RemapControl::ModeButton, 0x00C4),
+    ],
+    input_buttons: &[
+        (1, "left"),
+        (2, "right"),
+        (3, "middle"),
+        (4, "back"),
+        (5, "forward"),
     ],
 };
 
