@@ -522,6 +522,17 @@ Whatever the cause turns out to be, hid-lab must detect it at runtime and tell t
 - Home, Point & Scroll, basic Buttons.
 - At this point the user can stop using any other tool. **This is the MVP release.**
 
+Approved plan (2026-11-02):
+
+- **5a** Mockups of every MVP view (Home, Point & Scroll, Buttons, action picker, first-run guide, Settings), light and dark, wide and narrow, and the original mouse illustration (`docs/mockups/`). No GUI code before approval.
+- **5b** Protocol work: read the pinned references for 0x1B04 remapping (`setCidReporting`) and for a documented "SmartShift off" value; confirm each new write with `hid-lab lab write` and hardware tests H5. Check whether GNOME already notifies low mouse battery.
+- **5c** Daemon API v2: battery and charging with change signals, DPI list and threshold limits, restore-default per setting, low-battery notification from the daemon, button remapping re-applied like the other settings, physical button presses for the GUI highlight (only while a client asks, only buttons the mouse reports normally), GNOME pointer settings written by the daemon.
+- **5d** `hidlab-gtk` crate, binary `cursiva`: GTK4 + Libadwaita, gettext (English and Spanish), D-Bus through `gio`, illustration drawn with `GskPath`; `.desktop`, icon, AppStream metainfo.
+- **5e** Home and Point & Scroll. **5f** Buttons. **5g** First-run guide, Settings, export diagnostics. **5h** One-command install script.
+- Acceptance: §19 on the real mouse from a clean install.
+
+Not in the MVP: smooth-scrolling switch (the kernel owns 0x2121; shown as "on, managed by the system"), thumb-wheel speed (needs diversion, Milestone 6), Gestures and Applications views (Milestones 6 and 7).
+
 ### Milestone 6 — Diversion, actions, gestures
 
 - uinput action device, button diversion, gestures, thumb-wheel actions.
@@ -610,3 +621,7 @@ The question this project answers is not "can Linux talk to this mouse?" (it can
 | 2026-10-22 | Phase 4b daemon applies the configuration at start, on `hid-lab set` and on `hid-lab reapply`, and tracks connect/disconnect; automatic re-application on reconnect is phase 4c. Config schema in `docs/config-format.md` (`smartshift = { mode, threshold }`). |
 | 2026-10-22 | Phase 4c: after a connect, start or resume the daemon pings every 200 ms (5 s budget), applies and verifies, and verifies again after 1 s (the low end of the 1–2 s range, to fit the 2 s target), re-applying once if something was overwritten. |
 | 2026-11-02 | Milestone 4 closed: the user's §7 acceptance test over Bluetooth (M4c, `docs/hardware-test.md`) passed for every event, with at most 1788 ms from event to second check (observation O-9). |
+| 2026-11-02 | Milestone 5 plan approved. "Basic button mappings" (§3, §19) means native remapping with 0x1B04: a button can act as another of the mouse's own controls; key combinations wait for Milestone 6 (uinput). |
+| 2026-11-02 | The GUI highlights physical button presses (§11 live feedback) for the buttons the mouse reports in its normal input reports; the gesture and thumb controls need diversion (Milestone 6). |
+| 2026-11-02 | The project is public (https://github.com/oscar503sv/cursiva-app) and open to contributors. Commits use Conventional Commits in English, with no AI co-author trailer. English and Spanish translations from the start. |
+| 2026-11-02 | The GUI stays Flatpak-friendly: it talks only to the daemon (D-Bus) and to portals. GNOME pointer settings are written by the daemon, and the daemon is started by D-Bus activation (a session service file pointing at `hid-labd.service`), not by the GUI calling systemd. |

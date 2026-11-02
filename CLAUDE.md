@@ -14,6 +14,8 @@ Instructions for Claude Code working in this repository. Read this file fully be
 
 Names: the desktop app is **Cursiva** (app ID `dev.ozkkar.Cursiva`); the daemon's D-Bus name is `dev.ozkkar.Cursiva.Daemon1`. The CLI (`hid-lab`) and the crates (`hidlab-*`) keep the hid-lab names.
 
+Repository: `git@github.com:oscar503sv/cursiva-app.git` (https://github.com/oscar503sv/cursiva-app). The project is meant to be public and open to contributors; packaging targets are RPM and, for the GUI, possibly Flathub. Project contact email (metadata, AppStream, User-Agent): `oscar@ozkkar.dev`. Never put any other email in the repository or in requests.
+
 The user communicates in **Spanish**. Reply in Spanish; code, comments, commit messages and docs in English.
 
 ## Project state
@@ -25,7 +27,8 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
 | 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
-| 5–8 | Not started; do not start without approval |
+| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). Phase 5a, mockups, in progress; no GUI code before the mockups are approved |
+| 6–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
 
@@ -99,7 +102,7 @@ Dependencies: `libc`, `serde`, `serde_json`, `thiserror`, `udev` (needs `systemd
 ## Non-negotiable rules
 
 1. Read `docs/requirements.md` before designing anything new.
-2. Small, focused commits (`chore:`, `feat:`, `fix:`, `refactor:`, `docs:`, `test:`). One concern per commit.
+2. Small, focused commits in English using [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, optional scope such as `feat(daemon):`). One concern per commit. **No `Co-Authored-By` trailer and no Claude attribution** in commits or pull requests.
 3. After every change: `cargo fmt`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test`.
 4. No root at runtime. Never suggest running hid-lab with sudo as a workaround.
 5. Disconnects and reconnects are normal events. No panics on expected failures, including a closed stdout pipe.
