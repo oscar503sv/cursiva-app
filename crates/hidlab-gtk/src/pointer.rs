@@ -145,6 +145,21 @@ fn slider_row(
     (row, value)
 }
 
+/// The pointer speed slider. Logarithmic: its positions are ln(DPI) (see
+/// `DpiScale::position`), so it must not round them; rounding to whole
+/// numbers left only about 200, 400, 1100, 3000 and 8000 DPI.
+fn dpi_slider() -> gtk::Scale {
+    let scale = gtk::Scale::with_range(
+        gtk::Orientation::Horizontal,
+        DpiScale::position(200),
+        DpiScale::position(8000),
+        0.05,
+    );
+    scale.set_draw_value(false);
+    scale.set_round_digits(-1);
+    scale
+}
+
 fn restore_button(section: Section, sink: &Sink) -> gtk::Button {
     let button = gtk::Button::builder()
         .label(gettext("Restore Default"))
@@ -166,15 +181,7 @@ impl PointerPage {
             .build();
 
         // Pointer.
-        // Logarithmic: positions are ln(DPI), see `DpiScale::position`.
-        let dpi = gtk::Scale::with_range(
-            gtk::Orientation::Horizontal,
-            DpiScale::position(200),
-            DpiScale::position(8000),
-            0.05,
-        );
-        dpi.set_draw_value(false);
-        dpi.set_round_digits(0);
+        let dpi = dpi_slider();
         let (dpi_row, dpi_value) = slider_row(
             &gettext("Speed"),
             &dpi,
@@ -550,5 +557,35 @@ impl PointerPage {
                 scroller.vadjustment().set_value(f64::from(p.y()));
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Needs a display to create the widget; skipped without one.
+    #[test]
+    fn dpi_slider_reaches_every_step() {
+        if gtk::init().is_err() {
+            eprintln!("no display: slider test skipped");
+            return;
+        }
+        let slider = dpi_slider();
+        let scale = DpiScale {
+            min: 200,
+            max: 8000,
+            step: 50,
+            marks: vec![],
+        };
+        for dpi in [200, 650, 1000, 1600, 2400, 5050, 8000] {
+            // As a drag does: `change-value` applies `round-digits`;
+            // `set_value` would not.
+            let _: bool = slider.emit_by_name(
+                "change-value",
+                &[&gtk::ScrollType::Jump, &DpiScale::position(dpi)],
+            );
+            assert_eq!(scale.at(slider.value()), dpi);
+        }
     }
 }
