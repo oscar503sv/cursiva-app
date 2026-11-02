@@ -2,12 +2,12 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hidlab_daemon::api::{ReapplyReply, SetReply, Status};
+use hidlab_daemon::api::{ReapplyReply, ResetReply, SetReply, Status};
 use hidlab_daemon::apply::{ApplyItem, ApplyReport, ItemResult};
 use hidlab_features::settings::SettingKind;
 use serde::Serialize;
 
-use crate::args::SetArgs;
+use crate::args::{ResetArgs, SetArgs};
 use crate::client::call;
 
 fn print_json<T: Serialize>(v: &T) -> Result<(), String> {
@@ -177,7 +177,7 @@ pub fn status(json: bool) -> Result<(), String> {
 }
 
 pub fn set(args: &SetArgs) -> Result<(), String> {
-    let reply: SetReply = call("Set", &(args.value.kind().name(), args.raw_value.as_str()))?;
+    let reply: SetReply = call("Set", &(args.setting.name(), args.raw_value.as_str()))?;
     if args.json {
         print_json(&reply)?;
     } else {
@@ -189,6 +189,28 @@ pub fn set(args: &SetArgs) -> Result<(), String> {
         }
         if let Some(p) = &reply.saved_to {
             println!("Saved to {p}");
+        }
+    }
+    match &reply.applied {
+        Some(r) => report_result(r),
+        None => Ok(()),
+    }
+}
+
+pub fn reset(args: &ResetArgs) -> Result<(), String> {
+    let name = args.setting.map_or("all", |k| k.name());
+    let reply: ResetReply = call("Reset", &(name,))?;
+    if args.json {
+        print_json(&reply)?;
+    } else {
+        if let Some(r) = &reply.applied {
+            print_report(r);
+        }
+        if let Some(n) = &reply.note {
+            println!("{n}");
+        }
+        for p in &reply.saved_to {
+            println!("Updated {p}");
         }
     }
     match &reply.applied {

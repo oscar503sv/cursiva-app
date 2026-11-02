@@ -8,6 +8,7 @@ hid-lab — configure Logitech HID++ mice on Linux
 Usage:
   hid-lab status [--json]
   hid-lab set <setting> <value> [--json]
+  hid-lab reset (<setting> | all) [--json]
   hid-lab reapply [--json]
   hid-lab lab devices [--json] [--show-unique]
   hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -18,9 +19,10 @@ Usage:
   hid-lab lab write <setting> --restore [<device>] (--dry-run | --write) [--json]
   hid-lab --help | --version
 
-status, set and reapply talk to the daemon hid-labd (docs/daemon.md).
+status, set, reset and reapply talk to the daemon hid-labd (docs/daemon.md).
 Settings: dpi <n>, smartshift-mode <ratchet|free-spin>,
-smartshift-threshold <1..50>, thumbwheel-invert <on|off>.
+smartshift-threshold <1..50|off|on>, thumbwheel-invert <on|off>,
+remap-<button> <target|default>. See `hid-lab set --help`.
 
 Run `hid-lab <command> --help` or `hid-lab lab <command> --help` for details.
 All lab commands are read-only except `lab write`, which needs --write.
@@ -44,11 +46,29 @@ Settings:
   dpi <n>                       a value from the mouse's DPI list
   smartshift-mode <ratchet|free-spin>
   smartshift-threshold <1..50>  lower switches to free spin more easily
+  smartshift-threshold off      never switch by itself: ratchet stays ratchet
+  smartshift-threshold on       switch by itself again, with the saved threshold
   thumbwheel-invert <on|off>
+  remap-<button> <target|default>
+      <button>: middle, back, forward, gesture, mode (the button behind the wheel)
+      <target>: left, right, middle, back, forward, gesture, mode; the mouse
+                decides which targets each button allows
 
 hid-labd writes the value to the mouse if it is connected, reads it back,
 and saves it: the mode in its state file, everything else in
 ~/.config/hid-lab/config.toml. A value the mouse rejects is not saved.
+";
+
+pub const RESET_HELP: &str = "\
+hid-lab reset — put settings back to the mouse's defaults
+
+Usage: hid-lab reset (<setting> | all) [--json]
+
+Removes the setting from ~/.config/hid-lab/config.toml, so hid-labd stops
+applying it, and writes the default to the mouse if it is connected:
+DPI 1000, SmartShift threshold 10 (switching on), ratchet mode, thumb wheel
+not inverted, and every button doing its own task. Settings are the same
+as for `hid-lab set`.
 ";
 
 pub const REAPPLY_HELP: &str = "\
@@ -223,6 +243,7 @@ pub enum HelpTopic {
     Write,
     Status,
     Set,
+    Reset,
     Reapply,
 }
 
@@ -239,6 +260,7 @@ impl HelpTopic {
             HelpTopic::Write => WRITE_HELP,
             HelpTopic::Status => STATUS_HELP,
             HelpTopic::Set => SET_HELP,
+            HelpTopic::Reset => RESET_HELP,
             HelpTopic::Reapply => REAPPLY_HELP,
         }
     }
@@ -292,9 +314,16 @@ pub struct WriteArgs {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetArgs {
-    pub value: hidlab_features::settings::SettingValue,
-    /// The value as typed, sent to the daemon.
+    pub setting: hidlab_features::settings::SettingKind,
+    /// The value as typed, checked here and sent to the daemon.
     pub raw_value: String,
+    pub json: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResetArgs {
+    /// `None` resets every setting.
+    pub setting: Option<hidlab_features::settings::SettingKind>,
     pub json: bool,
 }
 
@@ -310,6 +339,7 @@ pub enum Command {
     Write(WriteArgs),
     Status { json: bool },
     Set(SetArgs),
+    Reset(ResetArgs),
     Reapply { json: bool },
 }
 
@@ -344,6 +374,7 @@ where
             Command::Reapply { json }
         }),
         Some("set") => parse_set(it.collect()),
+        Some("reset") => parse_reset(it.collect()),
         Some(other) => Err(format!("unknown command `{other}`. Try: hid-lab --help")),
     }
 }
@@ -632,11 +663,43 @@ fn parse_set(rest: Vec<&str>) -> Result<Command, String> {
     };
     let kind =
         SettingKind::from_name(name).ok_or_else(|| format!("unknown setting `{name}`. {TRY}"))?;
+    // `on` needs the saved threshold, which only the daemon knows.
+    if !(kind == SettingKind::SmartshiftThreshold && raw == "on") {
+        kind.parse_value(raw)?;
+    }
     Ok(Command::Set(SetArgs {
-        value: kind.parse_value(raw)?,
+        setting: kind,
         raw_value: raw.to_owned(),
         json,
     }))
+}
+
+fn parse_reset(rest: Vec<&str>) -> Result<Command, String> {
+    use hidlab_features::settings::SettingKind;
+    const TRY: &str = "Try: hid-lab reset --help";
+    let mut json = false;
+    let mut positionals = Vec::new();
+    for arg in rest {
+        match arg {
+            "-h" | "--help" => return Ok(Command::Help(HelpTopic::Reset)),
+            "--json" => json = true,
+            other if other.starts_with('-') => {
+                return Err(format!("unknown option `{other}`. {TRY}"));
+            }
+            other => positionals.push(other),
+        }
+    }
+    let [name] = positionals[..] else {
+        return Err(format!("expected one <setting> or `all`. {TRY}"));
+    };
+    let setting = match name {
+        "all" => None,
+        _ => Some(
+            SettingKind::from_name(name)
+                .ok_or_else(|| format!("unknown setting `{name}`. {TRY}"))?,
+        ),
+    };
+    Ok(Command::Reset(ResetArgs { setting, json }))
 }
 
 fn parse_u8(v: &str) -> Result<u8, String> {
@@ -790,7 +853,7 @@ mod tests {
 
     #[test]
     fn user_commands() {
-        use hidlab_features::settings::SettingValue;
+        use hidlab_features::settings::SettingKind;
         assert_eq!(parse(["status"]), Ok(Command::Status { json: false }));
         assert_eq!(
             parse(["reapply", "--json"]),
@@ -800,8 +863,34 @@ mod tests {
         let Ok(Command::Set(s)) = parse(["set", "smartshift-mode", "free-spin"]) else {
             panic!()
         };
-        assert_eq!(s.value, SettingValue::SmartshiftMode(1));
+        assert_eq!(s.setting, SettingKind::SmartshiftMode);
         assert_eq!(s.raw_value, "free-spin");
+        for (k, v) in [
+            ("smartshift-threshold", "on"),
+            ("smartshift-threshold", "off"),
+            ("remap-gesture", "middle"),
+            ("remap-back", "default"),
+        ] {
+            assert!(parse(["set", k, v]).is_ok(), "{k} {v}");
+        }
+        assert!(parse(["set", "thumbwheel-invert", "maybe"]).is_err());
+        assert!(parse(["set", "remap-left", "back"]).is_err());
+        assert_eq!(
+            parse(["reset", "all", "--json"]),
+            Ok(Command::Reset(ResetArgs {
+                setting: None,
+                json: true
+            }))
+        );
+        assert_eq!(
+            parse(["reset", "dpi"]),
+            Ok(Command::Reset(ResetArgs {
+                setting: Some(SettingKind::Dpi),
+                json: false
+            }))
+        );
+        assert!(parse(["reset"]).is_err());
+        assert!(parse(["reset", "wheel-mode"]).is_err());
         assert!(parse(["set", "dpi"]).is_err());
         assert!(parse(["set", "dpi", "fast"]).is_err());
         assert!(parse(["set", "wheel-mode", "on"]).is_err());

@@ -51,6 +51,25 @@ impl Service {
         json(&reply)
     }
 
+    /// Forgets one setting (or `all`) and writes its default; returns
+    /// `hid-lab.daemon-reset/1` JSON.
+    async fn reset(
+        &self,
+        setting: String,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+    ) -> fdo::Result<String> {
+        let (reply, record) = {
+            let mut e = self.lock()?;
+            let reply = e.reset(&setting).map_err(fdo::Error::Failed)?;
+            let record = reply.applied.as_ref().and(e.last_apply().cloned());
+            (reply, record)
+        };
+        if let Some(rec) = &record {
+            Self::applied(&emitter, &json(rec)?).await?;
+        }
+        json(&reply)
+    }
+
     /// Reloads the config file and applies it; returns
     /// `hid-lab.daemon-reapply/1` JSON.
     async fn reapply(
