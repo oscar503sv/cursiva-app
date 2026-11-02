@@ -18,6 +18,9 @@ pub use discover::{
 };
 pub use error::{TransportError, UDEV_INSTALL_HINT};
 pub use hidraw::{Access, AccessCheck, Hidraw, RawChannel, check_access};
-pub use hotplug::{HidIds, HotplugAction, HotplugEvent, HotplugMonitor, parse_hid_device_dir};
+pub use hotplug::{
+    HidIds, HotplugAction, HotplugEvent, HotplugMonitor, PowerSupplyEvent, PowerSupplyMonitor,
+    parse_hid_device_dir,
+};
 pub use power_supply::{PowerSupply, power_supplies_for, power_supplies_for_in};
 pub use uevent::{Bus, Uevent, UeventError, parse_uevent};

@@ -153,13 +153,59 @@ impl AsRawFd for HotplugMonitor {
     }
 }
 
-fn convert(ev: &udev::Event) -> HotplugEvent {
-    let action = match ev.event_type() {
+/// A power_supply entry changed (the kernel sends `change` when a battery
+/// reports a new level or charging state).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PowerSupplyEvent {
+    pub action: HotplugAction,
+    /// Entry name, e.g. `hidpp_battery_1`.
+    pub name: String,
+    /// The HID device it belongs to, e.g. `0005:046D:B034.0003`.
+    pub hid_device: Option<String>,
+}
+
+/// Listens to udev for power_supply events, to follow a mouse battery
+/// without polling.
+pub struct PowerSupplyMonitor {
+    socket: udev::MonitorSocket,
+}
+
+impl PowerSupplyMonitor {
+    pub fn new() -> Result<Self, TransportError> {
+        let socket = udev::MonitorBuilder::new()
+            .and_then(|b| b.match_subsystem("power_supply"))
+            .and_then(|b| b.listen())
+            .map_err(udev_err)?;
+        Ok(Self { socket })
+    }
+
+    /// The next event already received, without waiting.
+    pub fn try_next(&mut self) -> Option<PowerSupplyEvent> {
+        self.socket.iter().next().map(|ev| PowerSupplyEvent {
+            action: action_of(&ev),
+            name: ev.sysname().to_string_lossy().into_owned(),
+            hid_device: parse_hid_device_dir(ev.syspath()).map(|(n, _)| n),
+        })
+    }
+}
+
+impl AsRawFd for PowerSupplyMonitor {
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
+        self.socket.as_raw_fd()
+    }
+}
+
+fn action_of(ev: &udev::Event) -> HotplugAction {
+    match ev.event_type() {
         udev::EventType::Add => HotplugAction::Add,
         udev::EventType::Remove => HotplugAction::Remove,
         udev::EventType::Change => HotplugAction::Change,
         _ => HotplugAction::Other,
-    };
+    }
+}
+
+fn convert(ev: &udev::Event) -> HotplugEvent {
+    let action = action_of(ev);
     let parsed = parse_hid_device_dir(ev.syspath());
     let node = ev.devnode().map(Path::to_path_buf);
     let access = match (action, &node) {
@@ -202,5 +248,14 @@ mod tests {
     fn rejects_paths_without_hid_dir() {
         assert!(parse_hid_device_dir(Path::new("/sys/devices/pci0000:00/0000:00:14.0")).is_none());
         assert!(parse_hid_device_dir(Path::new("/sys/class/hidraw/hidraw2")).is_none());
+    }
+
+    #[test]
+    fn finds_the_hid_device_of_a_battery() {
+        let (name, _) = parse_hid_device_dir(Path::new(
+            "/sys/devices/virtual/misc/uhid/0005:046D:B034.0003/power_supply/hidpp_battery_1",
+        ))
+        .unwrap();
+        assert_eq!(name, "0005:046D:B034.0003");
     }
 }
