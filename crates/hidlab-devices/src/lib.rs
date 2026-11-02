@@ -2,7 +2,8 @@
 //! which settings each one accepts. `hidlab-hidpp` and `hidlab-features`
 //! stay generic; anything specific to one model lives here.
 
-use hidlab_features::settings::SettingKind;
+use hidlab_features::reprog_controls::RemapControl;
+use hidlab_features::settings::{SettingKind, SettingValue};
 use hidlab_transport::Bus;
 
 /// How a supported device shows up on this computer.
@@ -22,6 +23,8 @@ pub struct DeviceProfile {
     pub ids: &'static [DeviceIds],
     /// Settings the daemon may apply, each with a confirmed write function.
     pub settings: &'static [SettingKind],
+    /// What `hid-lab reset` writes, one per setting in `settings`.
+    pub defaults: &'static [SettingValue],
 }
 
 impl DeviceProfile {
@@ -34,10 +37,21 @@ impl DeviceProfile {
     pub fn supports(&self, kind: SettingKind) -> bool {
         self.settings.contains(&kind)
     }
+
+    /// The value `hid-lab reset` writes for `kind`.
+    pub fn default_value(&self, kind: SettingKind) -> Option<SettingValue> {
+        self.defaults.iter().copied().find(|v| v.kind() == kind)
+    }
 }
 
 /// Logitech MX Master 3S. Bluetooth ID from docs/diagnosis.md (CONFIRMED);
-/// settings confirmed by the hardware tests H4 (docs/protocol P-030 to P-032).
+/// settings confirmed by the hardware tests H4 and H5 (docs/protocol P-030
+/// to P-032, P-035, P-036).
+///
+/// Defaults: DPI 1000, threshold 10 and thumb wheel not inverted are what
+/// the mouse returns to after power-off (P-033, CONFIRMED). Ratchet mode is
+/// hid-lab's choice (power-off keeps the mode, so the mouse has no reset
+/// value to copy). Every button does its own task.
 pub const MX_MASTER_3S: DeviceProfile = DeviceProfile {
     key: "mx-master-3s",
     name: "MX Master 3S",
@@ -51,6 +65,22 @@ pub const MX_MASTER_3S: DeviceProfile = DeviceProfile {
         SettingKind::SmartshiftMode,
         SettingKind::SmartshiftThreshold,
         SettingKind::ThumbwheelInvert,
+        SettingKind::ButtonRemap(RemapControl::Middle),
+        SettingKind::ButtonRemap(RemapControl::Back),
+        SettingKind::ButtonRemap(RemapControl::Forward),
+        SettingKind::ButtonRemap(RemapControl::Gesture),
+        SettingKind::ButtonRemap(RemapControl::ModeButton),
+    ],
+    defaults: &[
+        SettingValue::Dpi(1000),
+        SettingValue::SmartshiftMode(2),
+        SettingValue::SmartshiftThreshold(10),
+        SettingValue::ThumbwheelInvert(false),
+        SettingValue::ButtonRemap(RemapControl::Middle, 0x0052),
+        SettingValue::ButtonRemap(RemapControl::Back, 0x0053),
+        SettingValue::ButtonRemap(RemapControl::Forward, 0x0056),
+        SettingValue::ButtonRemap(RemapControl::Gesture, 0x00C3),
+        SettingValue::ButtonRemap(RemapControl::ModeButton, 0x00C4),
     ],
 };
 
@@ -93,6 +123,25 @@ mod tests {
                     p.key,
                     k.name()
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn every_setting_has_one_default() {
+        for p in PROFILES {
+            assert_eq!(p.defaults.len(), p.settings.len(), "{}", p.key);
+            for &k in p.settings {
+                assert!(p.default_value(k).is_some(), "{} {}", p.key, k.name());
+            }
+            for c in RemapControl::ALL {
+                let k = SettingKind::ButtonRemap(c);
+                if p.supports(k) {
+                    assert_eq!(
+                        p.default_value(k),
+                        Some(SettingValue::ButtonRemap(c, c.cid()))
+                    );
+                }
             }
         }
     }
