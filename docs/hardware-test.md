@@ -1146,3 +1146,19 @@ instead of the two `cp` lines.
 
 For each test: pass or fail and what you saw. A screenshot of the page in
 light and dark helps; check it for anything personal first.
+
+### M5e results, run 1 (2026-11-02)
+
+Run by the user with the phase 5e app; no captures kept.
+
+| Test | Result | Notes |
+|---|---|---|
+| H5E-01 | Fail, fixed | Dragging the Speed slider gave only about 3000 or 8000 DPI. Cause: the slider rounded its position to whole numbers, and positions are ln(DPI), so only about 200, 400, 1100, 3000 and 8000 were reachable. Typed values worked. Fixed (no rounding; a test drives the slider as a drag does); to repeat |
+| H5E-02 | Pass | |
+| H5E-03 | Pass | |
+| H5E-04 | Pass | |
+| H5E-05 | Pass | |
+| H5E-06 | Pass | |
+| H5E-07 | Pass | |
+| H5E-08 | Pass | |
+| H5E-09 | Pass | |
