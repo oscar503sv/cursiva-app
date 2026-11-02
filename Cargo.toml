@@ -8,6 +8,7 @@ members = [
     "crates/hidlab-devices",
     "crates/hidlab-daemon",
     "crates/hidlab-cli",
+    "crates/hidlab-gtk",
 ]
 
 [workspace.package]

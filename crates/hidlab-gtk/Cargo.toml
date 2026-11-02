@@ -1,0 +1,26 @@
+[package]
+name = "hidlab-gtk"
+description = "Cursiva, the GNOME app to configure Logitech HID++ mice through hid-labd"
+version.workspace = true
+edition.workspace = true
+# gtk4-rs 0.11 needs Rust 1.92; the other crates keep the workspace MSRV.
+rust-version = "1.92"
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "cursiva"
+path = "src/main.rs"
+
+[dependencies]
+hidlab-api.workspace = true
+serde_json.workspace = true
+# GNOME 48 or newer (GTK 4.18, Libadwaita 1.7): GskPath, AdwToggleGroup.
+gtk = { package = "gtk4", version = "0.11.5", features = ["v4_18"] }
+adw = { package = "libadwaita", version = "0.9.2", features = ["v1_7"] }
+# The system's gettext (glibc), not a bundled copy.
+gettextrs = { package = "gettext-rs", version = "0.8.0", features = ["gettext-system"] }
+
+[lints]
+workspace = true
