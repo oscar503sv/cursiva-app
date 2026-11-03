@@ -22,10 +22,27 @@ impl Op {
     /// The D-Bus method and its string arguments.
     pub fn call(&self) -> (&'static str, Vec<String>) {
         match self {
-            Op::Set(v) => ("Set", vec![v.kind().name().to_owned(), v.display()]),
+            Op::Set(v) => ("Set", vec![v.kind().name().to_owned(), arg(*v)]),
             Op::Reset(k) => ("Reset", vec![k.name().to_owned()]),
             Op::Desktop(s, v) => ("SetDesktop", vec![s.name().to_owned(), v.clone()]),
         }
+    }
+}
+
+/// The value as `hid-lab set` and the daemon's `Set` read it.
+fn arg(v: SettingValue) -> String {
+    match v {
+        // `display` marks the default (`back (default)`); send the name.
+        SettingValue::ButtonRemap(c, t) => hidlab_api::remap::target_name(t)
+            .map(str::to_owned)
+            .unwrap_or_else(|| {
+                if t == c.cid() {
+                    "default".into()
+                } else {
+                    format!("0x{t:04X}")
+                }
+            }),
+        other => other.display(),
     }
 }
 
@@ -202,7 +219,7 @@ pub fn value_label(v: SettingValue) -> String {
         ),
         SettingValue::ThumbwheelInvert(true) => gettext("Thumb wheel: reversed"),
         SettingValue::ThumbwheelInvert(false) => gettext("Thumb wheel: normal direction"),
-        SettingValue::ButtonRemap(..) => v.display(),
+        SettingValue::ButtonRemap(c, t) => crate::remaps::remap_label(c, t),
     }
 }
 
@@ -452,6 +469,19 @@ mod tests {
         );
         assert_eq!(Op::Set(Mode(1)).call().1[1], "free-spin");
         assert_eq!(Op::Set(Inv(true)).call().1[1], "on");
+        use hidlab_api::remap::RemapControl;
+        assert_eq!(
+            Op::Set(SettingValue::ButtonRemap(RemapControl::Back, 0x53))
+                .call()
+                .1,
+            ["remap-back", "back"]
+        );
+        assert_eq!(
+            Op::Set(SettingValue::ButtonRemap(RemapControl::Gesture, 0x52))
+                .call()
+                .1,
+            ["remap-gesture", "middle"]
+        );
         assert_eq!(
             Op::Reset(SettingKind::Dpi).call(),
             ("Reset", vec!["dpi".into()])

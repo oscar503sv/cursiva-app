@@ -57,6 +57,21 @@ pub fn fill(template: &str, args: &[(&str, &str)]) -> String {
 }
 
 impl View {
+    /// Title and text for a settings page that cannot be shown in this
+    /// state.
+    pub fn unavailable(&self) -> (String, String) {
+        match self {
+            View::Connecting => (gettext("Connecting to the Cursiva service…"), String::new()),
+            View::NoDaemon(e) => (gettext("Cannot reach the Cursiva service"), e.clone()),
+            _ => (
+                gettext("Connect your mouse"),
+                gettext(
+                    "Turn the mouse on and connect it over Bluetooth. Cursiva finds it by itself.",
+                ),
+            ),
+        }
+    }
+
     pub fn from_status(status: &Status) -> View {
         let Some(device) = &status.device else {
             return View::NoMouse {

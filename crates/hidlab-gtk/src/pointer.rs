@@ -18,54 +18,10 @@ use hidlab_api::settings::{SettingKind, SettingValue};
 
 use crate::changes::{self, ACCELERATION, DpiScale, WheelMode};
 use crate::model::{View, fill};
+use crate::request::{Request, Section, Sink};
 
 /// Wait after the last movement of a slider or number before sending.
 const SETTLE: Duration = Duration::from_millis(300);
-
-/// What the user asked for on this page.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Request {
-    Dpi(u16),
-    Threshold(u8),
-    WheelMode(WheelMode),
-    Invert(bool),
-    NaturalScroll(bool),
-    Acceleration(&'static str),
-    /// A section's "Restore Default".
-    Reset(Section),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Section {
-    Pointer,
-    Wheel,
-    Thumb,
-}
-
-impl Section {
-    /// Mouse settings the section's "Restore Default" resets. GNOME
-    /// settings are not reset: they are shared with every mouse.
-    pub fn kinds(self) -> &'static [SettingKind] {
-        match self {
-            Section::Pointer => &[SettingKind::Dpi],
-            Section::Wheel => &[
-                SettingKind::SmartshiftMode,
-                SettingKind::SmartshiftThreshold,
-            ],
-            Section::Thumb => &[SettingKind::ThumbwheelInvert],
-        }
-    }
-
-    pub fn reset_label(self) -> String {
-        match self {
-            Section::Pointer => gettext("Pointer speed restored"),
-            Section::Wheel => gettext("Main wheel restored"),
-            Section::Thumb => gettext("Thumb wheel restored"),
-        }
-    }
-}
-
-type Sink = Rc<dyn Fn(Request)>;
 
 pub struct PointerPage {
     pub root: gtk::Stack,
@@ -495,18 +451,7 @@ impl PointerPage {
         let status = match (view, status) {
             (View::Connected(_), Some(s)) => s,
             _ => {
-                let (title, text) = match view {
-                    View::Connecting => {
-                        (gettext("Connecting to the Cursiva service…"), String::new())
-                    }
-                    View::NoDaemon(e) => (gettext("Cannot reach the Cursiva service"), e.clone()),
-                    _ => (
-                        gettext("Connect your mouse"),
-                        gettext(
-                            "Turn the mouse on and connect it over Bluetooth. Cursiva finds it by itself.",
-                        ),
-                    ),
-                };
+                let (title, text) = view.unavailable();
                 self.unavailable.set_title(&title);
                 self.unavailable
                     .set_description(Some(&glib::markup_escape_text(&text)));
@@ -593,6 +538,7 @@ impl PointerPage {
             Section::Pointer => &self.pointer,
             Section::Wheel => &self.wheel,
             Section::Thumb => &self.thumb,
+            Section::Buttons => return,
         };
         let (group, column, scroller) = (group.clone(), self.column.clone(), self.scroller.clone());
         glib::idle_add_local_once(move || {

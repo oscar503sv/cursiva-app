@@ -12,12 +12,15 @@ use gtk::{gio, glib};
 use hidlab_api::daemon::{DesktopSetting, Status, UNIT};
 use hidlab_api::settings::SettingValue;
 
+use crate::buttons::ButtonsPage;
 use crate::changes::{self, Change, Op};
 use crate::dbus::{self, Event, Subscriptions};
 use crate::geometry::Hotspot;
 use crate::model::{Health, View, fill};
 use crate::mouse::MouseView;
-use crate::pointer::{PointerPage, Request, Section};
+use crate::pointer::PointerPage;
+use crate::remaps;
+use crate::request::{Request, Section};
 
 /// Width under which the sidebar folds away (the narrow mockup).
 const NARROW: &str = "max-width: 600sp";
@@ -98,7 +101,14 @@ struct App {
     /// The daemon answered at least once; a lost name owner then means it
     /// stopped, rather than not started yet.
     seen_daemon: Cell<bool>,
+    buttons: Rc<ButtonsPage>,
+    /// Renews the `WatchButtons` lease while the Buttons page is shown.
+    lease: RefCell<Option<glib::SourceId>>,
 }
+
+/// `WatchButtons` lease length and renewal period.
+const LEASE_S: u32 = 30;
+const RENEW: std::time::Duration = std::time::Duration::from_secs(20);
 
 pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     let window = adw::ApplicationWindow::builder()
@@ -112,12 +122,16 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
         .build();
 
     let state = Rc::new_cyclic(|weak: &Weak<App>| {
-        let weak = weak.clone();
-        let pointer = PointerPage::new(Rc::new(move |r| {
-            if let Some(a) = weak.upgrade() {
-                a.request(r);
-            }
-        }));
+        let sink: crate::request::Sink = {
+            let weak = weak.clone();
+            Rc::new(move |r| {
+                if let Some(a) = weak.upgrade() {
+                    a.request(r);
+                }
+            })
+        };
+        let pointer = PointerPage::new(sink.clone());
+        let buttons = ButtonsPage::new(sink);
         let stack = gtk::Stack::builder()
             .transition_type(gtk::StackTransitionType::Crossfade)
             .build();
@@ -125,14 +139,7 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
         let pages = pages();
         stack.add_titled(&home_widget, Some(pages[0].name), &pages[0].title);
         stack.add_titled(&pointer.root, Some(pages[1].name), &pages[1].title);
-        stack.add_titled(
-            &later_page(
-                pages[2].icon,
-                &gettext("Choosing what each button does arrives in a later update."),
-            ),
-            Some(pages[2].name),
-            &pages[2].title,
-        );
+        stack.add_titled(&buttons.root, Some(pages[2].name), &pages[2].title);
         let content = adw::NavigationPage::builder()
             .title(&pages[0].title)
             .tag("content")
@@ -187,6 +194,8 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
             fetching: Cell::new(false),
             fetch_again: Cell::new(false),
             seen_daemon: Cell::new(false),
+            buttons,
+            lease: RefCell::new(None),
         }
     });
 
@@ -198,12 +207,14 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     });
     let weak = Rc::downgrade(&state);
     state.home.mouse.connect_hotspot_activated(move |_, id| {
-        let Some(s) = weak.upgrade() else { return };
-        let spot = Hotspot::ALL.into_iter().find(|h| h.id() == id);
-        match spot {
-            Some(Hotspot::Wheel) => s.show_page("pointer", Some(Section::Wheel)),
-            Some(Hotspot::Thumb) => s.show_page("pointer", Some(Section::Thumb)),
-            _ => s.show_page("buttons", None),
+        if let Some(s) = weak.upgrade() {
+            s.activate_part(id, false);
+        }
+    });
+    let weak = Rc::downgrade(&state);
+    state.buttons.mouse.connect_hotspot_activated(move |_, id| {
+        if let Some(s) = weak.upgrade() {
+            s.activate_part(id, true);
         }
     });
     for (row, section) in [
@@ -238,10 +249,11 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     // window comes back to the front.
     let weak = Rc::downgrade(&state);
     window.connect_is_active_notify(move |w| {
-        if w.is_active()
-            && let Some(s) = weak.upgrade()
-        {
-            s.refresh();
+        if let Some(s) = weak.upgrade() {
+            if w.is_active() {
+                s.refresh();
+            }
+            s.update_lease();
         }
     });
     glib::spawn_future_local(start(Rc::downgrade(&state)));
@@ -280,12 +292,16 @@ fn dev_screenshot(window: &adw::ApplicationWindow, state: &Rc<App>) {
     glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
         if let Some(s) = weak.upgrade() {
             let (name, section) = page.split_once(':').unwrap_or((&page, ""));
-            let section = match section {
+            let section_of = match section {
                 "wheel" => Some(Section::Wheel),
                 "thumb" => Some(Section::Thumb),
                 _ => None,
             };
-            s.show_page(name, section);
+            s.show_page(name, section_of);
+            // `buttons:back` and so on open that button's picker.
+            if let Some(c) = remaps::ROWS.into_iter().find(|c| c.name() == section) {
+                s.buttons.open_picker(c);
+            }
         }
         glib::timeout_add_local_once(std::time::Duration::from_millis(delay), move || {
             let (w, h) = (window.width(), window.height());
@@ -322,14 +338,6 @@ fn with_header(child: &impl IsA<gtk::Widget>, sidebar: bool) -> adw::ToolbarView
     view.add_top_bar(&header);
     view.set_content(Some(child));
     view
-}
-
-fn later_page(icon: &str, text: &str) -> adw::StatusPage {
-    adw::StatusPage::builder()
-        .icon_name(icon)
-        .title(gettext("Coming soon"))
-        .description(text)
-        .build()
 }
 
 fn value_label() -> gtk::Label {
@@ -487,7 +495,7 @@ async fn start(app: Weak<App>) {
 }
 
 impl App {
-    fn show_page(&self, name: &str, section: Option<Section>) {
+    fn show_page(self: &Rc<Self>, name: &str, section: Option<Section>) {
         let nav = &self.nav;
         let index = pages().iter().position(|p| p.name == name);
         if let Some(row) = index.and_then(|i| nav.list.row_at_index(i as i32)) {
@@ -502,6 +510,78 @@ impl App {
         nav.split.set_show_content(true);
         if let Some(section) = section {
             self.pointer.scroll_to(section);
+        }
+        self.update_lease();
+    }
+
+    /// A part of a drawing was clicked. On Home the wheel opens its
+    /// scrolling settings; on the Buttons page it is the middle button.
+    fn activate_part(self: &Rc<Self>, id: &str, on_buttons: bool) {
+        let Some(spot) = Hotspot::ALL.into_iter().find(|h| h.id() == id) else {
+            return;
+        };
+        match (spot, remaps::control(spot)) {
+            (Hotspot::Wheel, _) if !on_buttons => self.show_page("pointer", Some(Section::Wheel)),
+            (Hotspot::Thumb, _) => self.show_page("pointer", Some(Section::Thumb)),
+            (_, Some(control)) => {
+                self.show_page("buttons", None);
+                self.buttons.open_picker(control);
+            }
+            _ => {
+                self.show_page("buttons", None);
+                self.toasts
+                    .add_toast(adw::Toast::new(&glib::markup_escape_text(&gettext(
+                        "Left and right click are not reassigned, so the mouse always works.",
+                    ))));
+            }
+        }
+    }
+
+    /// Asks for button presses while the Buttons page is on screen with
+    /// the mouse connected, and stops asking otherwise.
+    fn update_lease(self: &Rc<Self>) {
+        let active = self
+            .nav
+            .stack
+            .root()
+            .and_downcast::<gtk::Window>()
+            .is_some_and(|w| w.is_active());
+        let want = active
+            && self.nav.stack.visible_child_name().as_deref() == Some("buttons")
+            && self
+                .status
+                .borrow()
+                .as_ref()
+                .is_some_and(|s| s.device.is_some());
+        let has = self.lease.borrow().is_some();
+        if want == has {
+            return;
+        }
+        let Some(conn) = self.conn.borrow().clone() else {
+            return;
+        };
+        if want {
+            let renew = move |conn: gio::DBusConnection| {
+                glib::spawn_future_local(async move {
+                    if let Err(e) = dbus::watch_buttons(&conn, LEASE_S).await {
+                        eprintln!("cursiva: cannot watch button presses: {e}");
+                    }
+                });
+            };
+            renew(conn.clone());
+            let id = glib::timeout_add_local(RENEW, move || {
+                renew(conn.clone());
+                glib::ControlFlow::Continue
+            });
+            *self.lease.borrow_mut() = Some(id);
+        } else {
+            if let Some(id) = self.lease.borrow_mut().take() {
+                id.remove();
+            }
+            self.buttons.clear_presses();
+            glib::spawn_future_local(async move {
+                let _ = dbus::watch_buttons(&conn, 0).await;
+            });
         }
     }
 
@@ -522,6 +602,7 @@ impl App {
                 Request::Acceleration(a) => {
                     changes::set_desktop(st, DesktopSetting::Acceleration, a)
                 }
+                Request::Remap(c, t) => changes::set(st, SettingValue::ButtonRemap(c, t)),
                 Request::Reset(section) => {
                     changes::reset(st, section.kinds(), section.reset_label())
                 }
@@ -641,6 +722,25 @@ impl App {
                     )));
                 }
             }
+            Event::Button(e) => {
+                let parts = match (&e.control, self.status.borrow().as_ref()) {
+                    (Some(task), Some(st)) => remaps::pressed_parts(st, task),
+                    _ => return,
+                };
+                self.buttons.show_press(&parts, e.pressed);
+                // The mode button reports its press only.
+                if e.pressed && e.number.is_none() {
+                    let weak = Rc::downgrade(self);
+                    glib::timeout_add_local_once(
+                        std::time::Duration::from_millis(300),
+                        move || {
+                            if let Some(s) = weak.upgrade() {
+                                s.buttons.show_press(&parts, false);
+                            }
+                        },
+                    );
+                }
+            }
             Event::Battery(e) => {
                 let view = {
                     let mut status = self.status.borrow_mut();
@@ -687,8 +787,10 @@ impl App {
         });
     }
 
-    fn render(&self, view: &View) {
+    fn render(self: &Rc<Self>, view: &View) {
         self.pointer.update(view, self.status.borrow().as_ref());
+        self.buttons.update(view, self.status.borrow().as_ref());
+        self.update_lease();
         let h = &self.home;
         match view {
             View::Connecting => h.states.set_visible_child_name("connecting"),

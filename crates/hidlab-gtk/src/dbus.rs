@@ -5,9 +5,10 @@
 use gettextrs::gettext;
 use gtk::gio;
 use gtk::glib;
+use gtk::glib::prelude::ToVariant;
 use hidlab_api::daemon::{
-    ApplyReport, BUS_NAME, BatteryEvent, INTERFACE, ItemResult, OBJECT_PATH, ResetReply, SetReply,
-    Status, UNIT,
+    ApplyReport, BUS_NAME, BatteryEvent, ButtonEvent, INTERFACE, ItemResult, OBJECT_PATH,
+    ResetReply, SetReply, Status, UNIT,
 };
 
 use crate::changes::Op;
@@ -23,6 +24,8 @@ pub enum Event {
     /// or SmartShift mode.
     Changed,
     Battery(BatteryEvent),
+    /// A button went down or up, while a `WatchButtons` lease lasts.
+    Button(ButtonEvent),
     /// The daemon's name got an owner.
     DaemonStarted,
     /// The daemon's name lost its owner.
@@ -94,6 +97,25 @@ fn call_error(e: &glib::Error) -> String {
         ),
     };
     fill(&text, &[("unit", UNIT), ("error", e.message())])
+}
+
+/// Asks the daemon to send `ButtonPressed` for `seconds` (0 stops); returns
+/// the seconds granted.
+pub async fn watch_buttons(conn: &gio::DBusConnection, seconds: u32) -> Result<u32, String> {
+    let reply = conn
+        .call_future(
+            Some(BUS_NAME),
+            OBJECT_PATH,
+            INTERFACE,
+            "WatchButtons",
+            Some(&(seconds,).to_variant()),
+            Some(glib::VariantTy::new("(u)").expect("valid type")),
+            gio::DBusCallFlags::NONE,
+            TIMEOUT_MS,
+        )
+        .await
+        .map_err(|e| refused(&e))?;
+    Ok(reply.child_value(0).get().unwrap_or_default())
 }
 
 /// Runs one change call and checks the daemon's answer.
@@ -193,27 +215,33 @@ pub fn subscribe(
     conn: &gio::DBusConnection,
     on_event: impl Fn(Event) + Clone + 'static,
 ) -> Subscriptions {
-    let signals = ["DeviceChanged", "Applied", "ModeChanged", "BatteryChanged"]
-        .into_iter()
-        .map(|member| {
-            let on_event = on_event.clone();
-            conn.subscribe_to_signal(
-                Some(BUS_NAME),
-                Some(INTERFACE),
-                Some(member),
-                Some(OBJECT_PATH),
-                None,
-                gio::DBusSignalFlags::NONE,
-                move |signal| {
-                    let json: Option<String> =
-                        signal.parameters.try_child_value(0).and_then(|v| v.get());
-                    if let Some(event) = decode(signal.signal_name, json.as_deref()) {
-                        on_event(event);
-                    }
-                },
-            )
-        })
-        .collect();
+    let signals = [
+        "DeviceChanged",
+        "Applied",
+        "ModeChanged",
+        "BatteryChanged",
+        "ButtonPressed",
+    ]
+    .into_iter()
+    .map(|member| {
+        let on_event = on_event.clone();
+        conn.subscribe_to_signal(
+            Some(BUS_NAME),
+            Some(INTERFACE),
+            Some(member),
+            Some(OBJECT_PATH),
+            None,
+            gio::DBusSignalFlags::NONE,
+            move |signal| {
+                let json: Option<String> =
+                    signal.parameters.try_child_value(0).and_then(|v| v.get());
+                if let Some(event) = decode(signal.signal_name, json.as_deref()) {
+                    on_event(event);
+                }
+            },
+        )
+    })
+    .collect();
     let (appeared, vanished) = (on_event.clone(), on_event);
     let watcher = gio::bus_watch_name_on_connection(
         conn,
@@ -237,6 +265,9 @@ pub fn decode(member: &str, json: Option<&str>) -> Option<Event> {
             json.and_then(|j| serde_json::from_str(j).ok())
                 .map_or(Event::Changed, Event::Battery),
         ),
+        "ButtonPressed" => json
+            .and_then(|j| serde_json::from_str(j).ok())
+            .map(Event::Button),
         _ => None,
     }
 }
@@ -264,6 +295,13 @@ mod tests {
         );
         assert_eq!(decode("BatteryChanged", Some("{")), Some(Event::Changed));
         assert_eq!(decode("ButtonPressed", Some("{}")), None);
+        let press =
+            r#"{"schema":"hid-lab.daemon-button/1","number":4,"control":"back","pressed":true}"#;
+        let Some(Event::Button(b)) = decode("ButtonPressed", Some(press)) else {
+            panic!("not a button event");
+        };
+        assert_eq!((b.control.as_deref(), b.pressed), (Some("back"), true));
+        assert_eq!(decode("Other", Some(press)), None);
     }
 
     #[test]
