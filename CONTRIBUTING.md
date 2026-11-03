@@ -61,8 +61,13 @@ GDK_BACKEND=broadway BROADWAY_DISPLAY=:5 CURSIVA_DEV_SCREENSHOT=/tmp/pointer.png
 
 `CURSIVA_DEV_PAGE` is `home`, `pointer`, `pointer:wheel`, `pointer:thumb`,
 `buttons` or `buttons:<button>` (`middle`, `back`, `forward`, `gesture`,
-`mode`: the page with that button's action picker open); `CURSIVA_DEV_DELAY_MS` (default 3000) is the wait before the
-capture. Broadway's socket lives in `$XDG_RUNTIME_DIR`; a path longer than
+`mode`: the page with that button's action picker open), `preferences` or
+`about` (that dialog over Home); `CURSIVA_DEV_DELAY_MS` (default 3000) is the wait before the
+capture. `CURSIVA_DEV_STATUS=<file>` makes the app read the status from a
+saved `hid-lab status --json` instead of the daemon, to see states the
+mouse is not in (edit `device.access` to `permission_denied`, set
+`device` to null, or add a `conflicts` entry). Keep such files out of the
+repository: they hold your device's data. Broadway's socket lives in `$XDG_RUNTIME_DIR`; a path longer than
 about 100 characters makes it fail with "address already in use".
 
 ## Architecture rules

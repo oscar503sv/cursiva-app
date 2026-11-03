@@ -1,5 +1,5 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Cursiva contributors
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the Cursiva package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Cursiva\n"
 "Report-Msgid-Bugs-To: https://github.com/oscar503sv/cursiva-app/issues\n"
-"POT-Creation-Date: 2026-11-02 18:12-0600\n"
+"POT-Creation-Date: 2026-11-02 22:21-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,129 +29,129 @@ msgstr ""
 msgid "Restore All"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:92 crates/hidlab-gtk/src/window.rs:533
+#: crates/hidlab-gtk/src/buttons.rs:92 crates/hidlab-gtk/src/window.rs:721
 msgid "Left and right click are not reassigned, so the mouse always works."
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:155 crates/hidlab-gtk/src/model.rs:156
-#: crates/hidlab-gtk/src/window.rs:831 crates/hidlab-gtk/src/window.rs:835
+#: crates/hidlab-gtk/src/buttons.rs:155 crates/hidlab-gtk/src/model.rs:165
+#: crates/hidlab-gtk/src/window.rs:1121 crates/hidlab-gtk/src/window.rs:1125
 msgid "Unknown"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:197
+#: crates/hidlab-gtk/src/buttons.rs:199
 msgid "Choose what it does"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:200
+#: crates/hidlab-gtk/src/buttons.rs:203
 msgid "Search actions"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:203
+#: crates/hidlab-gtk/src/buttons.rs:206
 msgid "Mouse actions"
 msgstr ""
 
 #. TRANSLATORS: an action name followed by this mark.
-#: crates/hidlab-gtk/src/buttons.rs:211
+#: crates/hidlab-gtk/src/buttons.rs:214
 msgid "(default)"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:222
+#: crates/hidlab-gtk/src/buttons.rs:225
 msgid "Current"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:240
+#: crates/hidlab-gtk/src/buttons.rs:243
 msgid ""
 "Keyboard shortcuts, media keys and GNOME actions come with gestures in a "
 "later version."
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:259
+#: crates/hidlab-gtk/src/buttons.rs:262
 msgid "No actions to choose"
 msgstr ""
 
-#: crates/hidlab-gtk/src/buttons.rs:261
+#: crates/hidlab-gtk/src/buttons.rs:264
 msgid "The mouse did not say which actions this button allows."
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:100 crates/hidlab-gtk/src/model.rs:191
-#: crates/hidlab-gtk/src/model.rs:197
+#: crates/hidlab-gtk/src/changes.rs:106 crates/hidlab-gtk/src/model.rs:200
+#: crates/hidlab-gtk/src/model.rs:206
 msgid "Clicks"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:101 crates/hidlab-gtk/src/model.rs:188
+#: crates/hidlab-gtk/src/changes.rs:107 crates/hidlab-gtk/src/model.rs:197
 msgid "Free spin"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:102
+#: crates/hidlab-gtk/src/changes.rs:108
 msgid "Automatic"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:108
+#: crates/hidlab-gtk/src/changes.rs:114
 msgid "Always clicks, even when you push it."
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:109
+#: crates/hidlab-gtk/src/changes.rs:115
 msgid "Spins freely; the mode button brings the clicks back."
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:111
+#: crates/hidlab-gtk/src/changes.rs:117
 msgid "Clicks when you turn it slowly and spins freely when you push it."
 msgstr ""
 
 #. TRANSLATORS: toast after a change; {dpi} is a number.
-#: crates/hidlab-gtk/src/changes.rs:194
+#: crates/hidlab-gtk/src/changes.rs:200
 #, rust-format
 msgid "Pointer speed: {dpi} DPI"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:198 crates/hidlab-gtk/src/changes.rs:207
-#: crates/hidlab-gtk/src/changes.rs:211 crates/hidlab-gtk/src/changes.rs:267
+#: crates/hidlab-gtk/src/changes.rs:204 crates/hidlab-gtk/src/changes.rs:213
+#: crates/hidlab-gtk/src/changes.rs:217 crates/hidlab-gtk/src/changes.rs:273
 #, rust-format
 msgid "Wheel: {mode}"
 msgstr ""
 
 #. TRANSLATORS: toast; {value} is a number from 1 to 50.
-#: crates/hidlab-gtk/src/changes.rs:203
+#: crates/hidlab-gtk/src/changes.rs:209
 #, rust-format
 msgid "Push to switch to free spin: {value}"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:214
+#: crates/hidlab-gtk/src/changes.rs:220
 msgid "Thumb wheel: reversed"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:215
+#: crates/hidlab-gtk/src/changes.rs:221
 msgid "Thumb wheel: normal direction"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:316
+#: crates/hidlab-gtk/src/changes.rs:322
 msgid "Natural scrolling on"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:317
+#: crates/hidlab-gtk/src/changes.rs:323
 msgid "Natural scrolling off"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:319
+#: crates/hidlab-gtk/src/changes.rs:325
 #, rust-format
 msgid "Acceleration: {profile}"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:338
+#: crates/hidlab-gtk/src/changes.rs:344
 msgid "Flat"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:339
+#: crates/hidlab-gtk/src/changes.rs:345
 msgid "Adaptive"
 msgstr ""
 
-#: crates/hidlab-gtk/src/changes.rs:340
+#: crates/hidlab-gtk/src/changes.rs:346
 msgid "Default"
 msgstr ""
 
 #. TRANSLATORS: {error} is a technical parse error; {unit} is
 #. hid-labd.service. Keep the command between backticks as is.
-#: crates/hidlab-gtk/src/dbus.rs:66
+#: crates/hidlab-gtk/src/dbus.rs:73
 #, rust-format
 msgid ""
 "The Cursiva service sent a status this app does not understand ({error}). "
@@ -160,7 +160,7 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS: {unit} is hid-labd.service. Keep commands as is.
-#: crates/hidlab-gtk/src/dbus.rs:81
+#: crates/hidlab-gtk/src/dbus.rs:88
 #, rust-format
 msgid ""
 "The Cursiva service (hid-labd) is not installed for this user, or the "
@@ -169,7 +169,7 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS: {unit} is hid-labd.service. Keep the command as is.
-#: crates/hidlab-gtk/src/dbus.rs:89
+#: crates/hidlab-gtk/src/dbus.rs:96
 #, rust-format
 msgid ""
 "The Cursiva service could not start. See why with `journalctl --user -u "
@@ -178,122 +178,223 @@ msgstr ""
 
 #. TRANSLATORS: {error} is the D-Bus error message; {unit} is
 #. hid-labd.service. Keep the command as is.
-#: crates/hidlab-gtk/src/dbus.rs:95
+#: crates/hidlab-gtk/src/dbus.rs:102
 #, rust-format
 msgid ""
 "The Cursiva service did not answer ({error}). Check it with `systemctl --"
 "user status {unit}`"
 msgstr ""
 
-#: crates/hidlab-gtk/src/dbus.rs:163
+#: crates/hidlab-gtk/src/dbus.rs:234
 msgid "Nothing was saved"
 msgstr ""
 
 #. TRANSLATORS: {setting} is a setting name such as `dpi`.
-#: crates/hidlab-gtk/src/dbus.rs:189
+#: crates/hidlab-gtk/src/dbus.rs:260
 #, rust-format
 msgid "The mouse did not keep {setting}"
 msgstr ""
 
-#: crates/hidlab-gtk/src/dbus.rs:193
+#: crates/hidlab-gtk/src/dbus.rs:264
 msgid "The mouse did not keep the change"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:64 crates/hidlab-gtk/src/window.rs:356
+#: crates/hidlab-gtk/src/model.rs:66 crates/hidlab-gtk/src/window.rs:436
 msgid "Connecting to the Cursiva service…"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:65 crates/hidlab-gtk/src/window.rs:368
+#: crates/hidlab-gtk/src/model.rs:67
 msgid "Cannot reach the Cursiva service"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:67 crates/hidlab-gtk/src/window.rs:381
+#: crates/hidlab-gtk/src/model.rs:69 crates/hidlab-gtk/src/window.rs:560
+msgid "Cursiva can't reach the mouse"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:70
+msgid "Home shows how to fix it."
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:73
 msgid "Connect your mouse"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:69 crates/hidlab-gtk/src/window.rs:796
+#: crates/hidlab-gtk/src/model.rs:75
 msgid ""
 "Turn the mouse on and connect it over Bluetooth. Cursiva finds it by itself."
 msgstr ""
 
 #. TRANSLATORS: {dpi} is a number such as 1600.
-#: crates/hidlab-gtk/src/model.rs:91 crates/hidlab-gtk/src/pointer.rs:440
+#: crates/hidlab-gtk/src/model.rs:100 crates/hidlab-gtk/src/pointer.rs:440
 #, rust-format
 msgid "{dpi} DPI"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:112
+#: crates/hidlab-gtk/src/model.rs:121
 msgid "Bluetooth"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:113
+#: crates/hidlab-gtk/src/model.rs:122
 msgid "USB"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:122
+#: crates/hidlab-gtk/src/model.rs:131
 msgid "Your settings file has an error"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:129
+#: crates/hidlab-gtk/src/model.rs:138
 msgid "Another program also configures the mouse"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:136
+#: crates/hidlab-gtk/src/model.rs:145
 msgid "Some settings were not applied"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:141
+#: crates/hidlab-gtk/src/model.rs:150
 msgid "The mouse uses its own settings"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:144
+#: crates/hidlab-gtk/src/model.rs:153
 msgid "Your settings are active"
 msgstr ""
 
 #. TRANSLATORS: battery charge; {percent} is a number from 0 to 100.
-#: crates/hidlab-gtk/src/model.rs:151
+#: crates/hidlab-gtk/src/model.rs:160
 #, rust-format
 msgid "{percent} %"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:152
+#: crates/hidlab-gtk/src/model.rs:161
 msgid "Critical"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:153
+#: crates/hidlab-gtk/src/model.rs:162
 msgid "Low"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:154
+#: crates/hidlab-gtk/src/model.rs:163
 msgid "Full"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:155
+#: crates/hidlab-gtk/src/model.rs:164
 msgid "Normal"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:160
+#: crates/hidlab-gtk/src/model.rs:169
 msgid "Charging"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:161
+#: crates/hidlab-gtk/src/model.rs:170
 msgid "Fully charged"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:162
+#: crates/hidlab-gtk/src/model.rs:171
 msgid "Not charging"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:192
+#: crates/hidlab-gtk/src/model.rs:201
 msgid "Automatic, switches with a light push"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:193
+#: crates/hidlab-gtk/src/model.rs:202
 msgid "Automatic, switches with a medium push"
 msgstr ""
 
-#: crates/hidlab-gtk/src/model.rs:194
+#: crates/hidlab-gtk/src/model.rs:203
 msgid "Automatic, switches with a hard push"
+msgstr ""
+
+#. TRANSLATORS: {program} is a program name such as solaar.
+#: crates/hidlab-gtk/src/model.rs:216
+#, rust-format
+msgid "{program} is running and may also change the mouse"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:221
+msgid ""
+"Stop it in a terminal with `sudo systemctl stop logid`, and disable it with "
+"`sudo systemctl disable logid` if you do not need it."
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:224
+msgid ""
+"Quit Solaar from its icon in the top bar, or run `pkill solaar` in a "
+"terminal. To stop it from starting with your session, turn off its autostart "
+"in Solaar or remove `~/.config/autostart/solaar.desktop`."
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:230
+#, rust-format
+msgid ""
+"{program} (process {pid}) can also configure the mouse. When two programs "
+"change the same setting, they undo each other's changes and the mouse may "
+"not behave as you set it here."
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:241
+msgid "Not since the service started"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:244
+msgid "When the service started"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:245
+msgid "On reconnect"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:246
+msgid "On wake-up"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:247
+msgid "On reapply"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:248
+msgid "After a change"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:249
+msgid "After a restore"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:253
+msgid "just now"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:254
+#, rust-format
+msgid "{n} min ago"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:255
+#, rust-format
+msgid "{n} h ago"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:257
+#, rust-format
+msgid "{n} days ago"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:263
+msgid "some settings did not stick"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:264
+#, rust-format
+msgid "verified twice in {ms} ms"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:265
+#, rust-format
+msgid "verified in {ms} ms"
+msgstr ""
+
+#: crates/hidlab-gtk/src/model.rs:269
+#, rust-format
+msgid "{when}, {ago} · {check}"
 msgstr ""
 
 #: crates/hidlab-gtk/src/mouse.rs:20
@@ -440,6 +541,68 @@ msgstr ""
 msgid "From {min} to {max} in steps of {step}"
 msgstr ""
 
+#: crates/hidlab-gtk/src/prefs.rs:21
+msgid "No connection to the session bus"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:45
+msgid "Apply my settings when I log in"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:46
+msgid "Works without opening Cursiva"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:53
+msgid "Cannot tell whether the service starts at login: systemd did not answer"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:82
+msgid "systemd did not change the setting"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:92
+msgid "Troubleshooting"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:95
+msgid "Service"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:99
+#, rust-format
+msgid "Running · hid-labd {version}"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:102
+msgid "Not running"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:109
+msgid "Last time your settings were applied"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:115 crates/hidlab-gtk/src/prefs.rs:151
+msgid "Export Diagnostics"
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:117
+msgid ""
+"A text report to attach to a bug report. Your user name, computer name and "
+"Bluetooth addresses are left out."
+msgstr ""
+
+#: crates/hidlab-gtk/src/prefs.rs:132
+#, rust-format
+msgid "Diagnostics saved to {file}"
+msgstr ""
+
+#. TRANSLATORS: {error} is the system's message.
+#: crates/hidlab-gtk/src/prefs.rs:175
+#, rust-format
+msgid "Cannot save the diagnostics: {error}"
+msgstr ""
+
 #: crates/hidlab-gtk/src/remaps.rs:25
 msgid "Wheel button"
 msgstr ""
@@ -527,14 +690,14 @@ msgid "Between clicks and free spin"
 msgstr ""
 
 #. TRANSLATORS: {button} is a button name such as "Back".
-#: crates/hidlab-gtk/src/remaps.rs:115
+#: crates/hidlab-gtk/src/remaps.rs:120
 #, rust-format
 msgid "{button} does its own task again"
 msgstr ""
 
 #. TRANSLATORS: {button} and {action} are names, such as
 #. "Back" and "Middle click".
-#: crates/hidlab-gtk/src/remaps.rs:122
+#: crates/hidlab-gtk/src/remaps.rs:127
 #, rust-format
 msgid "{button} now does {action}"
 msgstr ""
@@ -555,77 +718,206 @@ msgstr ""
 msgid "Every button does its own task again"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:38
+#: crates/hidlab-gtk/src/window.rs:40
 msgid "Home"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:43
+#: crates/hidlab-gtk/src/window.rs:45
 msgid "Pointer and scrolling"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:48
+#: crates/hidlab-gtk/src/window.rs:50
 msgid "Buttons"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:371
-msgid "Try Again"
+#. TRANSLATORS: button on the banner about another configurator.
+#: crates/hidlab-gtk/src/window.rs:154
+msgid "How?"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:388
+#: crates/hidlab-gtk/src/window.rs:306
+msgid ""
+"Configure your Logitech mouse on GNOME. Your settings are kept and applied "
+"again whenever the mouse reconnects."
+msgstr ""
+
+#. TRANSLATORS: put your names here, one per line.
+#: crates/hidlab-gtk/src/window.rs:313
+msgid "translator-credits"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:316
+msgid "Trademarks"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:320
+msgid ""
+"Logitech, Logi, MX Master and Logi Options+ are trademarks of Logitech. "
+"Cursiva is an independent project, not affiliated with or endorsed by "
+"Logitech."
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:406
+msgid "_Preferences"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:407
+msgid "_About Cursiva"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:408
+msgid "_Quit"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:414
+msgid "Main Menu"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:464
+msgid "Start the Service"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:465
+msgid "Copy Diagnostics"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:472
+msgid "The Cursiva service isn't running"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:486
+msgid "Switch it on"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:487
+msgid "The switch is underneath"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:491
+msgid "Pick this computer's channel"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:492
+msgid "With the button underneath; its light shows the channel"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:496
+msgid "Check Bluetooth"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:497
+msgid "It must be on and the mouse paired"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:513
+msgid "Open Bluetooth Settings"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:519
+msgid "Looking for your mouse"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:545
+msgid "Copy"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:548
+msgid ""
+"Then switch the mouse off and on. Cursiva itself never needs administrator "
+"rights."
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:562
+msgid ""
+"The mouse is connected, but a permission is missing. Run these commands once "
+"in a terminal: they add a rule that lets your user, and only while you are "
+"logged in, talk to Logitech devices."
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:571
 msgid "Click a part of the mouse to change it"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:410
+#: crates/hidlab-gtk/src/window.rs:593
 msgid "Connection"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:411
+#: crates/hidlab-gtk/src/window.rs:594
 msgid "Battery"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:415
+#: crates/hidlab-gtk/src/window.rs:598
 msgid "Profile"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:416
+#: crates/hidlab-gtk/src/window.rs:599
 msgid "The same settings in every app"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:418
+#: crates/hidlab-gtk/src/window.rs:601
 msgid "General"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:424
+#: crates/hidlab-gtk/src/window.rs:607
 msgid "Active settings"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:426
+#: crates/hidlab-gtk/src/window.rs:609
 msgid "Pointer speed"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:427
+#: crates/hidlab-gtk/src/window.rs:610
 msgid "Wheel"
 msgstr ""
 
 #. TRANSLATORS: {error} is the daemon's message, in English.
-#: crates/hidlab-gtk/src/window.rs:654
+#: crates/hidlab-gtk/src/window.rs:846
 #, rust-format
 msgid "Not changed: {error}"
 msgstr ""
 
-#: crates/hidlab-gtk/src/window.rs:687
+#: crates/hidlab-gtk/src/window.rs:879
 msgid "Undo"
 msgstr ""
 
 #. TRANSLATORS: {unit} is hid-labd.service.
-#: crates/hidlab-gtk/src/window.rs:715
+#: crates/hidlab-gtk/src/window.rs:907
 #, rust-format
 msgid ""
 "The Cursiva service stopped. Start it with `systemctl --user start {unit}`"
 msgstr ""
 
+#: crates/hidlab-gtk/src/window.rs:1005
+msgid "Diagnostics copied"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:1012
+msgid "Commands copied"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:1029
+#, rust-format
+msgid "Cannot open Settings ({error}). Open Settings › Bluetooth yourself."
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:1048
+msgid "_Close"
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:1076
+msgid ""
+"The service applies your settings, even with this window closed. It usually "
+"starts by itself; this time it did not."
+msgstr ""
+
+#: crates/hidlab-gtk/src/window.rs:1086
+msgid ""
+"Cursiva supports the MX Master 3S over Bluetooth. It shows up here as soon "
+"as it connects."
+msgstr ""
+
 #. TRANSLATORS: {error} is the daemon's message, in English.
-#: crates/hidlab-gtk/src/window.rs:802
+#: crates/hidlab-gtk/src/window.rs:1092
 #, rust-format
 msgid "Your settings file has an error: {error}"
 msgstr ""

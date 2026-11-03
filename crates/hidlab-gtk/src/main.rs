@@ -10,12 +10,14 @@ mod i18n;
 mod model;
 mod mouse;
 mod pointer;
+mod prefs;
+mod problems;
 mod remaps;
 mod request;
 mod window;
 
 use adw::prelude::*;
-use gtk::glib;
+use gtk::{gio, glib};
 
 pub const APP_ID: &str = "dev.ozkkar.Cursiva";
 
@@ -23,7 +25,13 @@ fn main() -> glib::ExitCode {
     i18n::init();
     glib::set_application_name("Cursiva");
     let app = adw::Application::builder().application_id(APP_ID).build();
-    app.connect_startup(|_| {
+    app.connect_startup(|app| {
+        let quit = gio::ActionEntry::builder("quit")
+            .activate(|app: &adw::Application, _, _| app.quit())
+            .build();
+        app.add_action_entries([quit]);
+        app.set_accels_for_action("app.quit", &["<Control>q"]);
+        app.set_accels_for_action("win.preferences", &["<Control>comma"]);
         let css = gtk::CssProvider::new();
         css.load_from_string(
             ".cursiva-pressed { background-color: color-mix(in srgb, var(--accent-bg-color) 25%, transparent); }",

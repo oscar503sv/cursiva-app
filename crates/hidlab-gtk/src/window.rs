@@ -16,9 +16,11 @@ use crate::buttons::ButtonsPage;
 use crate::changes::{self, Change, Op};
 use crate::dbus::{self, Event, Subscriptions};
 use crate::geometry::Hotspot;
-use crate::model::{Health, View, fill};
+use crate::model::{Health, View, conflict_text, fill};
 use crate::mouse::MouseView;
 use crate::pointer::PointerPage;
+use crate::prefs;
+use crate::problems;
 use crate::remaps;
 use crate::request::{Request, Section};
 
@@ -55,7 +57,11 @@ fn pages() -> [Page; 3] {
 struct Home {
     states: gtk::Stack,
     no_daemon: adw::StatusPage,
+    start_service: gtk::Button,
+    copy_diagnostics: gtk::Button,
     no_mouse: adw::StatusPage,
+    bluetooth: gtk::Button,
+    copy_udev: gtk::Button,
     device: adw::PreferencesGroup,
     health: adw::ActionRow,
     health_icon: gtk::Image,
@@ -83,7 +89,10 @@ struct Nav {
 }
 
 struct App {
+    window: glib::WeakRef<adw::ApplicationWindow>,
     home: Home,
+    /// Shown above every page while another configurator runs.
+    banner: adw::Banner,
     pointer: Rc<PointerPage>,
     nav: Nav,
     toasts: adw::ToastOverlay,
@@ -140,10 +149,16 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
         stack.add_titled(&home_widget, Some(pages[0].name), &pages[0].title);
         stack.add_titled(&pointer.root, Some(pages[1].name), &pages[1].title);
         stack.add_titled(&buttons.root, Some(pages[2].name), &pages[2].title);
+        let banner = adw::Banner::builder()
+            // TRANSLATORS: button on the banner about another configurator.
+            .button_label(gettext("How?"))
+            .build();
+        let content_view = with_header(&stack, false);
+        content_view.add_top_bar(&banner);
         let content = adw::NavigationPage::builder()
             .title(&pages[0].title)
             .tag("content")
-            .child(&with_header(&stack, false))
+            .child(&content_view)
             .build();
 
         let list = gtk::ListBox::builder()
@@ -176,7 +191,9 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
         let toasts = adw::ToastOverlay::new();
         toasts.set_child(Some(&split));
         App {
+            window: window.downgrade(),
             home,
+            banner,
             pointer,
             nav: Nav {
                 list,
@@ -236,15 +253,8 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     window.set_content(Some(&state.toasts));
 
     state.render(&View::Connecting);
-    let retry = Rc::downgrade(&state);
-    if let Some(button) = state.home.no_daemon.child().and_downcast::<gtk::Button>() {
-        button.connect_clicked(move |_| {
-            if let Some(s) = retry.upgrade() {
-                s.render(&View::Connecting);
-                s.refresh();
-            }
-        });
-    }
+    state.connect_problem_buttons();
+    add_actions(&window, &state);
     // GNOME settings changed elsewhere send no signal: read again when the
     // window comes back to the front.
     let weak = Rc::downgrade(&state);
@@ -266,9 +276,56 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     window
 }
 
+/// Main menu actions: Preferences (Ctrl+,) and About. Quit is an app
+/// action (`main.rs`).
+fn add_actions(window: &adw::ApplicationWindow, state: &Rc<App>) {
+    let weak = Rc::downgrade(state);
+    let preferences = gio::ActionEntry::builder("preferences")
+        .activate(move |w: &adw::ApplicationWindow, _, _| {
+            if let Some(s) = weak.upgrade() {
+                let conn = s.conn.borrow().clone();
+                // Without a daemon the dialog still offers the export.
+                let status = s.status.borrow().clone();
+                prefs::show(w, conn, status.as_ref());
+            }
+        })
+        .build();
+    let about = gio::ActionEntry::builder("about")
+        .activate(|w: &adw::ApplicationWindow, _, _| about_dialog().present(Some(w)))
+        .build();
+    window.add_action_entries([preferences, about]);
+}
+
+fn about_dialog() -> adw::AboutDialog {
+    let about = adw::AboutDialog::builder()
+        .application_name("Cursiva")
+        .application_icon(crate::APP_ID)
+        .developer_name("Oscar Aragon")
+        .version(env!("CARGO_PKG_VERSION"))
+        .comments(gettext(
+            "Configure your Logitech mouse on GNOME. Your settings are kept and applied again whenever the mouse reconnects.",
+        ))
+        .website("https://github.com/oscar503sv/cursiva-app")
+        .issue_url("https://github.com/oscar503sv/cursiva-app/issues")
+        .license_type(gtk::License::Gpl30)
+        .copyright("© 2026 Cursiva contributors")
+        // TRANSLATORS: put your names here, one per line.
+        .translator_credits(gettext("translator-credits"))
+        .build();
+    about.add_legal_section(
+        &gettext("Trademarks"),
+        None,
+        gtk::License::Custom,
+        Some(&gettext(
+            "Logitech, Logi, MX Master and Logi Options+ are trademarks of Logitech. Cursiva is an independent project, not affiliated with or endorsed by Logitech.",
+        )),
+    );
+    about
+}
+
 /// Development aid, debug builds only: with `CURSIVA_DEV_SCREENSHOT=<png>`
 /// the app opens `CURSIVA_DEV_PAGE` (`home`, `pointer`, `pointer:wheel`,
-/// `pointer:thumb`, `buttons`), waits `CURSIVA_DEV_DELAY_MS` (default
+/// `pointer:thumb`, `buttons`, `buttons:<button>`, `preferences`, `about`), waits `CURSIVA_DEV_DELAY_MS` (default
 /// 3000), saves the window as a PNG and quits. `CURSIVA_DEV_SIZE=<w>x<h>`
 /// sets the window size. Used with the broadway backend to look at pages
 /// without a desktop session; see CONTRIBUTING.md.
@@ -297,7 +354,18 @@ fn dev_screenshot(window: &adw::ApplicationWindow, state: &Rc<App>) {
                 "thumb" => Some(Section::Thumb),
                 _ => None,
             };
-            s.show_page(name, section_of);
+            // `preferences` and `about` open those dialogs over Home.
+            // They open a moment later, once the status has arrived.
+            if let ("preferences" | "about", Some(w)) = (name, s.window.upgrade()) {
+                let action = format!("win.{name}");
+                glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
+                    if let Err(e) = gtk::prelude::WidgetExt::activate_action(&w, &action, None) {
+                        eprintln!("cannot open {action}: {e}");
+                    }
+                });
+            } else {
+                s.show_page(name, section_of);
+            }
             // `buttons:back` and so on open that button's picker.
             if let Some(c) = remaps::ROWS.into_iter().find(|c| c.name() == section) {
                 s.buttons.open_picker(c);
@@ -334,6 +402,18 @@ fn with_header(child: &impl IsA<gtk::Widget>, sidebar: bool) -> adw::ToolbarView
     let header = adw::HeaderBar::new();
     if sidebar {
         header.set_show_title(true);
+        let menu = gio::Menu::new();
+        menu.append(Some(&gettext("_Preferences")), Some("win.preferences"));
+        menu.append(Some(&gettext("_About Cursiva")), Some("win.about"));
+        menu.append(Some(&gettext("_Quit")), Some("app.quit"));
+        header.pack_end(
+            &gtk::MenuButton::builder()
+                .icon_name("open-menu-symbolic")
+                .menu_model(&menu)
+                .primary(true)
+                .tooltip_text(gettext("Main Menu"))
+                .build(),
+        );
     }
     view.add_top_bar(&header);
     view.set_content(Some(child));
@@ -363,24 +443,127 @@ fn home_page() -> (gtk::Stack, Home) {
         .build();
     states.add_named(&connecting, Some("connecting"));
 
+    let pill = |label: String, suggested: bool| {
+        let b = gtk::Button::builder()
+            .label(label)
+            .halign(gtk::Align::Center)
+            .css_classes(["pill"])
+            .build();
+        if suggested {
+            b.add_css_class("suggested-action");
+        }
+        b
+    };
+    let column = || {
+        gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(18)
+            .build()
+    };
+
+    let start_service = pill(gettext("Start the Service"), true);
+    let copy_diagnostics = pill(gettext("Copy Diagnostics"), false);
+    let buttons = column();
+    buttons.set_spacing(12);
+    buttons.append(&start_service);
+    buttons.append(&copy_diagnostics);
     let no_daemon = adw::StatusPage::builder()
         .icon_name("dialog-error-symbolic")
-        .title(gettext("Cannot reach the Cursiva service"))
+        .title(gettext("The Cursiva service isn't running"))
         .child(
-            &gtk::Button::builder()
-                .label(gettext("Try Again"))
-                .halign(gtk::Align::Center)
-                .css_classes(["pill", "suggested-action"])
+            &adw::Clamp::builder()
+                .maximum_size(560)
+                .child(&buttons)
                 .build(),
         )
         .build();
     states.add_named(&no_daemon, Some("no-daemon"));
 
+    let steps = adw::PreferencesGroup::new();
+    for (n, title, subtitle) in [
+        (
+            1,
+            gettext("Switch it on"),
+            gettext("The switch is underneath"),
+        ),
+        (
+            2,
+            gettext("Pick this computer's channel"),
+            gettext("With the button underneath; its light shows the channel"),
+        ),
+        (
+            3,
+            gettext("Check Bluetooth"),
+            gettext("It must be on and the mouse paired"),
+        ),
+    ] {
+        let row = adw::ActionRow::builder()
+            .title(title)
+            .subtitle(subtitle)
+            .build();
+        row.add_prefix(
+            &gtk::Label::builder()
+                .label(n.to_string())
+                .css_classes(["title-3", "accent", "numeric"])
+                .width_chars(2)
+                .build(),
+        );
+        steps.add(&row);
+    }
+    let bluetooth = pill(gettext("Open Bluetooth Settings"), false);
+    let no_mouse_box = column();
+    no_mouse_box.append(&steps);
+    no_mouse_box.append(&bluetooth);
     let no_mouse = adw::StatusPage::builder()
         .icon_name("input-mouse-symbolic")
-        .title(gettext("Connect your mouse"))
+        .title(gettext("Looking for your mouse"))
+        .child(
+            &adw::Clamp::builder()
+                .maximum_size(480)
+                .child(&no_mouse_box)
+                .build(),
+        )
         .build();
     states.add_named(&no_mouse, Some("no-mouse"));
+
+    let commands = gtk::Label::builder()
+        .label(problems::udev_commands().trim_end())
+        .css_classes(["monospace"])
+        .selectable(true)
+        .wrap(true)
+        .wrap_mode(gtk::pango::WrapMode::WordChar)
+        .xalign(0.0)
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+    let commands_card = gtk::Frame::builder()
+        .child(&commands)
+        .css_classes(["view"])
+        .build();
+    let copy_udev = pill(gettext("Copy"), true);
+    let after = gtk::Label::builder()
+        .label(gettext(
+            "Then switch the mouse off and on. Cursiva itself never needs administrator rights.",
+        ))
+        .wrap(true)
+        .justify(gtk::Justification::Center)
+        .css_classes(["dim-label"])
+        .build();
+    let no_access_box = column();
+    no_access_box.append(&commands_card);
+    no_access_box.append(&copy_udev);
+    no_access_box.append(&after);
+    let no_access = adw::StatusPage::builder()
+        .icon_name("dialog-password-symbolic")
+        .title(gettext("Cursiva can't reach the mouse"))
+        .description(gettext(
+            "The mouse is connected, but a permission is missing. Run these commands once in a terminal: they add a rule that lets your user, and only while you are logged in, talk to Logitech devices.",
+        ))
+        .child(&adw::Clamp::builder().maximum_size(640).child(&no_access_box).build())
+        .build();
+    states.add_named(&no_access, Some("no-access"));
 
     let mouse = MouseView::new();
     mouse.set_halign(gtk::Align::Center);
@@ -459,7 +642,11 @@ fn home_page() -> (gtk::Stack, Home) {
     let home = Home {
         states: states.clone(),
         no_daemon,
+        start_service,
+        copy_diagnostics,
         no_mouse,
+        bluetooth,
+        copy_udev,
         device,
         health,
         health_icon,
@@ -787,21 +974,116 @@ impl App {
         });
     }
 
+    fn toast_text(&self, text: &str) {
+        self.toasts.add_toast(adw::Toast::new(text));
+    }
+
+    /// Buttons of the problem screens and the conflict banner.
+    fn connect_problem_buttons(self: &Rc<Self>) {
+        let h = &self.home;
+        let weak = Rc::downgrade(self);
+        h.start_service.connect_clicked(move |_| {
+            let Some(s) = weak.upgrade() else { return };
+            s.render(&View::Connecting);
+            if s.conn.borrow().is_some() {
+                s.refresh();
+            } else {
+                glib::spawn_future_local(start(Rc::downgrade(&s)));
+            }
+        });
+        let weak = Rc::downgrade(self);
+        h.copy_diagnostics.connect_clicked(move |button| {
+            let Some(s) = weak.upgrade() else { return };
+            let conn = s.conn.borrow().clone();
+            let (weak, button) = (Rc::downgrade(&s), button.clone());
+            button.set_sensitive(false);
+            glib::spawn_future_local(async move {
+                let text = prefs::diagnostics_text(conn).await;
+                button.set_sensitive(true);
+                let Some(s) = weak.upgrade() else { return };
+                button.clipboard().set_text(&text);
+                s.toast_text(&gettext("Diagnostics copied"));
+            });
+        });
+        let weak = Rc::downgrade(self);
+        h.copy_udev.connect_clicked(move |button| {
+            button.clipboard().set_text(&problems::udev_commands());
+            if let Some(s) = weak.upgrade() {
+                s.toast_text(&gettext("Commands copied"));
+            }
+        });
+        let weak = Rc::downgrade(self);
+        h.bluetooth.connect_clicked(move |_| {
+            let Some(s) = weak.upgrade() else { return };
+            let Some(conn) = s.conn.borrow().clone() else {
+                return;
+            };
+            let weak = Rc::downgrade(&s);
+            glib::spawn_future_local(async move {
+                if let Err(e) = dbus::open_bluetooth_settings(&conn).await
+                    && let Some(s) = weak.upgrade()
+                {
+                    s.toast_text(&fill(
+                        // TRANSLATORS: {error} is the system's message.
+                        &gettext(
+                            "Cannot open Settings ({error}). Open Settings › Bluetooth yourself.",
+                        ),
+                        &[("error", &e)],
+                    ));
+                }
+            });
+        });
+        let weak = Rc::downgrade(self);
+        self.banner.connect_button_clicked(move |_| {
+            let Some(s) = weak.upgrade() else { return };
+            let text = s
+                .status
+                .borrow()
+                .as_ref()
+                .and_then(|st| st.conflicts.first().map(conflict_text));
+            let (Some((title, advice)), Some(window)) = (text, s.window.upgrade()) else {
+                return;
+            };
+            let dialog = adw::AlertDialog::new(Some(&title), Some(&advice));
+            dialog.add_response("close", &gettext("_Close"));
+            dialog.present(Some(&window));
+        });
+    }
+
     fn render(self: &Rc<Self>, view: &View) {
         self.pointer.update(view, self.status.borrow().as_ref());
         self.buttons.update(view, self.status.borrow().as_ref());
         self.update_lease();
+        let conflict = match view {
+            View::NoDaemon(_) | View::Connecting => None,
+            _ => self
+                .status
+                .borrow()
+                .as_ref()
+                .and_then(|s| s.conflicts.first().map(conflict_text)),
+        };
+        if let Some((title, _)) = &conflict {
+            self.banner.set_title(&glib::markup_escape_text(title));
+        }
+        self.banner.set_revealed(conflict.is_some());
         let h = &self.home;
         match view {
             View::Connecting => h.states.set_visible_child_name("connecting"),
             View::NoDaemon(err) => {
+                let text = format!(
+                    "{}\n\n{err}",
+                    gettext(
+                        "The service applies your settings, even with this window closed. It usually starts by itself; this time it did not."
+                    )
+                );
                 h.no_daemon
-                    .set_description(Some(&glib::markup_escape_text(err)));
+                    .set_description(Some(&glib::markup_escape_text(&text)));
                 h.states.set_visible_child_name("no-daemon");
             }
+            View::NoAccess => h.states.set_visible_child_name("no-access"),
             View::NoMouse { config_error } => {
                 let mut text = gettext(
-                    "Turn the mouse on and connect it over Bluetooth. Cursiva finds it by itself.",
+                    "Cursiva supports the MX Master 3S over Bluetooth. It shows up here as soon as it connects.",
                 );
                 if let Some(err) = config_error {
                     text.push_str("\n\n");

@@ -8,7 +8,7 @@ use gtk::glib;
 use gtk::glib::prelude::ToVariant;
 use hidlab_api::daemon::{
     ApplyReport, BUS_NAME, BatteryEvent, ButtonEvent, INTERFACE, ItemResult, OBJECT_PATH,
-    ResetReply, SetReply, Status, UNIT,
+    ResetReply, SetReply, StartReply, Status, UNIT,
 };
 
 use crate::changes::Op;
@@ -40,6 +40,13 @@ pub async fn session() -> Result<gio::DBusConnection, String> {
 
 /// Calls `GetStatus` and parses its JSON.
 pub async fn status(conn: &gio::DBusConnection) -> Result<Status, String> {
+    // Development aid, debug builds only: show a saved status instead
+    // (screenshots of states the real mouse is not in; see CONTRIBUTING.md).
+    #[cfg(debug_assertions)]
+    if let Some(path) = std::env::var_os("CURSIVA_DEV_STATUS") {
+        let json = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        return parse_status(&json);
+    }
     let reply = conn
         .call_future(
             Some(BUS_NAME),
@@ -116,6 +123,70 @@ pub async fn watch_buttons(conn: &gio::DBusConnection, seconds: u32) -> Result<u
         .await
         .map_err(|e| refused(&e))?;
     Ok(reply.child_value(0).get().unwrap_or_default())
+}
+
+/// Calls a method of the daemon that answers one string.
+async fn call_text(
+    conn: &gio::DBusConnection,
+    method: &str,
+    args: Option<&glib::Variant>,
+) -> Result<String, String> {
+    let reply = conn
+        .call_future(
+            Some(BUS_NAME),
+            OBJECT_PATH,
+            INTERFACE,
+            method,
+            args,
+            Some(glib::VariantTy::new("(s)").expect("valid type")),
+            gio::DBusCallFlags::NONE,
+            TIMEOUT_MS,
+        )
+        .await
+        .map_err(|e| refused(&e))?;
+    Ok(reply.child_value(0).get().unwrap_or_default())
+}
+
+/// The daemon's sanitized diagnostics report.
+pub async fn diagnostics(conn: &gio::DBusConnection) -> Result<String, String> {
+    call_text(conn, "GetDiagnostics", None).await
+}
+
+/// Turns starting at login on or off; returns the state systemd reports
+/// afterwards.
+pub async fn set_start_at_login(
+    conn: &gio::DBusConnection,
+    on: bool,
+) -> Result<Option<bool>, String> {
+    let json = call_text(conn, "SetStartAtLogin", Some(&(on,).to_variant())).await?;
+    serde_json::from_str::<StartReply>(&json)
+        .map(|r| r.start_at_login)
+        .map_err(|e| e.to_string())
+}
+
+/// Opens the Bluetooth panel of GNOME Settings through its
+/// `launch-panel` action.
+pub async fn open_bluetooth_settings(conn: &gio::DBusConnection) -> Result<(), String> {
+    let panel = ("bluetooth", Vec::<glib::Variant>::new()).to_variant();
+    let args = (
+        "launch-panel",
+        vec![glib::Variant::from_variant(&panel)],
+        std::collections::HashMap::<String, glib::Variant>::new(),
+    )
+        .to_variant();
+    conn.call_future(
+        Some("org.gnome.Settings"),
+        "/org/gnome/Settings",
+        "org.gtk.Actions",
+        "Activate",
+        Some(&args),
+        None,
+        gio::DBusCallFlags::NONE,
+        TIMEOUT_MS,
+    )
+    .await
+    .map(|_| ())
+    .map_err(|e| e.message().to_owned())
 }
 
 /// Runs one change call and checks the daemon's answer.

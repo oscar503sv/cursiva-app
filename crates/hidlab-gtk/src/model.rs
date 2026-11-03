@@ -2,7 +2,7 @@
 //! tested without a display.
 
 use gettextrs::gettext;
-use hidlab_api::daemon::{Battery, Status};
+use hidlab_api::daemon::{ApplyRecord, Battery, Conflict, Status, Trigger};
 use hidlab_api::settings::{SettingKind, SettingValue, THRESHOLD_OFF};
 
 /// The window's state.
@@ -16,6 +16,8 @@ pub enum View {
     NoMouse {
         config_error: Option<String>,
     },
+    /// The daemon sees the mouse but may not open it (udev rule missing).
+    NoAccess,
     Connected(Summary),
 }
 
@@ -63,6 +65,10 @@ impl View {
         match self {
             View::Connecting => (gettext("Connecting to the Cursiva service…"), String::new()),
             View::NoDaemon(e) => (gettext("Cannot reach the Cursiva service"), e.clone()),
+            View::NoAccess => (
+                gettext("Cursiva can't reach the mouse"),
+                gettext("Home shows how to fix it."),
+            ),
             _ => (
                 gettext("Connect your mouse"),
                 gettext(
@@ -78,6 +84,9 @@ impl View {
                 config_error: status.config_error.clone(),
             };
         };
+        if device.access == "permission_denied" {
+            return View::NoAccess;
+        }
         let (health, headline, detail) = health(status);
         View::Connected(Summary {
             name: device.name.clone(),
@@ -127,7 +136,7 @@ fn health(status: &Status) -> (Health, String, Option<String>) {
         return (
             Health::Warning,
             gettext("Another program also configures the mouse"),
-            Some(c.advice()),
+            Some(conflict_text(c).0),
         );
     }
     match &status.last_apply {
@@ -199,6 +208,69 @@ pub fn wheel_text(mode: Option<SettingValue>, threshold: Option<SettingValue>) -
     }
 }
 
+/// Title of the conflict banner and the advice behind its "How?" button.
+pub fn conflict_text(c: &Conflict) -> (String, String) {
+    let pid = c.pid.to_string();
+    let title = fill(
+        // TRANSLATORS: {program} is a program name such as solaar.
+        &gettext("{program} is running and may also change the mouse"),
+        &[("program", &c.program)],
+    );
+    let stop = match c.program.as_str() {
+        "logid" => gettext(
+            "Stop it in a terminal with `sudo systemctl stop logid`, and disable it with `sudo systemctl disable logid` if you do not need it.",
+        ),
+        _ => gettext(
+            "Quit Solaar from its icon in the top bar, or run `pkill solaar` in a terminal. To stop it from starting with your session, turn off its autostart in Solaar or remove `~/.config/autostart/solaar.desktop`.",
+        ),
+    };
+    let advice = fill(
+        // TRANSLATORS: {program} is a program name; {pid} its process number.
+        &gettext(
+            "{program} (process {pid}) can also configure the mouse. When two programs change the same setting, they undo each other's changes and the mouse may not behave as you set it here.",
+        ),
+        &[("program", &c.program), ("pid", &pid)],
+    );
+    (title, format!("{advice}\n\n{stop}"))
+}
+
+/// "Last time settings were applied" in Preferences, for example
+/// `On reconnect, 3 min ago · verified twice in 1726 ms`.
+pub fn last_apply_text(record: Option<&ApplyRecord>, now_unix: u64) -> String {
+    let Some(r) = record else {
+        return gettext("Not since the service started");
+    };
+    let when = match r.trigger {
+        Trigger::Start => gettext("When the service started"),
+        Trigger::Connect => gettext("On reconnect"),
+        Trigger::Resume => gettext("On wake-up"),
+        Trigger::Reapply => gettext("On reapply"),
+        Trigger::Set => gettext("After a change"),
+        Trigger::Reset => gettext("After a restore"),
+    };
+    let ago = now_unix.saturating_sub(r.at_unix);
+    let ago = match ago {
+        0..60 => gettext("just now"),
+        60..3600 => fill(&gettext("{n} min ago"), &[("n", &(ago / 60).to_string())]),
+        3600..86_400 => fill(&gettext("{n} h ago"), &[("n", &(ago / 3600).to_string())]),
+        _ => fill(
+            &gettext("{n} days ago"),
+            &[("n", &(ago / 86_400).to_string())],
+        ),
+    };
+    let ms = r.total_ms().to_string();
+    let check = match (&r.second_check, r.ok()) {
+        (_, false) => gettext("some settings did not stick"),
+        (Some(_), true) => fill(&gettext("verified twice in {ms} ms"), &[("ms", &ms)]),
+        (None, true) => fill(&gettext("verified in {ms} ms"), &[("ms", &ms)]),
+    };
+    // TRANSLATORS: {when}, {ago} and {check} are the parts above.
+    fill(
+        &gettext("{when}, {ago} · {check}"),
+        &[("when", &when), ("ago", &ago), ("check", &check)],
+    )
+}
+
 #[cfg(test)]
 mod tests {
     //! Status documents here are SYNTHETIC.
@@ -237,6 +309,61 @@ mod tests {
 
     fn doc(device: &str, desired: &str) -> Status {
         status(&BASE.replace("DEVICE", device).replace("DESIRED", desired))
+    }
+
+    #[test]
+    fn conflict_text_names_the_program() {
+        let c = Conflict {
+            program: "solaar".into(),
+            pid: 4242,
+        };
+        let (title, advice) = conflict_text(&c);
+        assert!(title.starts_with("solaar is running"));
+        assert!(advice.contains("process 4242"));
+        assert!(advice.contains("pkill solaar"));
+    }
+
+    #[test]
+    fn a_device_without_access_is_its_own_view() {
+        let st = doc(
+            &DEVICE.replace(r#""access": "ok""#, r#""access": "permission_denied""#),
+            "[]",
+        );
+        assert_eq!(View::from_status(&st), View::NoAccess);
+    }
+
+    #[test]
+    fn last_apply_in_words() {
+        use hidlab_api::daemon::{ApplyReport, SecondCheck};
+        let report = ApplyReport {
+            items: vec![],
+            ok: true,
+            elapsed_ms: 40,
+            ignored_reports: 0,
+        };
+        let mut r = ApplyRecord {
+            trigger: Trigger::Connect,
+            at_unix: 1000,
+            report,
+            since_event_ms: 300,
+            second_check: Some(SecondCheck {
+                ok: true,
+                since_event_ms: 1726,
+                overwritten: vec![],
+                reapplied: None,
+            }),
+        };
+        assert_eq!(
+            last_apply_text(Some(&r), 1000 + 180),
+            "On reconnect, 3 min ago · verified twice in 1726 ms"
+        );
+        r.second_check = None;
+        r.trigger = Trigger::Set;
+        assert_eq!(
+            last_apply_text(Some(&r), 1010),
+            "After a change, just now · verified in 300 ms"
+        );
+        assert_eq!(last_apply_text(None, 0), "Not since the service started");
     }
 
     #[test]
