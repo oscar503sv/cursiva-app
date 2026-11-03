@@ -27,7 +27,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
 | 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
-| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 done (H5C, O-12). 5d GTK app skeleton done (`cursiva`, H5D passed). 5e Pointer & scrolling page built, hardware test H5E pending |
+| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 done (H5C, O-12). 5d GTK app skeleton done (`cursiva`, H5D passed). 5e Pointer & scrolling page done (H5E passed after two slider fixes). Next: 5f Buttons page and action picker |
 | 6–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)

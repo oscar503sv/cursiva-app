@@ -1153,7 +1153,7 @@ Run by the user with the phase 5e app; no captures kept.
 
 | Test | Result | Notes |
 |---|---|---|
-| H5E-01 | Fail, fixed | Dragging the Speed slider gave only about 3000 or 8000 DPI. Cause: the slider rounded its position to whole numbers, and positions are ln(DPI), so only about 200, 400, 1100, 3000 and 8000 were reachable. Typed values worked. Fixed (no rounding; a test drives the slider as a drag does). Repeated: every step reached, but a slow drag from 1000 to 1600 showed one toast per 50 DPI, because each pause over 300 ms sent a change. Fixed: a drag sends once on release, and quick changes of one setting share a toast whose Undo goes back to before the first; to repeat |
+| H5E-01 | Fail, fixed | Dragging the Speed slider gave only about 3000 or 8000 DPI. Cause: the slider rounded its position to whole numbers, and positions are ln(DPI), so only about 200, 400, 1100, 3000 and 8000 were reachable. Typed values worked. Fixed (no rounding; a test drives the slider as a drag does). Repeated: every step reached, but a slow drag from 1000 to 1600 showed one toast per 50 DPI, because each pause over 300 ms sent a change. Fixed: a drag sends once on release, and quick changes of one setting share a toast whose Undo goes back to before the first. Third run: pass, one toast |
 | H5E-02 | Pass | |
 | H5E-03 | Pass | |
 | H5E-04 | Pass | |
