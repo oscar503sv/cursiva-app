@@ -37,6 +37,27 @@ pub struct Change {
     pub label: String,
 }
 
+/// The settings a list of calls touches, sorted: two changes with the same
+/// targets in a row are one change for Undo.
+pub fn targets(ops: &[Op]) -> Vec<String> {
+    let mut t: Vec<String> = ops.iter().map(|o| o.call().1[0].clone()).collect();
+    t.sort_unstable();
+    t.dedup();
+    t
+}
+
+/// The Undo of `next`. When the previous change's toast is still shown and
+/// touched the same settings, Undo goes back to before the previous one, so
+/// several quick moves of one control undo together.
+pub fn merged_undo(previous: Option<(&[String], &[Op])>, next: &Change) -> Vec<Op> {
+    match previous {
+        Some((targets_before, undo)) if targets_before == targets(&next.ops).as_slice() => {
+            undo.to_vec()
+        }
+        _ => next.undo.clone(),
+    }
+}
+
 /// The three wheel modes of the mockup, over SmartShift mode and threshold.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WheelMode {
@@ -544,6 +565,22 @@ mod tests {
         );
         assert_eq!(c.label, "Acceleration: Flat");
         assert_eq!(set_desktop(&st, DesktopSetting::NaturalScroll, "off"), None);
+    }
+
+    #[test]
+    fn quick_changes_of_one_setting_undo_together() {
+        let first = set(&status(&[Dpi(1000)], &[Dpi(1000)], None), Dpi(1300)).unwrap();
+        let second = set(&status(&[Dpi(1300)], &[Dpi(1300)], None), Dpi(1600)).unwrap();
+        let t = targets(&first.ops);
+        assert_eq!(t, ["dpi"]);
+        assert_eq!(
+            merged_undo(Some((&t, &first.undo)), &second),
+            [Op::Set(Dpi(1000))]
+        );
+        // Another setting, or no toast shown: its own undo.
+        let invert = set(&status(&[Inv(false)], &[], None), Inv(true)).unwrap();
+        assert_eq!(merged_undo(Some((&t, &first.undo)), &invert), invert.undo);
+        assert_eq!(merged_undo(None, &second), [Op::Set(Dpi(1300))]);
     }
 
     #[test]

@@ -92,6 +92,10 @@ pub struct PointerPage {
     dpi_scale: RefCell<Option<DpiScale>>,
     /// Debounce timers by control, see [`SETTLE`].
     pending: RefCell<HashMap<&'static str, glib::SourceId>>,
+    /// True while a mouse button or finger holds a slider.
+    dragging: Cell<bool>,
+    /// Requests kept until the slider is let go, by control.
+    held: RefCell<HashMap<&'static str, (Sink, Request)>>,
 }
 
 fn dim(text: &str) -> gtk::Label {
@@ -335,8 +339,12 @@ impl PointerPage {
             syncing: Cell::new(false),
             dpi_scale: RefCell::new(None),
             pending: RefCell::new(HashMap::new()),
+            dragging: Cell::new(false),
+            held: RefCell::new(HashMap::new()),
         });
         page.connect(&sink);
+        page.hold_while_pressed(&page.dpi);
+        page.hold_while_pressed(&page.push);
         page
     }
 
@@ -417,10 +425,15 @@ impl PointerPage {
         });
     }
 
-    /// Sends `request` once the control has been still for [`SETTLE`].
+    /// Sends `request` when the slider is let go or, for keys and the
+    /// scroll wheel, once the control has been still for [`SETTLE`].
     fn later(self: &Rc<Self>, key: &'static str, sink: Sink, request: Request) {
         if let Some(id) = self.pending.borrow_mut().remove(key) {
             id.remove();
+        }
+        if self.dragging.get() {
+            self.held.borrow_mut().insert(key, (sink, request));
+            return;
         }
         let weak = Rc::downgrade(self);
         let id = glib::timeout_add_local_once(SETTLE, move || {
@@ -432,8 +445,38 @@ impl PointerPage {
         self.pending.borrow_mut().insert(key, id);
     }
 
+    /// Watches presses on a slider, so a drag sends one change at the end
+    /// rather than one per pause.
+    fn hold_while_pressed(self: &Rc<Self>, scale: &gtk::Scale) {
+        let events = gtk::EventControllerLegacy::new();
+        events.set_propagation_phase(gtk::PropagationPhase::Capture);
+        let weak = Rc::downgrade(self);
+        events.connect_event(move |_, event| {
+            let Some(p) = weak.upgrade() else {
+                return glib::Propagation::Proceed;
+            };
+            match event.event_type() {
+                gtk::gdk::EventType::ButtonPress | gtk::gdk::EventType::TouchBegin => {
+                    p.dragging.set(true);
+                }
+                gtk::gdk::EventType::ButtonRelease
+                | gtk::gdk::EventType::TouchEnd
+                | gtk::gdk::EventType::TouchCancel => {
+                    p.dragging.set(false);
+                    let held: Vec<_> = p.held.borrow_mut().drain().collect();
+                    for (_, (sink, request)) in held {
+                        sink(request);
+                    }
+                }
+                _ => {}
+            }
+            glib::Propagation::Proceed
+        });
+        scale.add_controller(events);
+    }
+
     fn busy(&self, key: &'static str) -> bool {
-        self.pending.borrow().contains_key(key)
+        self.pending.borrow().contains_key(key) || self.held.borrow().contains_key(key)
     }
 
     fn show_dpi(&self, d: u16) {

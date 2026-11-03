@@ -12,7 +12,7 @@ use gtk::{gio, glib};
 use hidlab_api::daemon::{DesktopSetting, Status, UNIT};
 use hidlab_api::settings::SettingValue;
 
-use crate::changes::{self, Change};
+use crate::changes::{self, Change, Op};
 use crate::dbus::{self, Event, Subscriptions};
 use crate::geometry::Hotspot;
 use crate::model::{Health, View, fill};
@@ -67,6 +67,10 @@ struct Home {
     wheel_row: adw::ActionRow,
 }
 
+/// A success toast on screen, the settings its change touched
+/// (`changes::targets`) and its Undo.
+type ShownToast = (adw::Toast, Vec<String>, Vec<Op>);
+
 /// Widgets that switch pages.
 struct Nav {
     list: gtk::ListBox,
@@ -84,6 +88,8 @@ struct App {
     /// whether to offer Undo.
     queue: RefCell<VecDeque<(Change, bool)>>,
     running: Cell<bool>,
+    /// The success toast on screen: the settings it changed and its Undo.
+    last_toast: RefCell<Option<ShownToast>>,
     conn: RefCell<Option<gio::DBusConnection>>,
     subscriptions: RefCell<Option<Subscriptions>>,
     status: RefCell<Option<Status>>,
@@ -174,6 +180,7 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
             toasts,
             queue: RefCell::new(VecDeque::new()),
             running: Cell::new(false),
+            last_toast: RefCell::new(None),
             conn: RefCell::new(None),
             subscriptions: RefCell::new(None),
             status: RefCell::new(None),
@@ -575,11 +582,35 @@ impl App {
                 t
             }
             None if undoable => {
+                // One toast at a time: a quick follow-up change of the same
+                // setting replaces it and keeps its Undo (see
+                // `changes::merged_undo`).
+                let previous = self.last_toast.borrow_mut().take();
+                let undo_ops = changes::merged_undo(
+                    previous
+                        .as_ref()
+                        .map(|(_, t, u)| (t.as_slice(), u.as_slice())),
+                    change,
+                );
+                if let Some((toast, _, _)) = previous {
+                    toast.dismiss();
+                }
                 let t = adw::Toast::new(&glib::markup_escape_text(&change.label));
-                if !change.undo.is_empty() {
+                *self.last_toast.borrow_mut() =
+                    Some((t.clone(), changes::targets(&change.ops), undo_ops.clone()));
+                let weak = Rc::downgrade(self);
+                t.connect_dismissed(move |t| {
+                    if let Some(s) = weak.upgrade() {
+                        let mut last = s.last_toast.borrow_mut();
+                        if last.as_ref().is_some_and(|(shown, _, _)| shown == t) {
+                            *last = None;
+                        }
+                    }
+                });
+                if !undo_ops.is_empty() {
                     t.set_button_label(Some(&gettext("Undo")));
                     let undo = Change {
-                        ops: change.undo.clone(),
+                        ops: undo_ops,
                         undo: Vec::new(),
                         label: String::new(),
                     };
