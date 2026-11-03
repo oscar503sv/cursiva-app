@@ -27,7 +27,7 @@ impl Service {
 
 #[interface(name = "dev.ozkkar.Cursiva.Daemon1")]
 impl Service {
-    /// Status JSON (`hid-lab.daemon-status/3`).
+    /// Status JSON (`hid-lab.daemon-status/4`).
     fn get_status(&self) -> fdo::Result<String> {
         json(&self.lock()?.status())
     }
@@ -78,6 +78,22 @@ impl Service {
             .set_desktop(&setting, &value)
             .map_err(fdo::Error::Failed)?;
         json(&reply)
+    }
+
+    /// Enables or disables `hid-labd.service` at login; returns
+    /// `hid-lab.daemon-start/1` JSON.
+    fn set_start_at_login(&self, on: bool) -> fdo::Result<String> {
+        crate::autostart::set(on).map_err(fdo::Error::Failed)?;
+        crate::info!("start at login: {}", if on { "on" } else { "off" });
+        json(&crate::api::StartReply {
+            schema: crate::api::START_SCHEMA.into(),
+            start_at_login: crate::autostart::read(),
+        })
+    }
+
+    /// A sanitized plain-text report for bug reports (`hid-lab.diagnostics/1`).
+    fn get_diagnostics(&self) -> fdo::Result<String> {
+        Ok(crate::diagnostics::report(&*self.lock()?))
     }
 
     /// Sends `ButtonPressed` for `seconds` (at most 60; 0 stops). Clients

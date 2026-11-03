@@ -11,6 +11,8 @@
 //! | `Reset` | setting name or `all` | [`ResetReply`] JSON |
 //! | `SetDesktop` | [`DesktopSetting`] name, value | [`DesktopReply`] JSON |
 //! | `WatchButtons` | seconds (0 stops) | seconds granted |
+//! | `SetStartAtLogin` | on or off | [`StartReply`] JSON |
+//! | `GetDiagnostics` | — | text report, [`DIAGNOSTICS_SCHEMA`] |
 //!
 //! Signals: `DeviceChanged` ([`DeviceEvent`] JSON), `Applied`
 //! ([`ApplyRecord`] JSON), `ModeChanged` ([`ModeEvent`] JSON),
@@ -28,11 +30,22 @@ pub const INTERFACE: &str = "dev.ozkkar.Cursiva.Daemon1";
 /// systemd user unit, for messages.
 pub const UNIT: &str = "hid-labd.service";
 
-pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/3";
+pub const STATUS_SCHEMA: &str = "hid-lab.daemon-status/4";
 pub const SET_SCHEMA: &str = "hid-lab.daemon-set/1";
 pub const REAPPLY_SCHEMA: &str = "hid-lab.daemon-reapply/1";
 pub const RESET_SCHEMA: &str = "hid-lab.daemon-reset/1";
 pub const DESKTOP_SCHEMA: &str = "hid-lab.daemon-desktop/1";
+pub const START_SCHEMA: &str = "hid-lab.daemon-start/1";
+/// First line of the `GetDiagnostics` text.
+pub const DIAGNOSTICS_SCHEMA: &str = "hid-lab.diagnostics/1";
+
+/// Reply of `SetStartAtLogin`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StartReply {
+    pub schema: String,
+    /// Whether `hid-labd.service` is enabled now, as systemd reports it.
+    pub start_at_login: Option<bool>,
+}
 
 /// A GNOME pointer setting the daemon reads and writes for the app (see
 /// `crate::gnome`). GNOME stores it; it is not in the config file.
@@ -272,6 +285,10 @@ pub struct Status {
     pub desktop: DesktopSettings,
     pub last_apply: Option<ApplyRecord>,
     pub conflicts: Vec<Conflict>,
+    /// Whether systemd starts the daemon at login (`hid-labd.service`
+    /// enabled); `None` when systemd could not say. New in status 4.
+    #[serde(default)]
+    pub start_at_login: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

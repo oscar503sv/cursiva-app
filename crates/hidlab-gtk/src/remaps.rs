@@ -225,6 +225,7 @@ mod tests {
             },
             last_apply: None,
             conflicts: vec![],
+            start_at_login: None,
         }
     }
 

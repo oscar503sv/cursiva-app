@@ -94,7 +94,7 @@ fn now_unix() -> u64 {
         .map_or(0, |d| d.as_secs())
 }
 
-fn access_label(a: Access) -> &'static str {
+pub(crate) fn access_label(a: Access) -> &'static str {
     match a {
         Access::Ok => "ok",
         Access::PermissionDenied => "permission_denied",
@@ -201,6 +201,11 @@ impl Engine {
                 self.config_error = Some(e.to_string());
             }
         }
+    }
+
+    /// The config file and the state file.
+    pub fn paths(&self) -> (&std::path::Path, &std::path::Path) {
+        (&self.config_path, &self.state_path)
     }
 
     /// Looks for the device again. Returns an event if presence changed.
@@ -817,6 +822,7 @@ impl Engine {
             desktop: gnome::read(),
             last_apply: self.last_apply().cloned(),
             conflicts: conflicts::scan(),
+            start_at_login: crate::autostart::read(),
         }
     }
 }

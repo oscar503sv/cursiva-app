@@ -120,6 +120,7 @@ hid-lab reset dpi                      # forget a setting, write the default
 hid-lab reset all
 hid-lab buttons                        # show presses for 30 s
 hid-lab reapply                        # after editing config.toml
+hid-lab diagnostics > report.txt       # sanitized report for a bug report
 ```
 
 Every write to the mouse is read back. `status` reads the current values
@@ -186,12 +187,14 @@ except `WatchButtons`; the types are in the `hidlab-api` crate
 
 | Member | Kind | Arguments | Returns |
 |---|---|---|---|
-| `GetStatus` | method | — | `hid-lab.daemon-status/3` |
+| `GetStatus` | method | — | `hid-lab.daemon-status/4` |
 | `Set` | method | setting, value (strings, as in `hid-lab set`) | `hid-lab.daemon-set/1` |
 | `Reset` | method | setting name or `all` | `hid-lab.daemon-reset/1` |
 | `SetDesktop` | method | `natural-scroll` or `acceleration`, value | `hid-lab.daemon-desktop/1` |
 | `WatchButtons` | method | seconds, `u` (at most 60; 0 stops) | seconds granted, `u` |
 | `Reapply` | method | — | `hid-lab.daemon-reapply/1` |
+| `SetStartAtLogin` | method | on, `b` | `hid-lab.daemon-start/1` (the state systemd reports afterwards) |
+| `GetDiagnostics` | method | — | plain text, first line `hid-lab.diagnostics/1` |
 | `DeviceChanged` | signal | `hid-lab.daemon-device/1` | — |
 | `Applied` | signal | apply record (trigger, report, times, second check); sent again when the second check finishes | — |
 | `ModeChanged` | signal | `hid-lab.daemon-mode/1` | — |
@@ -205,8 +208,25 @@ off, when `desired` holds 255) and `desktop` (the GNOME settings). The
 remaps appear in `desired` and `current` like the other settings, as
 `remap-<button>`.
 
+Status 4 adds `start_at_login`: whether `hid-labd.service` is enabled
+(`systemctl --user is-enabled`), or null when systemd does not say.
+`SetStartAtLogin` runs `systemctl --user enable` or `disable` on the unit;
+it does not start or stop the running daemon.
+
 Errors are `org.freedesktop.DBus.Error.Failed` with a message that says
 what to do.
+
+## Diagnostics
+
+`GetDiagnostics` (and `hid-lab diagnostics`, and "Export Diagnostics" in
+the app) returns a text report: versions, kernel, OS, desktop, whether the
+daemon starts at login, the Logitech hidraw devices, the status, the
+config and state files and the last 200 log lines at info level or above
+(debug lines, which may carry raw bytes, are never kept). Before it is
+returned the report is sanitized: the home folder becomes `~`, the host
+name `<host>`, the user name `<user>`, and anything shaped like a
+Bluetooth address `<bt-address>`. It holds no `HID_UNIQ` and no unit ID.
+Read it before attaching it anywhere.
 
 ```bash
 busctl --user call dev.ozkkar.Cursiva.Daemon1 /dev/ozkkar/Cursiva/Daemon1 \

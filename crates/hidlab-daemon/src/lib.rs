@@ -7,8 +7,10 @@
 
 pub mod api;
 pub mod apply;
+pub mod autostart;
 pub mod config;
 pub mod conflicts;
+pub mod diagnostics;
 pub mod engine;
 pub mod gnome;
 pub mod log;

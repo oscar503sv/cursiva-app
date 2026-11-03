@@ -3,8 +3,11 @@
 //! turns into the message priority. Raw HID bytes are logged only at debug
 //! (requirements §17).
 
+use std::collections::VecDeque;
 use std::fmt;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
@@ -36,6 +39,12 @@ impl Level {
 }
 
 static MAX: AtomicU8 = AtomicU8::new(Level::Info as u8);
+
+/// Lines kept in memory for `GetDiagnostics`.
+pub const RECENT_LINES: usize = 200;
+/// The last info, warning and error lines. Debug lines are left out: they
+/// can carry raw HID bytes (requirements §17).
+static RECENT: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
 static JOURNAL: AtomicBool = AtomicBool::new(false);
 
 /// Reads `HIDLAB_LOG` (error, warn, info, debug; default info) and whether
@@ -75,7 +84,38 @@ pub fn format_line(level: Level, journal: bool, msg: fmt::Arguments<'_>) -> Stri
     }
 }
 
+/// `HH:MM:SS UTC` of a Unix time.
+pub fn clock(unix: u64) -> String {
+    let s = unix % 86_400;
+    format!("{:02}:{:02}:{:02} UTC", s / 3600, s / 60 % 60, s % 60)
+}
+
+fn remember(level: Level, msg: &fmt::Arguments<'_>) {
+    if level > Level::Info {
+        return;
+    }
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    let line = format!("{} {}: {msg}", clock(now), level.label());
+    if let Ok(mut recent) = RECENT.lock() {
+        if recent.len() == RECENT_LINES {
+            recent.pop_front();
+        }
+        recent.push_back(line);
+    }
+}
+
+/// The remembered lines, oldest first.
+pub fn recent() -> Vec<String> {
+    RECENT
+        .lock()
+        .map(|r| r.iter().cloned().collect())
+        .unwrap_or_default()
+}
+
 pub fn write(level: Level, msg: fmt::Arguments<'_>) {
+    remember(level, &msg);
     if enabled(level) {
         eprintln!(
             "{}",
@@ -109,5 +149,19 @@ mod tests {
         );
         assert_eq!(Level::parse("warning"), Some(Level::Warn));
         assert_eq!(Level::parse("loud"), None);
+    }
+
+    #[test]
+    fn keeps_recent_lines_without_debug() {
+        write(Level::Debug, format_args!("raw 11 ff 00"));
+        write(Level::Warn, format_args!("kept for diagnostics"));
+        let recent = recent();
+        assert!(
+            recent
+                .iter()
+                .any(|l| l.ends_with("warning: kept for diagnostics"))
+        );
+        assert!(!recent.iter().any(|l| l.contains("raw 11 ff 00")));
+        assert_eq!(clock(86_400 + 3661), "01:01:01 UTC");
     }
 }
