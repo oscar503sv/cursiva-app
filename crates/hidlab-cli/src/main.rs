@@ -54,6 +54,7 @@ fn main() -> ExitCode {
         Command::Set(a) => user::set(&a),
         Command::Reset(a) => user::reset(&a),
         Command::Buttons(a) => user::buttons(&a),
+        Command::Diagnostics => user::diagnostics(),
         Command::Reapply { json } => user::reapply(json),
     };
     match result {

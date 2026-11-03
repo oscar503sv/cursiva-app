@@ -81,6 +81,13 @@ fn report_result(r: &ApplyReport) -> Result<(), String> {
     }
 }
 
+/// `hid-lab diagnostics`: the daemon's sanitized report, as is.
+pub fn diagnostics() -> Result<(), String> {
+    let report: String = call_value("GetDiagnostics", &())?;
+    print!("{report}");
+    Ok(())
+}
+
 pub fn status(json: bool) -> Result<(), String> {
     let s: Status = call("GetStatus", &())?;
     if json {
@@ -94,6 +101,14 @@ pub fn status(json: bool) -> Result<(), String> {
             d.name, d.node, d.bus, d.vendor_id, d.product_id, d.access
         ),
         None => println!("Mouse:   not connected"),
+    }
+    match s.start_at_login {
+        Some(true) => println!("Login:   starts at login"),
+        Some(false) => println!(
+            "Login:   does not start at login (settings apply once the app or CLI runs); \
+             to change: systemctl --user enable hid-labd.service"
+        ),
+        None => {}
     }
     if let Some(b) = &s.battery {
         println!(

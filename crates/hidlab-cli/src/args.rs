@@ -11,6 +11,7 @@ Usage:
   hid-lab reset (<setting> | all) [--json]
   hid-lab reapply [--json]
   hid-lab buttons [--duration <s>] [--json]
+  hid-lab diagnostics
   hid-lab lab devices [--json] [--show-unique]
   hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
   hid-lab lab read [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -20,7 +21,7 @@ Usage:
   hid-lab lab write <setting> --restore [<device>] (--dry-run | --write) [--json]
   hid-lab --help | --version
 
-status, set, reset, reapply and buttons talk to the daemon hid-labd
+status, set, reset, reapply, buttons and diagnostics talk to the daemon hid-labd
 (docs/daemon.md).
 Settings: dpi <n>, smartshift-mode <ratchet|free-spin>,
 smartshift-threshold <1..50|off|on>, thumbwheel-invert <on|off>,
@@ -64,6 +65,17 @@ and saves it: the mode in its state file, everything else in
 GNOME pointer settings (stored by GNOME, for every mouse):
   natural-scroll <on|off>       content follows the fingers
   acceleration <default|flat|adaptive>
+";
+
+pub const DIAGNOSTICS_HELP: &str = "\
+hid-lab diagnostics — print a report to attach to a bug report
+
+Usage: hid-lab diagnostics > cursiva-diagnostics.txt
+
+Asks hid-labd for versions, the Logitech devices it sees, its status, the
+config and state files and its recent log. Your home directory, user and
+computer names and Bluetooth addresses are removed; read the report before
+sharing it anyway. Nothing is written to the mouse.
 ";
 
 pub const BUTTONS_HELP: &str = "\
@@ -268,6 +280,7 @@ pub enum HelpTopic {
     Reset,
     Reapply,
     Buttons,
+    Diagnostics,
 }
 
 impl HelpTopic {
@@ -285,6 +298,7 @@ impl HelpTopic {
             HelpTopic::Set => SET_HELP,
             HelpTopic::Reset => RESET_HELP,
             HelpTopic::Buttons => BUTTONS_HELP,
+            HelpTopic::Diagnostics => DIAGNOSTICS_HELP,
             HelpTopic::Reapply => REAPPLY_HELP,
         }
     }
@@ -379,6 +393,7 @@ pub enum Command {
     },
     /// `hid-lab buttons`: same options as `lab hotplug`.
     Buttons(HotplugArgs),
+    Diagnostics,
 }
 
 /// Parses arguments (without the program name). `Err` is a usage message.
@@ -414,6 +429,13 @@ where
         Some("set") => parse_set(it.collect()),
         Some("reset") => parse_reset(it.collect()),
         Some("buttons") => parse_buttons(it.collect()),
+        Some("diagnostics") => match it.next() {
+            None => Ok(Command::Diagnostics),
+            Some("-h" | "--help") => Ok(Command::Help(HelpTopic::Diagnostics)),
+            Some(other) => Err(format!(
+                "unexpected `{other}`. Try: hid-lab diagnostics > cursiva-diagnostics.txt"
+            )),
+        },
         Some(other) => Err(format!("unknown command `{other}`. Try: hid-lab --help")),
     }
 }
@@ -965,6 +987,12 @@ mod tests {
             Ok(Command::Help(HelpTopic::Buttons))
         );
         assert!(parse(["buttons", "x"]).is_err());
+        assert_eq!(parse(["diagnostics"]), Ok(Command::Diagnostics));
+        assert_eq!(
+            parse(["diagnostics", "--help"]),
+            Ok(Command::Help(HelpTopic::Diagnostics))
+        );
+        assert!(parse(["diagnostics", "--json"]).is_err());
         assert!(parse(["reset", "wheel-mode"]).is_err());
         assert!(parse(["set", "dpi"]).is_err());
         assert!(parse(["set", "dpi", "fast"]).is_err());
