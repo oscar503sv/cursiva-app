@@ -12,8 +12,8 @@ cuando la computadora se reinicia o sale de la suspensión.
 
 > **Estado: desarrollo temprano.** El servicio y la herramienta de línea de
 > comandos ya funcionan por Bluetooth. La app de escritorio está en
-> construcción: muestra el ratón y su estado, y ajusta puntero y
-> desplazamiento; sus otras páginas siguen las
+> construcción: muestra el ratón y su estado, y ajusta puntero,
+> desplazamiento y botones; sus otras páginas siguen las
 > [maquetas](docs/mockups/index.html). Todavía no hay paquetes.
 
 ## Qué funciona hoy
@@ -109,8 +109,8 @@ cd cursiva-app
    `hid-lab set --help` muestra todos los ajustes.
 
 4. Prueba la app (temprana: muestra el ratón, su batería y los ajustes
-   activos, y cambia los ajustes de puntero y desplazamiento; los botones
-   llegan después). Desde la carpeta del código:
+   activos, y cambia los ajustes de puntero, desplazamiento y botones).
+   Desde la carpeta del código:
 
    ```bash
    cargo run -p hidlab-gtk

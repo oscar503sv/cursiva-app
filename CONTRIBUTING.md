@@ -59,8 +59,9 @@ GDK_BACKEND=broadway BROADWAY_DISPLAY=:5 CURSIVA_DEV_SCREENSHOT=/tmp/pointer.png
   CURSIVA_DEV_PAGE=pointer CURSIVA_DEV_SIZE=1000x1400 cargo run -p hidlab-gtk
 ```
 
-`CURSIVA_DEV_PAGE` is `home`, `pointer`, `pointer:wheel`, `pointer:thumb`
-or `buttons`; `CURSIVA_DEV_DELAY_MS` (default 3000) is the wait before the
+`CURSIVA_DEV_PAGE` is `home`, `pointer`, `pointer:wheel`, `pointer:thumb`,
+`buttons` or `buttons:<button>` (`middle`, `back`, `forward`, `gesture`,
+`mode`: the page with that button's action picker open); `CURSIVA_DEV_DELAY_MS` (default 3000) is the wait before the
 capture. Broadway's socket lives in `$XDG_RUNTIME_DIR`; a path longer than
 about 100 characters makes it fail with "address already in use".
 

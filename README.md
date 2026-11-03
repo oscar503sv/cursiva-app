@@ -12,7 +12,7 @@ the computer reboots or wakes up.
 
 > **Status: early development.** The service and the command-line tool work
 > today over Bluetooth. The desktop app is being built: it shows the mouse
-> and its state and sets pointer and scrolling; its other pages follow the
+> and its state and sets pointer, scrolling and buttons; its other pages follow the
 > [mockups](docs/mockups/index.html). Nothing here is packaged yet.
 
 ## What works today
@@ -105,8 +105,8 @@ cd cursiva-app
    `hid-lab set --help` lists every setting.
 
 4. Try the app (early: it shows the mouse, its battery and the active
-   settings, and changes pointer and scrolling settings; buttons come
-   next). From the source folder:
+   settings, and changes pointer, scrolling and button settings). From the
+   source folder:
 
    ```bash
    cargo run -p hidlab-gtk

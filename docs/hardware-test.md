@@ -1162,3 +1162,102 @@ Run by the user with the phase 5e app; no captures kept.
 | H5E-07 | Pass | |
 | H5E-08 | Pass | |
 | H5E-09 | Pass | |
+
+## M5f — Buttons page and action picker (MX Master 3S over Bluetooth)
+
+Tests H5F check that the app remaps buttons through the daemon, shows a
+toast with Undo, lights pressed buttons live, and that the daemon keeps
+the remaps after power-off. Use a web browser for the button tests, as in
+M5b. Do not run Solaar, logid or any other mouse tool. The daemon did
+not change in 5f.
+
+### Preparation
+
+The tests change your config; save it first, the last step puts it back.
+
+```bash
+mkdir -p ~/hidlab-m5f
+cp ~/.config/hid-lab/config.toml ~/hidlab-m5f/config.toml.bak 2>/dev/null
+cp ~/.local/state/hid-lab/daemon/state.toml ~/hidlab-m5f/state.toml.bak 2>/dev/null
+cargo run -p hidlab-gtk
+```
+
+Open "Buttons".
+
+### H5F-01 — The list
+
+Expect five rows (Wheel button, Mode button, Forward, Back, Gesture
+button) with their place and current action, the note about left and
+right click, and the same actions as the `remap-` rows of
+`hid-lab status`.
+
+### H5F-02 — Remap from the picker
+
+1. Click the Back row. Expect a dialog "Back · Choose what it does" with
+   the actions the mouse allows; "Back (default)" has a check mark.
+2. Type "tab" in the search: only "Middle click" stays. Clear the search.
+3. Choose "Middle click". Expect the dialog to close, a toast "Back now
+   does "Middle click"" with Undo, and the row to say Middle click.
+4. In the browser, press Back over a link: it opens in a new tab.
+   `hid-lab status` shows `remap-back` as middle.
+5. Undo: Back goes to the previous page again.
+
+### H5F-03 — Live presses
+
+1. With the Buttons page open, press and hold each button in turn (wheel
+   button, forward, back, gesture). Expect its part of the drawing to
+   turn yellow and its row to be highlighted while held.
+2. Press the mode button: it lights briefly.
+3. Remap Back to Middle click, then press Back. Expect both Back and the
+   Wheel button to light: the mouse reports the task (middle), not which
+   button did it. Undo afterwards.
+4. Go to Home and press a button: nothing lights there. Come back to
+   Buttons: presses light again.
+
+### H5F-04 — From the drawings
+
+1. On Home, click the back button in the drawing. Expect the Buttons
+   page with the Back picker open.
+2. On Home, click the left button. Expect the Buttons page and a toast
+   saying left and right click are not reassigned.
+3. On the Buttons page, click the wheel in the drawing: the Wheel button
+   picker opens. Click the thumb wheel: nothing happens (it is greyed;
+   it is set on the Pointer page).
+
+### H5F-05 — Gesture and mode buttons
+
+1. Gesture button → Back. Press it in the browser: goes back.
+2. Mode button → Middle click. Press it: middle click (the wheel mode no
+   longer changes). Then Mode button → "Switch wheel mode (default)".
+
+### H5F-06 — Kept after power-off, Restore All
+
+1. Set Back → Middle click and Gesture → Back. Switch the mouse off, wait
+   10 s, switch it on and move it. Expect both rows to keep their actions
+   and the buttons to work that way.
+2. Restore All. Expect a toast "Every button does its own task again",
+   every row back to its own action; Undo puts the two remaps back. Then
+   Restore All again.
+
+### H5F-07 — Narrow window
+
+Make the window narrow and open a picker. Expect it to come up from the
+bottom as a sheet; choosing works the same.
+
+### End
+
+Put your settings back and check:
+
+```bash
+cp ~/hidlab-m5f/config.toml.bak ~/.config/hid-lab/config.toml 2>/dev/null
+cp ~/hidlab-m5f/state.toml.bak ~/.local/state/hid-lab/daemon/state.toml 2>/dev/null
+systemctl --user restart hid-labd.service
+hid-lab status
+```
+
+If there was no backup (no config before), run `hid-lab reset all`
+instead of the two `cp` lines.
+
+### What to send back
+
+For each test: pass or fail and what you saw.
