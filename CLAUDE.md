@@ -27,7 +27,7 @@ The user communicates in **Spanish**. Reply in Spanish; code, comments, commit m
 | 3 Read-only features | Done, hardware tests H3 passed (observation O-5) |
 | 4 Hotplug, `lab write`, daemon, re-application (Bluetooth only) | Done. 4a (H4, O-6), 4b (H4B, O-7), 4c (§7 acceptance M4c, O-9) |
 | B Logi Bolt receiver | Scheduled after 4; not part of the MVP (Bluetooth only) |
-| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 done (H5C, O-12). 5d GTK app skeleton done (`cursiva`, H5D passed). 5e Pointer & scrolling page done (H5E passed after two slider fixes). 5f Buttons page and action picker done (H5F passed). Next: 5g first-run guide, Preferences, export diagnostics |
+| 5 GUI MVP | Approved 2026-11-02 (plan: phases 5a–5h, see requirements Milestone 5). 5a mockups approved (`docs/mockups/`). 5b done (H5, O-10: threshold `off` and 0x1B04 remap CONFIRMED). 5c daemon API v2 done (H5C, O-12). 5d GTK app skeleton done (`cursiva`, H5D passed). 5e Pointer & scrolling page done (H5E passed after two slider fixes). 5f Buttons page and action picker done (H5F passed). 5g problem screens, Preferences, diagnostics built; H5G pending |
 | 6–8 | Not started; do not start without approval |
 
 ## Known facts about the target (CONFIRMED on the user's machine)
@@ -72,6 +72,7 @@ hid-lab set      <setting> <value> [--json]     # also remap-<button>, natural-s
 hid-lab reset    (<setting> | all) [--json]
 hid-lab reapply  [--json]
 hid-lab buttons  [--duration <s>] [--json]
+hid-lab diagnostics                             # sanitized report (GetDiagnostics)
 hid-lab lab devices  [--json] [--show-unique]
 hid-lab lab features [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
 hid-lab lab read     [<device>] [--json] [--index <n>] [--timeout-ms <ms>] [--show-unique]
@@ -82,7 +83,7 @@ hid-lab lab write    <setting> (<value> | --restore) [<device>] (--dry-run | --w
 
 `lab write` state (saved originals, `log.jsonl`) lives in `$XDG_STATE_HOME/hid-lab/lab-write/`. `lab write --write` refuses while `hid-labd` owns its D-Bus name.
 
-Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, D-Bus activation file `packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`, plus the GNOME settings `natural-scroll` and `accel-profile` (via `gsettings`) when asked with `SetDesktop`. Never call `SetDesktop`, `Set` or `Reset` on the user's real session from Claude Code. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written. The user's own `hid-labd.service` normally runs: never stop or restart it; run a test instance on a private bus with `dbus-run-session`.
+Daemon (`docs/daemon.md`): systemd user unit `packaging/systemd/hid-labd.service`, D-Bus activation file `packaging/dbus/dev.ozkkar.Cursiva.Daemon1.service`, config `~/.config/hid-lab/config.toml` (`docs/config-format.md`), state `$XDG_STATE_HOME/hid-lab/daemon/state.toml`, requests with sw_id `0x0C`. It writes only `CONFIRMED_WRITES` through `WriteAuth::Confirmed`, plus the GNOME settings `natural-scroll` and `accel-profile` (via `gsettings`) when asked with `SetDesktop`. Never call `SetDesktop`, `Set` or `Reset` on the user's real session from Claude Code. Never call `SetStartAtLogin` (not even on a private bus: it runs `systemctl --user`, which reaches the real user manager) and never run `systemctl --user enable/disable` from Claude Code. Never run a daemon test against the user's real config from Claude Code: use `XDG_CONFIG_HOME`/`XDG_STATE_HOME` in the scratchpad and an empty config, so nothing is written. The user's own `hid-labd.service` normally runs: never stop or restart it; run a test instance on a private bus with `dbus-run-session`.
 
 Dependencies: `libc`, `serde`, `serde_json`, `thiserror`, `udev` (needs `systemd-devel` to build), `zbus` 5.13.2 (blocking API; 6.0.0 dropped it), `toml`. The app only: `gtk4` 0.11.5 (features `v4_18`), `libadwaita` 0.9.2 (`v1_7`), `gettext-rs` 0.8.0 (`gettext-system`); it needs Rust 1.92, `gtk4-devel`, `libadwaita-devel` and `gettext` (msgfmt). Explain why before adding any other crate, and verify its current version with `cargo info`.
 

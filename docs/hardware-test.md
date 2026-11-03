@@ -1276,3 +1276,170 @@ captures kept.
 | H5F-05 | Pass |
 | H5F-06 | Pass |
 | H5F-07 | Pass |
+
+## M5g — Problem screens, Preferences and diagnostics (MX Master 3S over Bluetooth)
+
+Tests H5G check the screens the app shows when something is wrong (no
+mouse, no permission, service stopped, another configurator), the main
+menu, Preferences (start at login, troubleshooting) and the diagnostics
+report. The daemon gained `SetStartAtLogin`, `GetDiagnostics` and status
+4, so it is installed again first. Do not run Solaar, logid or any other
+mouse tool; H5G-08 uses a fake `solaar` as in H4B-06. No setting of the
+mouse is changed in these tests.
+
+### Preparation
+
+```bash
+mkdir -p ~/hidlab-m5g
+cargo install --path crates/hidlab-daemon --root ~/.local
+cargo install --path crates/hidlab-cli --root ~/.local
+systemctl --user restart hid-labd.service
+systemctl --user is-enabled hid-labd.service
+hid-lab status
+cargo run -p hidlab-gtk
+```
+
+Note what `is-enabled` printed (normally `enabled`). Expect `hid-lab
+status` to end with a `Login:` line that agrees with it.
+
+### H5G-01 — Main menu and About
+
+1. Click ☰ at the top of the sidebar. Expect Preferences, About Cursiva
+   and Quit.
+2. About Cursiva: name, "Oscar Aragon", version 0.1.0, "Report an Issue";
+   under Legal, GPL 3.0 and the trademark note. Close it.
+3. Ctrl+, opens Preferences; close it. Ctrl+Q closes the app; start it
+   again with `cargo run -p hidlab-gtk`.
+
+### H5G-02 — Preferences
+
+1. Open Preferences. Expect "Apply my settings when I log in" on if
+   `is-enabled` said `enabled`; Service "Running · hid-labd 0.1.0"; and
+   "Last time your settings were applied" with when and how long, for
+   example "When the service started, 2 min ago · verified twice in …".
+2. Turn the switch off. Then in a terminal:
+   `systemctl --user is-enabled hid-labd.service`. Expect `disabled`;
+   the daemon keeps running (`hid-lab status` works).
+3. Turn the switch on. Expect `enabled` again. Leave it on (or as it was
+   in the preparation).
+
+### H5G-03 — Export diagnostics
+
+1. In Preferences, Export Diagnostics; save as
+   `~/hidlab-m5g/diagnostics.txt`. Expect a toast "Diagnostics saved to
+   diagnostics.txt".
+2. Check it hides your names and addresses (each count should be 0):
+
+   ```bash
+   head -3 ~/hidlab-m5g/diagnostics.txt
+   grep -c "$HOME" ~/hidlab-m5g/diagnostics.txt
+   grep -c "$USER" ~/hidlab-m5g/diagnostics.txt
+   grep -c "$(hostname)" ~/hidlab-m5g/diagnostics.txt
+   grep -ciE '([0-9a-f]{2}:){5}[0-9a-f]{2}' ~/hidlab-m5g/diagnostics.txt
+   hid-lab diagnostics | head -3
+   ```
+
+   Expect the first line `hid-lab.diagnostics/1`. Read the file through:
+   it should hold nothing you would not post in a public issue.
+
+### H5G-04 — Service stopped
+
+1. With the app open on Home: `systemctl --user stop hid-labd.service`.
+   Expect "The Cursiva service isn't running" with "Start the Service" and
+   "Copy Diagnostics".
+2. Start the Service. Expect Home with the mouse again within a few
+   seconds (D-Bus activation started it). `systemctl --user is-active
+   hid-labd.service` says `active`.
+3. Stop it again and press Copy Diagnostics, then paste in a text editor.
+   Expect the daemon's report (`hid-lab.diagnostics/1`): asking for it
+   starts the service again, so Home comes back too.
+
+### H5G-05 — Service that cannot start
+
+1. Hide the activation file and stop the service:
+
+   ```bash
+   mv ~/.local/share/dbus-1/services/dev.ozkkar.Cursiva.Daemon1.service ~/hidlab-m5g/
+   busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
+   systemctl --user stop hid-labd.service
+   ```
+
+2. Start the Service: the screen stays, with a message saying the service
+   is not installed. Copy Diagnostics, paste: expect a short report whose
+   first line is `cursiva.app-report/1`, with `~` instead of your home
+   folder.
+3. Put it back and start:
+
+   ```bash
+   mv ~/hidlab-m5g/dev.ozkkar.Cursiva.Daemon1.service ~/.local/share/dbus-1/services/
+   busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
+   systemctl --user start hid-labd.service
+   ```
+
+   Start the Service in the app: Home comes back.
+
+### H5G-06 — No permission
+
+1. Take the udev rule away, then switch the mouse off and on so its
+   device node is created without access:
+
+   ```bash
+   sudo mv /etc/udev/rules.d/70-hid-lab-logitech.rules ~/hidlab-m5g/
+   sudo udevadm control --reload
+   ```
+
+   The mouse still moves the pointer (the kernel drives it). Expect
+   "Cursiva can't reach the mouse" with the commands, a Copy button and
+   "Then switch the mouse off and on". The Pointer and Buttons pages say
+   the same in one line.
+2. Copy, paste into a terminal and run it (it asks for your password).
+   Switch the mouse off and on. Expect Home with the mouse.
+3. Compare the installed rule with the original, then put the original
+   (with its comments) back:
+
+   ```bash
+   diff <(grep -v '^#' ~/hidlab-m5g/70-hid-lab-logitech.rules | grep -v '^$') \
+     /etc/udev/rules.d/70-hid-lab-logitech.rules && echo same
+   sudo cp ~/hidlab-m5g/70-hid-lab-logitech.rules /etc/udev/rules.d/
+   ```
+
+### H5G-07 — No mouse
+
+1. Switch the mouse off. Expect "Looking for your mouse" with the three
+   steps.
+2. Open Bluetooth Settings: GNOME Settings opens on Bluetooth. Close it.
+3. Switch the mouse on and move it: Home comes back.
+
+### H5G-08 — Another configurator
+
+1. Start a fake `solaar` (a copy of `sleep`, it touches nothing):
+
+   ```bash
+   cp /usr/bin/sleep ~/hidlab-m5g/solaar && ~/hidlab-m5g/solaar 120 &
+   ```
+
+   Click the app window. Expect a banner "solaar is running and may also
+   change the mouse" above the page, also on Pointer and Buttons.
+2. How?: a dialog explains why and how to quit Solaar. Close.
+3. `pkill -f hidlab-m5g/solaar`, click the window: the banner goes away.
+
+### H5G-09 — Spanish and narrow window
+
+Run `LANGUAGE=es cargo run -p hidlab-gtk` and make the window narrow.
+Repeat H5G-07 step 1 and open Preferences: everything is in Spanish and
+fits.
+
+### End
+
+```bash
+systemctl --user is-enabled hid-labd.service
+rm -f ~/hidlab-m5g/solaar
+hid-lab status
+```
+
+`is-enabled` should print what it printed in the preparation.
+
+### What to send back
+
+For each test: pass or fail and what you saw. Keep
+`~/hidlab-m5g/diagnostics.txt` to yourself unless you want it reviewed.
