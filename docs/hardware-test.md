@@ -1261,3 +1261,18 @@ instead of the two `cp` lines.
 ### What to send back
 
 For each test: pass or fail and what you saw.
+
+### M5f results (2026-11-02)
+
+Run by the user with the phase 5f app; reported as all passing, no
+captures kept.
+
+| Test | Result |
+|---|---|
+| H5F-01 | Pass |
+| H5F-02 | Pass |
+| H5F-03 | Pass |
+| H5F-04 | Pass |
+| H5F-05 | Pass |
+| H5F-06 | Pass |
+| H5F-07 | Pass |
