@@ -1057,10 +1057,10 @@ Note the two `gsettings` values. Start the app with
 
 ### H5E-01 — Pointer speed
 
-1. Drag the Speed slider to about 1600 and let go. Expect the value on the
-   right to follow while dragging, and, about a third of a second after
-   you stop, a toast "Pointer speed: 1600 DPI" with Undo. The pointer
-   moves faster.
+1. Drag the Speed slider slowly to about 1600, pausing on the way, and
+   let go. Expect the value on the right to follow in steps of 50 while
+   dragging, and one toast "Pointer speed: 1600 DPI" with Undo after you
+   let go. The pointer moves faster.
 2. `hid-lab status`: `dpi` shows the new value, `ok`.
 3. Click Undo in a new change's toast (repeat step 1, then Undo). Expect
    the slider and the pointer back to the value before; `hid-lab status`
@@ -1153,7 +1153,7 @@ Run by the user with the phase 5e app; no captures kept.
 
 | Test | Result | Notes |
 |---|---|---|
-| H5E-01 | Fail, fixed | Dragging the Speed slider gave only about 3000 or 8000 DPI. Cause: the slider rounded its position to whole numbers, and positions are ln(DPI), so only about 200, 400, 1100, 3000 and 8000 were reachable. Typed values worked. Fixed (no rounding; a test drives the slider as a drag does); to repeat |
+| H5E-01 | Fail, fixed | Dragging the Speed slider gave only about 3000 or 8000 DPI. Cause: the slider rounded its position to whole numbers, and positions are ln(DPI), so only about 200, 400, 1100, 3000 and 8000 were reachable. Typed values worked. Fixed (no rounding; a test drives the slider as a drag does). Repeated: every step reached, but a slow drag from 1000 to 1600 showed one toast per 50 DPI, because each pause over 300 ms sent a change. Fixed: a drag sends once on release, and quick changes of one setting share a toast whose Undo goes back to before the first; to repeat |
 | H5E-02 | Pass | |
 | H5E-03 | Pass | |
 | H5E-04 | Pass | |
